@@ -199,10 +199,16 @@ public class DecisionBuilder {
     static class PeerStep extends DecisionStep {
         PeerStep(String stepId) { super(stepId) }
 
-        List<EventType> getFinalEventTypes() { throw new UnsupportedOperationException("Should never be called") }
+        @Override
+        EventType getSuccessEventType() {
+            throw new UnsupportedOperationException("Should never be called")
+        }
+
+        @Override
+        List<EventType> getFailEventTypes() {
+            throw new UnsupportedOperationException("Should never be called")
+        }
 
         List<Decision> decide() { throw new UnsupportedOperationException("Should never be called") }
-
-        Map<String, String> getOutput() { throw new UnsupportedOperationException("Should never be called") }
     }
 }
