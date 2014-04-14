@@ -35,7 +35,7 @@ public class DecisionBuilder {
     }
 
     public DecisionBuilder activity(String stepId, String name) {
-        List<DecisionStep> values = new ArrayList<>(stepMap.values());
+        List<DecisionStep> values = getSteps();
         reverse(values);
         for (DecisionStep value : values) {
             if (value instanceof ActivityDecisionStep) {
@@ -47,6 +47,7 @@ public class DecisionBuilder {
         }
         throw new IllegalArgumentException(format("Activity '%s' not found, version required for %s '%s'", name, STEP_CLASS_NAME, stepId));
     }
+
 
     public DecisionBuilder retry(int times, long retryWaitInMillis) {
         assertLastExists();
@@ -71,7 +72,7 @@ public class DecisionBuilder {
         return this;
     }
 
-    DecisionBuilder group(String groupId) {
+    public DecisionBuilder group(String groupId) {
         assertLastExists();
         if (stepMap.containsKey(groupId)) {
             throw new IllegalArgumentException(format("Identifier must be unique or point to an existing group: " + groupId));
@@ -86,6 +87,10 @@ public class DecisionBuilder {
     public DecisionBuilder mark() {
         decisionGroupCounter++;
         return this;
+    }
+
+    public ArrayList<DecisionStep> getSteps() {
+        return new ArrayList<>(stepMap.values());
     }
 
     public String toString() {

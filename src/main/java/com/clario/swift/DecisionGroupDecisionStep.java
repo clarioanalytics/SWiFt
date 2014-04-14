@@ -4,7 +4,6 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.SignalExternalWorkflowExecutionDecisionAttributes;
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +51,8 @@ public class DecisionGroupDecisionStep extends DecisionStep {
     }
 
     public static int parseStepId(String marker) {
-        return DefaultGroovyMethods.toInteger(DefaultGroovyMethods.minus(marker, DECISION_GROUP_PREFIX));
+        String num = marker.replaceFirst(DECISION_GROUP_PREFIX, "");
+        return Integer.parseInt(num);
     }
 
     public Decision createSignalExternalWorkflowExecution(String output, String control) {

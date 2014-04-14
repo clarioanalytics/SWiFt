@@ -2,7 +2,6 @@ package com.clario.swift;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import groovy.util.logging.Slf4j;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,7 +11,6 @@ import java.util.Map;
  *
  * @author George Coller
  */
-@Slf4j
 public class MapSerializer {
     public Map<String, String> unmarshal(String value) {
         Map<String, String> map = new LinkedHashMap<>();

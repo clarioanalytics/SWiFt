@@ -9,7 +9,6 @@ import com.amazonaws.transform.ListUnmarshaller;
 import com.amazonaws.transform.Unmarshaller;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
-import spock.lang.Specification;
 
 import java.util.List;
 

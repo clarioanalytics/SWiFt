@@ -1,8 +1,6 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
-import groovy.json.JsonOutput;
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +33,7 @@ public abstract class BasePoller implements Runnable {
     }
 
     public void run() {
-        log.info("Start " + DefaultGroovyMethods.toString(this));
+        log.info("Start " + this);
         while (isRunning) {
             try {
                 poll();
@@ -72,7 +70,7 @@ public abstract class BasePoller implements Runnable {
         map.put("id", id);
         map.put("domain", domain);
         map.put("taskList", taskList);
-        return JsonOutput.toJson(map);
+        return SwiftUtil.toJson(map);
     }
 
     public final Logger getLog() {
