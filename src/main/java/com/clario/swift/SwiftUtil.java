@@ -58,4 +58,17 @@ public class SwiftUtil {
     public static <T> T defaultIfNull(T value, T replacement) {
         return value == null ? replacement : value;
     }
+
+    public static String join(List<String> items, String separator) {
+        separator = defaultIfNull(separator, "");
+        int size = items.size();
+        StringBuilder b = new StringBuilder((10 + separator.length()) * items.size());
+        for (int i = 0; i < size; i++) {
+            b.append(items.get(i));
+            if (i < size - 1) {
+                b.append(separator);
+            }
+        }
+        return b.toString();
+    }
 }

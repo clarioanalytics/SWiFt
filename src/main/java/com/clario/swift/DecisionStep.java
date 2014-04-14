@@ -3,10 +3,7 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.clario.swift.SwiftUtil.firstOrNull;
 import static com.clario.swift.SwiftUtil.isNotEmpty;
@@ -16,13 +13,13 @@ import static com.clario.swift.SwiftUtil.isNotEmpty;
  *
  * @author George Coller
  */
-public abstract class DecisionStep {
+public abstract class DecisionStep implements Comparable<DecisionStep> {
     /**
      * User-defined activity identifier, must be unique per instance.
      */
     private final String stepId;
-    private final List<DecisionStep> parents = new ArrayList<>();
-    private final List<DecisionStep> children = new ArrayList<>();
+    private final Set<DecisionStep> parents = new TreeSet<>();
+    private final Set<DecisionStep> children = new TreeSet<>();
     /**
      * Decision group this step is part of.
      * Workflows that will generate many history events should be broken up into several decision groups.
@@ -177,12 +174,19 @@ public abstract class DecisionStep {
         return historyInspector.stepEvents(stepId);
     }
 
+    @Override
     public boolean equals(Object o) {
         return this == o || o instanceof DecisionStep && stepId.equals(((DecisionStep) o).stepId);
     }
 
+    @Override
     public int hashCode() {
         return stepId.hashCode();
+    }
+
+    @Override
+    public int compareTo(DecisionStep decisionStep) {
+        return stepId.compareTo(decisionStep.stepId);
     }
 
     public String toString() {
@@ -193,11 +197,11 @@ public abstract class DecisionStep {
         return stepId;
     }
 
-    public final List<DecisionStep> getParents() {
+    public final Set<DecisionStep> getParents() {
         return parents;
     }
 
-    public final List<DecisionStep> getChildren() {
+    public final Set<DecisionStep> getChildren() {
         return children;
     }
 
