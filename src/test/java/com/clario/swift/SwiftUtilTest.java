@@ -21,7 +21,7 @@ public class SwiftUtilTest {
     @Test
     public void testCycleEndToBeginning() {
         List<MockV> list = makeValidGraph();
-        list.get(7).addAll(list.get(0));
+        list.get(0).addAll(list.get(7));
         try {
             cycleCheck(list);
         } catch (IllegalStateException e) {
@@ -34,12 +34,12 @@ public class SwiftUtilTest {
     @Test
     public void testCycleInner() {
         List<MockV> list = makeValidGraph();
-        list.get(4).addAll(list.get(3));
         list.get(3).addAll(list.get(4));
+        list.get(4).addAll(list.get(3));
         try {
             cycleCheck(list);
         } catch (IllegalStateException e) {
-            Assert.assertEquals("Cycle detected: 0 -> 2 -> 3 -> 4 -> 3", e.getMessage());
+            Assert.assertEquals("Cycle detected: 3 -> 4 -> 3", e.getMessage());
             return;
         }
         Assert.fail();
@@ -52,22 +52,24 @@ public class SwiftUtilTest {
         try {
             cycleCheck(list);
         } catch (IllegalStateException e) {
-            Assert.assertEquals("Cycle detected: 0 -> 2 -> 4 -> 4", e.getMessage());
+            Assert.assertEquals("Cycle detected: 4 -> 4", e.getMessage());
             return;
         }
         Assert.fail();
     }
 
-    public List<MockV> makeValidGraph() {
+    private List<MockV> makeValidGraph() {
         MockV[] vs = new MockV[8];
         for (int i = 0; i < vs.length; i++) {
             vs[i] = new MockV(String.valueOf(i));
         }
-        vs[0].addAll(vs[1], vs[2], vs[6]);
-        vs[1].addAll(vs[3], vs[5]);
-        vs[2].addAll(vs[3], vs[4], vs[5]);
-        vs[4].addAll(vs[6]);
-        vs[5].addAll(vs[7]);
+        vs[1].addAll(vs[0]);
+        vs[2].addAll(vs[0]);
+        vs[3].addAll(vs[1], vs[2]);
+        vs[4].addAll(vs[2]);
+        vs[5].addAll(vs[1], vs[2]);
+        vs[6].addAll(vs[0], vs[4]);
+        vs[7].addAll(vs[5]);
         List<MockV> list = new ArrayList<>();
         Collections.addAll(list, vs);
         return list;
@@ -76,21 +78,19 @@ public class SwiftUtilTest {
 
     private static class MockV implements Vertex {
         private final String stepId;
-        private final Set<MockV> children = new HashSet<>();
+        private final Set<MockV> parents = new HashSet<>();
 
         private MockV(String stepId) {
             this.stepId = stepId;
         }
 
-        void addAll(MockV... kids) {
-            Collections.addAll(children, kids);
-        }
+        void addAll(MockV... parents) { Collections.addAll(this.parents, parents); }
 
         @Override
         public String getStepId() { return stepId; }
 
         @Override
-        public Set<? extends Vertex> getChildren() { return children; }
+        public Set<? extends Vertex> getParents() { return parents; }
 
         @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
         public boolean equals(Object o) { return stepId.equals(((MockV) o).stepId); }

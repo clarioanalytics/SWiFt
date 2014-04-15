@@ -19,7 +19,7 @@ public abstract class DecisionStep implements Comparable<DecisionStep>, Vertex {
      */
     private final String stepId;
     private final Set<DecisionStep> parents = new TreeSet<>();
-    private final Set<DecisionStep> children = new TreeSet<>();
+
     /**
      * Decision group this step is part of.
      * Workflows that will generate many history events should be broken up into several decision groups.
@@ -143,7 +143,7 @@ public abstract class DecisionStep implements Comparable<DecisionStep>, Vertex {
     public DecisionStep addParents(DecisionStep... parentDecisionSteps) {
         for (DecisionStep step : parentDecisionSteps) {
             DecisionStep.this.parents.add(step);
-            step.children.add(DecisionStep.this);
+//            step.children.add(DecisionStep.this);
         }
         return this;
     }
@@ -174,35 +174,12 @@ public abstract class DecisionStep implements Comparable<DecisionStep>, Vertex {
         return historyInspector.stepEvents(stepId);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return this == o || o instanceof DecisionStep && stepId.equals(((DecisionStep) o).stepId);
-    }
-
-    @Override
-    public int hashCode() {
-        return stepId.hashCode();
-    }
-
-    @Override
-    public int compareTo(DecisionStep decisionStep) {
-        return stepId.compareTo(decisionStep.stepId);
-    }
-
-    public String toString() {
-        return getClass().getSimpleName() + ":" + stepId;
-    }
-
     public final String getStepId() {
         return stepId;
     }
 
     public final Set<DecisionStep> getParents() {
         return parents;
-    }
-
-    public final Set<DecisionStep> getChildren() {
-        return children;
     }
 
     public int getDecisionGroup() {
@@ -227,6 +204,25 @@ public abstract class DecisionStep implements Comparable<DecisionStep>, Vertex {
 
     public void setIoSerializer(MapSerializer ioSerializer) {
         this.ioSerializer = ioSerializer;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return this == o || o instanceof DecisionStep && stepId.equals(((DecisionStep) o).stepId);
+    }
+
+    @Override
+    public int hashCode() {
+        return stepId.hashCode();
+    }
+
+    @Override
+    public int compareTo(DecisionStep decisionStep) {
+        return stepId.compareTo(decisionStep.stepId);
+    }
+
+    public String toString() {
+        return getClass().getSimpleName() + ":" + stepId;
     }
 
 }

@@ -138,13 +138,13 @@ public class DecisionBuilder {
                 ActivityDecisionStep activity = (ActivityDecisionStep) step;
                 b.append(format(" '%s' '%s'", activity.getName(), activity.getVersion()));
             }
-            if (!step.getChildren().isEmpty()) {
-                List<String> kids = new ArrayList<>();
-                for (DecisionStep child : step.getChildren()) {
-                    kids.add(child.getStepId());
-                }
-                b.append(format(" children(%s)", join(kids, ", ")));
-            }
+//            if (!step.getChildren().isEmpty()) {
+//                List<String> kids = new ArrayList<>();
+//                for (DecisionStep child : step.getChildren()) {
+//                    kids.add(child.getStepId());
+//                }
+//                b.append(format(" children(%s)", join(kids, ", ")));
+//            }
             if (!step.getParents().isEmpty()) {
                 List<String> parents = new ArrayList<>();
                 for (DecisionStep child : step.getParents()) {

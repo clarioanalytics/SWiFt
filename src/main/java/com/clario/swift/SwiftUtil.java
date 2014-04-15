@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -46,15 +47,16 @@ public class SwiftUtil {
     private static void walk(List<Vertex> checked, List<Vertex> route, Vertex vertex) {
         if (route.contains(vertex)) {
             route.add(vertex);
+            Collections.reverse(route);
             throw new IllegalStateException("Cycle detected: " + join(route, " -> "));
         }
         route.add(vertex);
-        if (vertex.getChildren().isEmpty()) {
+        if (vertex.getParents().isEmpty()) {
             checked.add(vertex);
         } else {
-            for (Vertex child : vertex.getChildren()) {
-                if (!checked.contains(child)) {
-                    walk(checked, new ArrayList<>(route), child);
+            for (Vertex parent : vertex.getParents()) {
+                if (!checked.contains(parent)) {
+                    walk(checked, new ArrayList<>(route), parent);
                 }
             }
             checked.add(vertex);

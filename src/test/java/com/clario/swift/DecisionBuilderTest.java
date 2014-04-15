@@ -11,15 +11,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class DecisionBuilderTest {
     String expected = "a1 'Act 1' '1.0'\n"
-        + "a2 'Act 1' '1.0' children(b1, b2, b3)\n"
-        + "a3 'Act 2' '2.0' children(b1, b2, b3)\n"
-        + "b1 'Act 1' '1.0' children(c) parents(a2, a3)\n"
-        + "b2 'Act 2' '2.0' children(c) parents(a2, a3)\n"
-        + "b3 'Act 3' '1.0' children(c) parents(a2, a3)\n"
+        + "a2 'Act 1' '1.0'\n"
+        + "a3 'Act 2' '2.0'\n"
+        + "b1 'Act 1' '1.0' parents(a2, a3)\n"
+        + "b2 'Act 2' '2.0' parents(a2, a3)\n"
+        + "b3 'Act 3' '1.0' parents(a2, a3)\n"
         + "c 'Act 1' '2.0' parents(b1, b2, b3)\n"
         + "Decision Group 1\n"
         + "d 'Act 1' '2.0'\n"
-        + "f 'Act 3' '1.0' children(g)\n"
+        + "f 'Act 3' '1.0'\n"
         + "g 'Act 1' '2.0' parents(f)\n";
 
     @Test

@@ -10,5 +10,5 @@ import java.util.Set;
 interface Vertex {
     String getStepId();
 
-    Set<? extends Vertex> getChildren();
+    Set<? extends Vertex> getParents();
 }
