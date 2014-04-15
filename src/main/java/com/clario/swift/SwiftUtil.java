@@ -4,9 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
+
+import static java.lang.String.valueOf;
 
 /**
  * Utility methods.
@@ -33,6 +35,32 @@ public class SwiftUtil {
         }
     }
 
+
+    public static void cycleCheck(List<? extends Vertex> vertices) {
+        List<Vertex> checked = new ArrayList<>(vertices.size());
+        for (Vertex vertex : vertices) {
+            walk(checked, new ArrayList<Vertex>(), vertex);
+        }
+    }
+
+    private static void walk(List<Vertex> checked, List<Vertex> route, Vertex vertex) {
+        if (route.contains(vertex)) {
+            route.add(vertex);
+            throw new IllegalStateException("Cycle detected: " + join(route, " -> "));
+        }
+        route.add(vertex);
+        if (vertex.getChildren().isEmpty()) {
+            checked.add(vertex);
+        } else {
+            for (Vertex child : vertex.getChildren()) {
+                if (!checked.contains(child)) {
+                    walk(checked, new ArrayList<>(route), child);
+                }
+            }
+            checked.add(vertex);
+        }
+    }
+
     public static boolean isNotEmpty(String s) {
         return !(s == null || s.length() == 0);
     }
@@ -41,30 +69,16 @@ public class SwiftUtil {
         return list.isEmpty() ? null : list.get(0);
     }
 
-    public static <T> T first(List<T> list) {
-        if (list.isEmpty()) {
-            throw new NoSuchElementException("first not available on empty list");
-        }
-        return list.get(0);
-    }
-
-    public static <T> List<T> tail(List<T> list) {
-        if (list.isEmpty()) {
-            throw new NoSuchElementException("tail not available on empty list");
-        }
-        return list.subList(1, list.size());
-    }
-
     public static <T> T defaultIfNull(T value, T replacement) {
         return value == null ? replacement : value;
     }
 
-    public static String join(List<String> items, String separator) {
+    public static <T> String join(List<T> items, String separator) {
         separator = defaultIfNull(separator, "");
         int size = items.size();
         StringBuilder b = new StringBuilder((10 + separator.length()) * items.size());
         for (int i = 0; i < size; i++) {
-            b.append(items.get(i));
+            b.append(valueOf(items.get(i)));
             if (i < size - 1) {
                 b.append(separator);
             }

@@ -1,41 +1,44 @@
 package com.clario.swift;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 
 import static com.clario.swift.SwiftUtil.join;
 import static java.lang.String.format;
-import static java.util.Arrays.asList;
 import static java.util.Collections.reverse;
 
 /**
  * @author George Coller
  */
 public class DecisionBuilder {
+    public static final Logger log = LoggerFactory.getLogger(DecisionBuilder.class);
 
     private static final String STEP_CLASS_NAME = DecisionStep.class.getSimpleName();
     private final Map<String, DecisionStep> stepMap = new LinkedHashMap<>();
-    private final Map<String, Set<DecisionStep>> groupMap = new LinkedHashMap<>();
+    private final List<DecisionStep> withGroup = new ArrayList<>();
     private int decisionGroupCounter = 0;
-    private DecisionStep last;
 
     public DecisionBuilder add(DecisionStep step) {
         String id = step.getStepId();
-        if (stepMap.containsKey(id) || groupMap.containsKey(id)) {
-            throw new IllegalArgumentException(format("Identifier already used: %s", id));
+        if (stepMap.containsKey(id)) {
+            throw new IllegalArgumentException(format("%s '%s' already added", STEP_CLASS_NAME, id));
         }
         stepMap.put(id, step);
         step.setDecisionGroup(decisionGroupCounter);
-        last = step;
+        withGroup.clear();
+        withGroup.add(step);
         return this;
     }
 
     public DecisionBuilder activity(String stepId, String name, String version) {
-        DecisionStep step = new ActivityDecisionStep(stepId, name, version);
-        return add(step);
+        return add(new ActivityDecisionStep(stepId, name, version));
     }
 
     public DecisionBuilder activity(String stepId, String name) {
-        List<DecisionStep> values = getSteps();
+        // look up most recent activity with matching name and use its version
+        List<DecisionStep> values = new ArrayList<>(stepMap.values());
         reverse(values);
         for (DecisionStep value : values) {
             if (value instanceof ActivityDecisionStep) {
@@ -48,39 +51,23 @@ public class DecisionBuilder {
         throw new IllegalArgumentException(format("Activity '%s' not found, version required for %s '%s'", name, STEP_CLASS_NAME, stepId));
     }
 
-
     public DecisionBuilder retry(int times, long retryWaitInMillis) {
-        assertLastExists();
-        last.retryTimes = times;
-        last.retryWaitInMillis = retryWaitInMillis;
+        assertWithGroup();
+        for (DecisionStep step : withGroup) {
+            step.retryTimes = times;
+            step.retryWaitInMillis = retryWaitInMillis;
+        }
         return this;
     }
 
-    public DecisionBuilder parent(String... ids) {
-        assertLastExists();
-        for (String id : ids) {
-            for (DecisionStep parent : stepsFor(id)) {
-                last.addParents(parent);
+    public DecisionBuilder addParents(String parentRegExp) {
+        assertWithGroup();
+        List<DecisionStep> byMatchStepId = findSteps(parentRegExp);
+        for (DecisionStep parent : byMatchStepId) {
+            for (DecisionStep step : withGroup) {
+                step.addParents(parent);
             }
         }
-        return this;
-    }
-
-    public DecisionBuilder groupAndParent(String group, String parent) {
-        group(group);
-        parent(parent);
-        return this;
-    }
-
-    public DecisionBuilder group(String groupId) {
-        assertLastExists();
-        if (stepMap.containsKey(groupId)) {
-            throw new IllegalArgumentException(format("Identifier must be unique or point to an existing group: " + groupId));
-        }
-        if (!groupMap.containsKey(groupId)) {
-            groupMap.put(groupId, new TreeSet<DecisionStep>());
-        }
-        groupMap.get(groupId).add(last);
         return this;
     }
 
@@ -89,8 +76,54 @@ public class DecisionBuilder {
         return this;
     }
 
-    public ArrayList<DecisionStep> getSteps() {
-        return new ArrayList<>(stepMap.values());
+    // TODO: Put asserts in here to check cycles, self references, or zero size, add in DecisionGroup steps
+    public ArrayList<DecisionStep> buildStepList() {
+        ArrayList<DecisionStep> decisionSteps = new ArrayList<>(stepMap.values());
+        SwiftUtil.cycleCheck(decisionSteps);
+        return decisionSteps;
+    }
+
+    public DecisionBuilder withEach(String regExp) {
+        withGroup.clear();
+        withGroup.addAll(findSteps(regExp));
+        assertWithGroup();
+        return this;
+    }
+
+    public DecisionBuilder withEach(String... ids) {
+        withGroup.clear();
+        for (String id : ids) {
+            if (stepMap.containsKey(id)) {
+                withGroup.add(stepMap.get(id));
+            } else {
+                throw new IllegalArgumentException(format("%s '%s' not found", STEP_CLASS_NAME, id));
+            }
+        }
+        assertWithGroup();
+        return this;
+    }
+
+    public static List<DecisionStep> filterSteps(Collection<DecisionStep> steps, String regExp, boolean assertMatch) {
+        List<DecisionStep> list = new ArrayList<>();
+        for (DecisionStep step : steps) {
+            if (step.getStepId().matches(regExp)) {
+                list.add(step);
+            }
+        }
+        if (assertMatch && list.isEmpty()) {
+            throw new IllegalStateException(format("Regular expression '%s' did not find any matching %ss", regExp, STEP_CLASS_NAME));
+        }
+        return list;
+    }
+
+    private List<DecisionStep> findSteps(String regExp) {
+        return filterSteps(stepMap.values(), regExp, true);
+    }
+
+    private void assertWithGroup() {
+        if (withGroup.isEmpty()) {
+            throw new IllegalStateException(format("%s required before calling method", STEP_CLASS_NAME));
+        }
     }
 
     public String toString() {
@@ -123,21 +156,5 @@ public class DecisionBuilder {
             b.append('\n');
         }
         return b.toString();
-    }
-
-    private Collection<DecisionStep> stepsFor(String id) {
-        if (groupMap.containsKey(id)) {
-            return groupMap.get(id);
-        } else if (stepMap.containsKey(id)) {
-            return asList(stepMap.get(id));
-        } else {
-            throw new IllegalArgumentException(STEP_CLASS_NAME + " or group id does not exist: " + id);
-        }
-    }
-
-    private void assertLastExists() {
-        if (last == null) {
-            throw new IllegalStateException(format("%s required before calling method", STEP_CLASS_NAME));
-        }
     }
 }

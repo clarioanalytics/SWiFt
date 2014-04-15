@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Poll for {@link DecisionTask} on a single domain and task list.
@@ -38,14 +35,14 @@ public class WorkflowPoller extends BasePoller {
      * @param version workflow version
      * @param steps decision steps for the workflow
      */
-    public void addWorkflow(String name, String version, List<DecisionStep> steps) {
+    public void addWorkflow(String name, String version, Collection<DecisionStep> steps) {
         String key = BasePoller.makeKey(name, version);
         getLog().info("Register activity " + key);
         for (DecisionStep step : steps) {
             step.setHistoryInspector(historyInspector);
         }
 
-        workflows.put(key, steps);
+        workflows.put(key, new ArrayList<>(steps));
     }
 
     @Override
@@ -60,9 +57,7 @@ public class WorkflowPoller extends BasePoller {
                 getLog().info("poll timeout");
                 if (historyInspector.isEmpty()) {
                     return;
-// bail on poll entirely
                 }
-
             } else {
                 historyInspector.setWorkflowId(decisionTask.getWorkflowExecution().getWorkflowId());
                 historyInspector.setRunId(decisionTask.getWorkflowExecution().getRunId());
@@ -88,23 +83,22 @@ public class WorkflowPoller extends BasePoller {
     public List<Decision> decide(final DecisionTask decisionTask) {
         WorkflowType workflowType = decisionTask.getWorkflowType();
         String key = BasePoller.makeKey(workflowType.getName(), workflowType.getVersion());
-        getLog().info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + key);
         if (!workflows.containsKey(key)) {
             throw new IllegalStateException("Workflow type not registered " + String.valueOf(workflowType));
         }
+        getLog().info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + key);
 
         List<DecisionStep> steps = workflows.get(key);
 
         List<Decision> decisions = new ArrayList<>();
         int finishedSteps = 0;
         for (DecisionStep decisionStep : steps) {
-            int workflowGroup = historyInspector.getDecisionGroup();
-            if (decisionStep.getDecisionGroup() < workflowGroup || decisionStep.isStepFinished()) {
+            int currentDecisionGroup = historyInspector.getDecisionGroup();
+            if (decisionStep.getDecisionGroup() < currentDecisionGroup || decisionStep.isStepFinished()) {
                 finishedSteps++;
             } else {
                 decisions.addAll(decisionStep.decide());
             }
-
         }
 
         if (finishedSteps == steps.size()) {

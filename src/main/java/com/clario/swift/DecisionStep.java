@@ -13,7 +13,7 @@ import static com.clario.swift.SwiftUtil.isNotEmpty;
  *
  * @author George Coller
  */
-public abstract class DecisionStep implements Comparable<DecisionStep> {
+public abstract class DecisionStep implements Comparable<DecisionStep>, Vertex {
     /**
      * User-defined activity identifier, must be unique per instance.
      */
