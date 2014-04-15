@@ -10,17 +10,15 @@ import static com.clario.swift.SwiftUtil.defaultIfNull;
 import static java.util.Arrays.asList;
 
 /**
- * Each instance represents one activity
+ * Task that performs an activity.
  *
  * @author George Coller
  */
-public class ActivityDecisionStep extends DecisionStep {
+public class Activity extends Task {
     private String name;
     private String version;
-    /**
-     * Optional, allows additional input to be sent to activity.
-     */
     // TODO: Implement a way of registering activities in SWF
+    // Optional fields, allow additional input to be sent to activity.
     private String control = "";
     private String taskList = "default";
     private String heartBeatTimeoutTimeout;
@@ -28,8 +26,8 @@ public class ActivityDecisionStep extends DecisionStep {
     private String scheduleToStartTimeout;
     private String startToCloseTimeout;
 
-    public ActivityDecisionStep(String stepId, String name, String version) {
-        super(stepId);
+    public Activity(String id, String name, String version) {
+        super(id);
         this.name = name;
         this.version = version;
     }
@@ -95,17 +93,17 @@ public class ActivityDecisionStep extends DecisionStep {
     }
 
     /**
-     * Cancel activity decision for this step
+     * Cancel activity decision for this task
      *
      * @return the decision
      * @see com.amazonaws.services.simpleworkflow.model.Decision#requestCancelActivityTaskDecisionAttributes
      */
     public Decision createCancelActivityDecision() {
-        return new Decision().withDecisionType(DecisionType.RequestCancelActivityTask).withRequestCancelActivityTaskDecisionAttributes(new RequestCancelActivityTaskDecisionAttributes().withActivityId(getStepId()));
+        return new Decision().withDecisionType(DecisionType.RequestCancelActivityTask).withRequestCancelActivityTaskDecisionAttributes(new RequestCancelActivityTaskDecisionAttributes().withActivityId(getId()));
     }
 
     /**
-     * Schedule activity decision for this step.
+     * Schedule activity decision for this task.
      *
      * @param input Input to activity
      *
@@ -114,14 +112,14 @@ public class ActivityDecisionStep extends DecisionStep {
      */
     public Decision createScheduleActivityDecision(String input) {
         assert name != null;
-        assert getStepId() != null;
+        assert getId() != null;
         return new Decision()
             .withDecisionType(DecisionType.ScheduleActivityTask)
             .withScheduleActivityTaskDecisionAttributes(new ScheduleActivityTaskDecisionAttributes()
                 .withActivityType(new ActivityType()
                     .withName(name)
                     .withVersion(defaultIfNull(version, "1.0")))
-                .withActivityId(getStepId())
+                .withActivityId(getId())
                 .withTaskList(new TaskList()
                     .withName(defaultIfNull(taskList, "default")))
                 .withInput(defaultIfNull(input, ""))

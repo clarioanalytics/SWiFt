@@ -77,28 +77,28 @@ public class SwiftUtilTest {
 
 
     private static class MockV implements Vertex {
-        private final String stepId;
+        private final String id;
         private final Set<MockV> parents = new HashSet<>();
 
-        private MockV(String stepId) {
-            this.stepId = stepId;
+        private MockV(String id) {
+            this.id = id;
         }
 
         void addAll(MockV... parents) { Collections.addAll(this.parents, parents); }
 
         @Override
-        public String getStepId() { return stepId; }
+        public String getId() { return id; }
 
         @Override
         public Set<? extends Vertex> getParents() { return parents; }
 
         @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
-        public boolean equals(Object o) { return stepId.equals(((MockV) o).stepId); }
+        public boolean equals(Object o) { return id.equals(((MockV) o).id); }
 
-        public int hashCode() { return stepId.hashCode(); }
+        public int hashCode() { return id.hashCode(); }
 
         public String toString() {
-            return stepId;
+            return id;
         }
     }
 }

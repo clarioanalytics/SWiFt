@@ -8,21 +8,21 @@ import java.util.List;
 import java.util.Map;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.DecisionGroupDecisionStep.DECISION_GROUP_PREFIX;
+import static com.clario.swift.BreakpointTask.BREAKPOINT_PREFIX;
 
 /**
  * Helper class that contains convenience methods for working with a list of {@link HistoryEvent}.
- * Most of the heavy lifting comes from converting each {@link HistoryEvent} into a {@link StepEvent}.
+ * Most of the heavy lifting comes from converting each {@link HistoryEvent} into a {@link TaskEvent}.
  * This class is meant to be used by a single {@link WorkflowPoller}.
  *
  * @author George Coller
- * @see StepEvent
+ * @see TaskEvent
  * @see WorkflowPoller
  */
 public class HistoryInspector {
     private String workflowId = "";
     private String runId = "";
-    private List<StepEvent> stepEvents = new ArrayList<>();
+    private List<TaskEvent> taskEvents = new ArrayList<>();
     private List<HistoryEvent> historyEvents = new ArrayList<>();
     private List<HistoryEvent> markerEvents = new ArrayList<>();
     private List<HistoryEvent> signalEvents = new ArrayList<>();
@@ -31,8 +31,8 @@ public class HistoryInspector {
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
         this.historyEvents.addAll(historyEvents);
         for (HistoryEvent event : historyEvents) {
-            if (StepEvent.isStepEvent(event)) {
-                stepEvents.add(new StepEvent(event));
+            if (TaskEvent.isTaskEvent(event)) {
+                taskEvents.add(new TaskEvent(event));
             }
             if (MarkerRecorded.name().equals(event.getEventType())) { markerEvents.add(event); }
             if (WorkflowExecutionSignaled.name().equals(event.getEventType())) { signalEvents.add(event); }
@@ -43,7 +43,7 @@ public class HistoryInspector {
     public void clear() {
         workflowId = "";
         runId = "";
-        stepEvents.clear();
+        taskEvents.clear();
         historyEvents.clear();
         markerEvents.clear();
         signalEvents.clear();
@@ -55,27 +55,27 @@ public class HistoryInspector {
     }
 
     /**
-     * Return the list of {@link StepEvent} for a given stepId.
+     * Return the list of {@link TaskEvent} for a given id.
      *
-     * @param stepId unique id of the Activity, Timer, or ChildWorkflow
+     * @param id unique id of the Activity, Timer, or ChildWorkflow
      *
      * @return the list, empty if none found
      */
-    public List<StepEvent> stepEvents(String stepId) {
+    public List<TaskEvent> taskEvents(String id) {
         int index = -1;
-        for (int i = 0; i < stepEvents.size(); i++) {
-            if (stepEvents.get(i).isInitialStepEvent() && stepEvents.get(i).getStepId().equals(stepId)) {
+        for (int i = 0; i < taskEvents.size(); i++) {
+            if (taskEvents.get(i).isInitialTaskEvent() && taskEvents.get(i).getId().equals(id)) {
                 index = i;
                 break;
             }
 
         }
 
-        List<StepEvent> list = new ArrayList<>();
+        List<TaskEvent> list = new ArrayList<>();
         if (index >= 0) {
-            StepEvent initial = stepEvents.get(index);
-            for (StepEvent it : stepEvents.subList(0, index + 1)) {
-                if (it.equals(initial) || it.getInitialStepEventId().equals(initial.getEventId())) {
+            TaskEvent initial = taskEvents.get(index);
+            for (TaskEvent it : taskEvents.subList(0, index + 1)) {
+                if (it.equals(initial) || it.getInitialTaskEventId().equals(initial.getEventId())) {
                     list.add(it);
                 }
             }
@@ -84,13 +84,13 @@ public class HistoryInspector {
     }
 
     /**
-     * @return Current decision group calculated as the max of available decision group decisions or default zero.
+     * @return Current breakpoint calculated as the max of available breakpoint signals or default zero.
      */
-    public int getDecisionGroup() {
+    public int getCurrentBreakpoint() {
         int i = 0;
         for (String signal : getSignals().keySet()) {
-            if (signal.startsWith(DECISION_GROUP_PREFIX)) {
-                i = Math.max(i, DecisionGroupDecisionStep.parseStepId(signal));
+            if (signal.startsWith(BREAKPOINT_PREFIX)) {
+                i = Math.max(i, BreakpointTask.parseId(signal));
             }
         }
         return i;

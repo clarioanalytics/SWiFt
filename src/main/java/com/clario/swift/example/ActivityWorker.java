@@ -66,7 +66,7 @@ public class ActivityWorker {
     public void activityZ(final ActivityContext context) {
         final int i = unmarshalInput(context.getInputs());
         sleep(TimeUnit.SECONDS.toMillis(5));
-        log.info("Activity Z " + context.getStepId() + ": record heartbeat");
+        log.info("Activity Z " + context.getId() + ": record heartbeat");
         context.recordHeartbeat("some deets: " + valueOf(new Date()));
         sleep(TimeUnit.SECONDS.toMillis(10));
         context.setOutput(valueOf(i + 1000));

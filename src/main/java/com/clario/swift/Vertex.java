@@ -8,7 +8,7 @@ import java.util.Set;
  * @author George Coller
  */
 interface Vertex {
-    String getStepId();
+    String getId();
 
     Set<? extends Vertex> getParents();
 }

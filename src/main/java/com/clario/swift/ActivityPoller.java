@@ -38,13 +38,12 @@ public class ActivityPoller extends BasePoller {
     @Override
     protected void poll() {
         PollForActivityTaskRequest request = new PollForActivityTaskRequest().withDomain(getDomain()).withTaskList(new TaskList().withName(getTaskList())).withIdentity(this.getId());
-        final ActivityTask task = getSwf().pollForActivityTask(request);
+        com.amazonaws.services.simpleworkflow.model.ActivityTask task = getSwf().pollForActivityTask(request);
         if (task.getTaskToken() == null) {
             getLog().info("poll timeout");
             return;
 
         }
-
 
         try {
             String key = BasePoller.makeKey(task.getActivityType().getName(), task.getActivityType().getVersion());
@@ -97,18 +96,6 @@ public class ActivityPoller extends BasePoller {
         }
     }
 
-    public Map<String, ActivityInvoker> getActivityMap() {
-        return activityMap;
-    }
-
-    public void setActivityMap(Map<String, ActivityInvoker> activityMap) {
-        this.activityMap = activityMap;
-    }
-
-    public MapSerializer getIoSerializer() {
-        return ioSerializer;
-    }
-
     public void setIoSerializer(MapSerializer ioSerializer) {
         this.ioSerializer = ioSerializer;
     }
@@ -140,7 +127,7 @@ public class ActivityPoller extends BasePoller {
         }
 
         @Override
-        public String getStepId() {
+        public String getId() {
             return task.getActivityId();
         }
 
@@ -155,11 +142,6 @@ public class ActivityPoller extends BasePoller {
         }
 
         @Override
-        public Map<String, String> getOutputs() {
-            return outputs;
-        }
-
-        @Override
-        public void setOutput(String value) { outputs.put(getStepId(), value); }
+        public void setOutput(String value) { outputs.put(getId(), value); }
     }
 }

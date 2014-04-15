@@ -8,6 +8,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.LinkedHashMap;
 
+import static com.clario.swift.SwiftUtil.toJson;
+
 /**
  * Base class for polling
  *
@@ -42,7 +44,6 @@ public abstract class BasePoller implements Runnable {
             }
 
         }
-
     }
 
     /**
@@ -70,22 +71,14 @@ public abstract class BasePoller implements Runnable {
         map.put("id", id);
         map.put("domain", domain);
         map.put("taskList", taskList);
-        return SwiftUtil.toJson(map);
+        return toJson(map);
     }
 
-    public final Logger getLog() {
-        return log;
-    }
+    public final Logger getLog() { return log; }
 
-    public AmazonSimpleWorkflow getSwf() {
-        return swf;
-    }
+    public AmazonSimpleWorkflow getSwf() { return swf; }
 
     public void setSwf(AmazonSimpleWorkflow swf) { this.swf = swf; }
-
-    public boolean isRunning() { return isRunning; }
-
-    public void setRunning(boolean isRunning) { this.isRunning = isRunning; }
 
     public String getTaskList() {
         return taskList;

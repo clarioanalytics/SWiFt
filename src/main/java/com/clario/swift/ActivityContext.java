@@ -7,13 +7,11 @@ import java.util.Map;
  */
 public interface ActivityContext {
 
-    String getStepId();
+    String getId();
 
     void recordHeartbeat(String details);
 
     Map<String, String> getInputs();
-
-    Map<String, String> getOutputs();
 
     void setOutput(String value);
 }

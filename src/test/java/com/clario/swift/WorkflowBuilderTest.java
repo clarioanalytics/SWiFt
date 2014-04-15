@@ -3,13 +3,12 @@ package com.clario.swift;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
  * @author George Coller
  */
-public class DecisionBuilderTest {
+public class WorkflowBuilderTest {
     String expected = "a1 'Act 1' '1.0'\n"
         + "a2 'Act 1' '1.0'\n"
         + "a3 'Act 2' '2.0'\n"
@@ -17,14 +16,14 @@ public class DecisionBuilderTest {
         + "b2 'Act 2' '2.0' parents(a2, a3)\n"
         + "b3 'Act 3' '1.0' parents(a2, a3)\n"
         + "c 'Act 1' '2.0' parents(b1, b2, b3)\n"
-        + "Decision Group 1\n"
+        + "Breakpoint1\n"
         + "d 'Act 1' '2.0'\n"
         + "f 'Act 3' '1.0'\n"
         + "g 'Act 1' '2.0' parents(f)\n";
 
     @Test
     public void testWithAddParents() {
-        DecisionBuilder builder = new DecisionBuilder()
+        WorkflowBuilder builder = new WorkflowBuilder()
             .activity("a1", "Act 1", "1.0")
 
             .activity("a2", "Act 1", "1.0")
@@ -43,7 +42,7 @@ public class DecisionBuilderTest {
             .activity("f", "Act 3")
             .activity("g", "Act 1").addParents("f");
         Assert.assertEquals(expected, builder.toString());
-        builder.buildStepList();
+        builder.buildTaskList();
     }
 
 }

@@ -14,7 +14,7 @@ import java.util.*;
  * @author George Coller
  */
 public class WorkflowPoller extends BasePoller {
-    private final Map<String, List<DecisionStep>> workflows = new LinkedHashMap<>();
+    private final Map<String, List<Task>> workflows = new LinkedHashMap<>();
     private final HistoryInspector historyInspector = new HistoryInspector();
 
     /**
@@ -33,16 +33,16 @@ public class WorkflowPoller extends BasePoller {
      *
      * @param name workflow name
      * @param version workflow version
-     * @param steps decision steps for the workflow
+     * @param tasks decision tasks for the workflow
      */
-    public void addWorkflow(String name, String version, Collection<DecisionStep> steps) {
+    public void addWorkflow(String name, String version, Collection<Task> tasks) {
         String key = BasePoller.makeKey(name, version);
         getLog().info("Register activity " + key);
-        for (DecisionStep step : steps) {
-            step.setHistoryInspector(historyInspector);
+        for (Task task : tasks) {
+            task.setHistoryInspector(historyInspector);
         }
 
-        workflows.put(key, new ArrayList<>(steps));
+        workflows.put(key, new ArrayList<>(tasks));
     }
 
     @Override
@@ -51,7 +51,7 @@ public class WorkflowPoller extends BasePoller {
         DecisionTask decisionTask = null;
         historyInspector.clear();
 
-        while (historyInspector.getDecisionGroup() < 1 && (decisionTask == null || decisionTask.getNextPageToken() != null)) {
+        while (historyInspector.getCurrentBreakpoint() < 1 && (decisionTask == null || decisionTask.getNextPageToken() != null)) {
             decisionTask = getSwf().pollForDecisionTask(request);
             if (decisionTask.getTaskToken() == null) {
                 getLog().info("poll timeout");
@@ -88,21 +88,21 @@ public class WorkflowPoller extends BasePoller {
         }
         getLog().info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + key);
 
-        List<DecisionStep> steps = workflows.get(key);
+        List<Task> tasks = workflows.get(key);
 
         List<Decision> decisions = new ArrayList<>();
-        int finishedSteps = 0;
-        for (DecisionStep decisionStep : steps) {
-            int currentDecisionGroup = historyInspector.getDecisionGroup();
-            if (decisionStep.getDecisionGroup() < currentDecisionGroup || decisionStep.isStepFinished()) {
-                finishedSteps++;
+        int finishedTasks = 0;
+        for (Task task : tasks) {
+            int currentBreakpoint = historyInspector.getCurrentBreakpoint();
+            if (task.getBreakpoint() < currentBreakpoint || task.isTaskFinished()) {
+                finishedTasks++;
             } else {
-                decisions.addAll(decisionStep.decide());
+                decisions.addAll(task.decide());
             }
         }
 
-        if (finishedSteps == steps.size()) {
-            String result = calcResult(decisionTask, steps);
+        if (finishedTasks == tasks.size()) {
+            String result = calcResult(decisionTask, tasks);
             decisions.add(createCompleteWorkflowExecutionDecision(result));
         }
 
@@ -116,22 +116,21 @@ public class WorkflowPoller extends BasePoller {
      *
      * @see CompleteWorkflowExecutionDecisionAttributes#result
      */
-    public String calcResult(DecisionTask task, List<DecisionStep> decisionSteps) {
+    public String calcResult(DecisionTask decisionTask, List<Task> tasks) {
         ObjectNode result = JsonNodeFactory.instance.objectNode();
         ObjectNode context = result.putObject("context")
             .put("deciderId", getId())
             .put("domain", getDomain())
             .put("taskList", getTaskList())
-            .put("workflowId", task.getWorkflowExecution().getWorkflowId())
-            .put("runId", task.getWorkflowExecution().getRunId())
-            .put("name", task.getWorkflowType().getName())
-            .put("stepCount", workflows.size());
+            .put("workflowId", decisionTask.getWorkflowExecution().getWorkflowId())
+            .put("runId", decisionTask.getWorkflowExecution().getRunId())
+            .put("name", decisionTask.getWorkflowType().getName());
 
-        ArrayNode steps = context.putArray("steps");
-        for (DecisionStep decisionStep : decisionSteps) {
-            steps.addObject()
-                .put("id", decisionStep.getStepId())
-                .put("error", decisionStep.isStepError());
+        ArrayNode taskArray = context.putArray("tasks");
+        for (Task task : tasks) {
+            taskArray.addObject()
+                .put("id", task.getId())
+                .put("error", task.isTaskError());
         }
         return SwiftUtil.toJson(result);
     }

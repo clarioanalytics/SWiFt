@@ -13,14 +13,14 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 
 /**
- * Wraps a {@link HistoryEvent} related to Activity, Timer, Child Workflow, or External Signal started by a related {@link DecisionStep}.
+ * Wraps a {@link HistoryEvent} related to Activity, Timer, Child Workflow, or External Signal started by a related {@link Task}.
  * <p/>
  * Allows more uniform handling of {@link HistoryEvent} objects.
  *
  * @author George Coller
  * @see com.clario.swift.HistoryInspector
  */
-public class StepEvent {
+public class TaskEvent {
     public static final List<EventType> INITIATOR_EVENT_TYPES = unmodifiableList(asList(ActivityTaskScheduled, TimerStarted, StartChildWorkflowExecutionInitiated, WorkflowExecutionSignaled));
     public static final List<EventType> ACTIVITY_EVENT_TYPES = unmodifiableList(asList(ActivityTaskScheduled, ActivityTaskStarted, ActivityTaskCompleted, ActivityTaskFailed, ActivityTaskTimedOut, ActivityTaskCanceled));
     public static final List<EventType> TIMER_EVENT_TYPES = unmodifiableList(asList(TimerStarted, TimerFired, TimerCanceled));
@@ -29,14 +29,14 @@ public class StepEvent {
 
     private final HistoryEvent historyEvent;
 
-    public StepEvent(HistoryEvent historyEvent) {
+    public TaskEvent(HistoryEvent historyEvent) {
         this.historyEvent = historyEvent;
     }
 
     /**
      * Determine if a {@link HistoryEvent} has an SWF {@link EventType} that this class cares about.
      */
-    public static boolean isStepEvent(HistoryEvent historyEvent) {
+    public static boolean isTaskEvent(HistoryEvent historyEvent) {
         EventType type = EventType.valueOf(historyEvent.getEventType());
         return ACTIVITY_EVENT_TYPES.contains(type) || TIMER_EVENT_TYPES.contains(type) || CHILD_WORKFLOW_EVENT_TYPES.contains(type) || SIGNAL_EVENT_TYPES.contains(type);
     }
@@ -49,13 +49,13 @@ public class StepEvent {
     public HistoryEvent getHistoryEvent() { return historyEvent; }
 
     /**
-     * Initial step events have an {@link #getType()} that starts an activity, timer, or child workflow decision.
+     * Initial task events have an {@link #getType()} that starts an activity, timer, or child workflow decision.
      * Clients can use this to check if {@link #getEventId()} is available for this instance.
      *
-     * @return true if step type is an initial step event
+     * @return true if task type is an initial task event
      * @see #getEventId()
      */
-    public boolean isInitialStepEvent() {
+    public boolean isInitialTaskEvent() {
         return INITIATOR_EVENT_TYPES.contains(getType());
     }
 
@@ -81,12 +81,12 @@ public class StepEvent {
     }
 
     /**
-     * Return the initial step event of the wrapped {@link HistoryEvent}.
+     * Return the initial task event of the wrapped {@link HistoryEvent}.
      * <p/>
      * If this event is an initial event, return it's identifier converted to a Long.
      * otherwise return it's pointer to the initial event id (already a long).
      */
-    public Long getInitialStepEventId() {
+    public Long getInitialTaskEventId() {
         switch (getType()) {
             // Activity Tasks
             case ActivityTaskScheduled:
@@ -135,13 +135,13 @@ public class StepEvent {
     /**
      * @return unique identifier for an initiator <code>HistoryEvent</code>
      * @throws UnsupportedOperationException if instance is not an initiator.
-     * @see #isInitialStepEvent()
+     * @see #isInitialTaskEvent()
      */
-    public String getStepId() {
-        if (isInitialStepEvent()) {
-            return getInitialStepEventId().toString();
+    public String getId() {
+        if (isInitialTaskEvent()) {
+            return getInitialTaskEventId().toString();
         } else {
-            throw new UnsupportedOperationException("Cannot get stepId on non-initial step " + this);
+            throw new UnsupportedOperationException("Cannot get id on non-initial task " + this);
         }
     }
 
@@ -155,7 +155,7 @@ public class StepEvent {
     }
 
     public String toString() {
-        return format("StepEvent: %s", historyEvent);
+        return format("%s: %s", getClass().getSimpleName(), historyEvent);
     }
 
     /**
@@ -167,6 +167,6 @@ public class StepEvent {
         if (ActivityTaskCompleted == type) {
             return historyEvent.getActivityTaskCompletedEventAttributes().getResult();
         }
-        throw new UnsupportedOptionException("Result not available for step with event type: " + type);
+        throw new UnsupportedOptionException("Result not available for task with event type: " + type);
     }
 }
