@@ -26,7 +26,7 @@ public class ActivityWorker {
 
     public static void main(String[] args) throws IOException {
         Properties p = new Properties();
-        p.load(ActivityWorker.class.getResourceAsStream("config.properties"));
+        p.load(ActivityWorker.class.getClassLoader().getResourceAsStream("config.properties"));
         String id = p.getProperty("amazon.aws.id");
         String key = p.getProperty("amazon.aws.key");
         int threads = Integer.parseInt(p.getProperty("activity.threads"));

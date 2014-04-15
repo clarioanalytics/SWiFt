@@ -26,7 +26,7 @@ public class WorkflowInitiator {
 
     public static void main(String[] args) throws IOException {
         Properties p = new Properties();
-        p.load(ActivityWorker.class.getResourceAsStream("config.properties"));
+        p.load(DecisionWorker.class.getClassLoader().getResourceAsStream("config.properties"));
         String id = p.getProperty("amazon.aws.id");
         String key = p.getProperty("amazon.aws.key");
         AmazonSimpleWorkflow swf = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key));

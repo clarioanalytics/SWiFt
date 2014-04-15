@@ -25,8 +25,8 @@ public abstract class DecisionStep implements Comparable<DecisionStep>, Vertex {
      * Workflows that will generate many history events should be broken up into several decision groups.
      */
     private int decisionGroup = 0;
-    protected int retryTimes;
-    protected long retryWaitInMillis;
+    private int retryTimes;
+    private long retryWaitInMillis;
     private HistoryInspector historyInspector;
     private MapSerializer ioSerializer = new MapSerializer();
 

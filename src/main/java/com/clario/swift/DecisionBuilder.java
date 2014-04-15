@@ -54,8 +54,7 @@ public class DecisionBuilder {
     public DecisionBuilder retry(int times, long retryWaitInMillis) {
         assertWithGroup();
         for (DecisionStep step : withGroup) {
-            step.retryTimes = times;
-            step.retryWaitInMillis = retryWaitInMillis;
+            step.addRetry(times, retryWaitInMillis);
         }
         return this;
     }
