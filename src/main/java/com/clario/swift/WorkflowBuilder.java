@@ -7,52 +7,83 @@ import java.util.*;
 
 import static com.clario.swift.SwiftUtil.join;
 import static java.lang.String.format;
-import static java.util.Collections.reverse;
 
 /**
- * Builder to create a graph of {@link Task}.
+ * Builder to create a workflow, which is a simple directed graph of {@link Task}.
  *
  * @author George Coller
  */
 public class WorkflowBuilder {
     public static final Logger log = LoggerFactory.getLogger(WorkflowBuilder.class);
 
-    private static final String TASK_CLASS_NAME = Task.class.getSimpleName();
     private final Map<String, Task> taskMap = new LinkedHashMap<>();
     private final List<Task> withGroup = new ArrayList<>();
-    private int breakpointCounter = 0;
+    private int checkpointCounter = 0;
 
+    /**
+     * Add a {@link Task} to the workflow.
+     *
+     * @param task task to add
+     *
+     * @return this instance for chaining
+     */
     public WorkflowBuilder add(Task task) {
         String id = task.getId();
         if (taskMap.containsKey(id)) {
-            throw new IllegalArgumentException(format("%s '%s' already added", TASK_CLASS_NAME, id));
+            throw new IllegalArgumentException(format("Task '%s' already added", id));
         }
         taskMap.put(id, task);
-        task.setBreakpoint(breakpointCounter);
+        task.setCheckpoint(checkpointCounter);
         withGroup.clear();
         withGroup.add(task);
         return this;
     }
 
+    /**
+     * Add an {@link Activity} task.
+     *
+     * @param id task identifier, must be unique per workflow
+     * @param name name of registered activity in SWF
+     * @param version version of registered activity in SWF
+     *
+     * @return this instance for chaining
+     */
     public WorkflowBuilder activity(String id, String name, String version) {
         return add(new Activity(id, name, version));
     }
 
-    public WorkflowBuilder activity(String id, String name) {
-        // look up most recent activity with matching name and use its version
-        List<Task> values = new ArrayList<>(taskMap.values());
-        reverse(values);
-        for (Task value : values) {
-            if (value instanceof Activity) {
-                Activity activity = (Activity) value;
-                if (name.equals(activity.getName())) {
-                    return add(new Activity(id, name, activity.getVersion()));
+    /**
+     * Select a set of tasks as parents.
+     *
+     * @param regExp regular expression to match parent task ids
+     *
+     * @return this instance for chaining
+     */
+    public WorkflowBuilder addParents(String regExp) {
+        assertWithGroup();
+        List<Task> taskList = findTasks(regExp);
+        for (Task parent : taskList) {
+            for (Task task : withGroup) {
+                if (parent.getCheckpoint() > task.getCheckpoint()) {
+                    throw new IllegalStateException(String.format("Cannot add parent task '%s' with checkpoint after task '%s'", parent.getId(), task.getId()));
                 }
+                if (parent.getCheckpoint() < task.getCheckpoint() - 1) {
+                    throw new IllegalStateException(String.format("Cannot add parent task '%s' to task '%s' across two checkpoints", parent.getId(), task.getId()));
+                }
+                task.addParents(parent);
             }
         }
-        throw new IllegalArgumentException(format("Activity '%s' not found, version required for %s '%s'", name, TASK_CLASS_NAME, id));
+        return this;
     }
 
+    /**
+     * Apply retry settings to tasks.
+     *
+     * @param times number of times to retry task before failing
+     * @param retryWaitInMillis exponential backoff algorithm initial wait time in milliseconds
+     *
+     * @return this instance for chaining
+     */
     public WorkflowBuilder retry(int times, long retryWaitInMillis) {
         assertWithGroup();
         for (Task task : withGroup) {
@@ -61,36 +92,86 @@ public class WorkflowBuilder {
         return this;
     }
 
-    public WorkflowBuilder addParents(String parentRegExp) {
-        assertWithGroup();
-        List<Task> taskList = findTasks(parentRegExp);
-        for (Task parent : taskList) {
-            for (Task task : withGroup) {
-                task.addParents(parent);
-            }
-        }
+    /**
+     * Create a {@link Checkpoint} task to indicate that all prior tasks, or prior tasks since the last checkpoint,
+     * will need to complete before continuing.
+     *
+     * @return this instance for chaining
+     * @see Checkpoint
+     */
+    public WorkflowBuilder checkpoint() {
+        checkpointCounter++;
         return this;
     }
 
-    public WorkflowBuilder mark() {
-        breakpointCounter++;
-        return this;
-    }
 
-    // TODO: Put asserts in here to check cycles, self references, or zero size, add in breakpoint tasks
-    public ArrayList<Task> buildTaskList() {
-        ArrayList<Task> tasks = new ArrayList<>(taskMap.values());
-        SwiftUtil.cycleCheck(tasks);
-        return tasks;
-    }
-
-    public WorkflowBuilder withEach(String... regExprs) {
+    /**
+     * Select a set of tasks to modify as a group.
+     * <p/>
+     * Example:
+     * <pre>
+     *     builder.withTasks("task.*").retry(3, 5000)
+     * </pre>
+     *
+     * @param regExprs one or more regular expressions used match task ids.
+     *
+     * @return this instance for chaining
+     */
+    public WorkflowBuilder withTasks(String... regExprs) {
         withGroup.clear();
         for (String regExp : regExprs) {
             withGroup.addAll(findTasks(regExp));
         }
         assertWithGroup();
         return this;
+    }
+
+
+    /**
+     * Return the final task list representing the workflow.
+     * Ensures the workflow is complete with no cycles, self-references
+     *
+     * @return the list
+     */
+    public List<Task> buildTaskList() {
+        if (taskMap.values().isEmpty()) {
+            throw new IllegalStateException("At least one task is required");
+        }
+        List<Task> tasks = tasksWithCheckpoints();
+
+        SwiftUtil.cycleCheck(tasks);
+        return tasks;
+    }
+
+    private List<Task> tasksWithCheckpoints() {
+        List<Task> list = new ArrayList<>(taskMap.values());
+        for (int i = 1; i <= checkpointCounter; i++) {
+            Task checkpoint = new Checkpoint(i);
+            for (Task task : findLeafNodes(i - 1)) {
+                checkpoint.addParents(task);
+            }
+            for (Task task : taskMap.values()) {
+                if (task.getCheckpoint() == i && task.getParents().isEmpty()) {
+                    task.addParents(checkpoint);
+                }
+            }
+            list.add(checkpoint);
+        }
+        return list;
+    }
+
+    private Collection<Task> findLeafNodes(int checkpoint) {
+        Map<String, Task> map = new LinkedHashMap<>(taskMap);
+        for (Map.Entry<String, Task> entry : taskMap.entrySet()) {
+            if (entry.getValue().getCheckpoint() != checkpoint) {
+                map.remove(entry.getKey());
+            } else {
+                for (Task parent : entry.getValue().getParents()) {
+                    map.remove(parent.getId());
+                }
+            }
+        }
+        return map.values();
     }
 
     public static List<Task> filterTasks(Collection<Task> tasks, String regExp, boolean assertMatch) {
@@ -101,7 +182,7 @@ public class WorkflowBuilder {
             }
         }
         if (assertMatch && list.isEmpty()) {
-            throw new IllegalStateException(format("Regular expression '%s' did not find any matching %ss", regExp, TASK_CLASS_NAME));
+            throw new IllegalStateException(format("Regular expression '%s' did not find any matching tasks", regExp));
         }
         return list;
     }
@@ -112,18 +193,13 @@ public class WorkflowBuilder {
 
     private void assertWithGroup() {
         if (withGroup.isEmpty()) {
-            throw new IllegalStateException(format("%s required before calling method", TASK_CLASS_NAME));
+            throw new IllegalStateException("At least one task is required before calling method");
         }
     }
 
     public String toString() {
         StringBuilder b = new StringBuilder(taskMap.size() + 50);
-        int breakpoint = 0;
-        for (Task task : taskMap.values()) {
-            if (task.getBreakpoint() > breakpoint) {
-                breakpoint = task.getBreakpoint();
-                b.append(format("Breakpoint%s\n", breakpoint));
-            }
+        for (Task task : tasksWithCheckpoints()) {
             b.append(task.getId());
             if (task instanceof Activity) {
                 Activity activity = (Activity) task;

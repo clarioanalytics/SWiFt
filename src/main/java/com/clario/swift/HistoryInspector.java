@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.BreakpointTask.BREAKPOINT_PREFIX;
+import static com.clario.swift.Checkpoint.CHECKPOINT_PREFIX;
 
 /**
  * Helper class that contains convenience methods for working with a list of {@link HistoryEvent}.
@@ -84,13 +84,13 @@ public class HistoryInspector {
     }
 
     /**
-     * @return Current breakpoint calculated as the max of available breakpoint signals or default zero.
+     * @return Current checkpoint calculated as the max of available checkpoint signals or default zero.
      */
-    public int getCurrentBreakpoint() {
+    public int getCurrentCheckpoint() {
         int i = 0;
         for (String signal : getSignals().keySet()) {
-            if (signal.startsWith(BREAKPOINT_PREFIX)) {
-                i = Math.max(i, BreakpointTask.parseId(signal));
+            if (signal.startsWith(CHECKPOINT_PREFIX)) {
+                i = Math.max(i, Checkpoint.parseId(signal));
             }
         }
         return i;

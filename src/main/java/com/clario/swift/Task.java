@@ -21,10 +21,9 @@ public abstract class Task implements Comparable<Task>, Vertex {
     private final Set<Task> parents = new TreeSet<>();
 
     /**
-     * Breakpoint this task is part of.
-     * Workflows that will generate many history events should be broken up into several breakpoints.
+     * {@link Checkpoint} of task.
      */
-    private int breakpoint = 0;
+    private int checkpoint = 0;
     private int retryTimes;
     private long retryWaitInMillis;
     private HistoryInspector historyInspector;
@@ -179,12 +178,12 @@ public abstract class Task implements Comparable<Task>, Vertex {
         return parents;
     }
 
-    public int getBreakpoint() {
-        return breakpoint;
+    public int getCheckpoint() {
+        return checkpoint;
     }
 
-    public void setBreakpoint(int breakpoint) {
-        this.breakpoint = breakpoint;
+    public void setCheckpoint(int checkpoint) {
+        this.checkpoint = checkpoint;
     }
 
     public HistoryInspector getHistoryInspector() {

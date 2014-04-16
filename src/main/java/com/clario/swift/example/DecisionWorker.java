@@ -43,14 +43,14 @@ public class DecisionWorker {
     public static void wireCalcWorkflow(WorkflowPoller poller) {
         WorkflowBuilder b = new WorkflowBuilder()
             .activity("a.right", "Calc Plus", "1.0")
-            .activity("a.left", "Calc Plus")
-            .activity("b1", "Calc Plus")
-            .activity("b2", "Calc Plus")
-            .activity("b3", "Calc Plus")
-            .withEach("b.*").addParents("a.*")
-            .activity("c", "Calc Plus").addParents("b.*")
-            .mark()
-            .activity("d", "Calc Plus");
+            .activity("a.left", "Calc Plus", "1.0")
+            .activity("b1", "Calc Plus", "1.0")
+            .activity("b2", "Calc Plus", "1.0")
+            .activity("b3", "Calc Plus", "1.0")
+            .withTasks("b.*").addParents("a.*")
+            .activity("c", "Calc Plus", "1.0").addParents("b.*")
+            .checkpoint()
+            .activity("d", "Calc Plus", "1.0");
         poller.addWorkflow("Calculator", "1.0", b.buildTaskList());
     }
 
@@ -58,9 +58,9 @@ public class DecisionWorker {
         WorkflowBuilder b = new WorkflowBuilder()
             .activity("first", "Activity X", "1.0")
             .activity("splitA", "Activity Y", "1.0")
-            .activity("splitB", "Activity Y")
+            .activity("splitB", "Activity Y", "1.0")
 
-            .activity("join", "Activity X")
+            .activity("join", "Activity X", "1.0")
             .add(new Activity("race", "Activity X", "1.0") {
                 @Override
                 public List<Decision> decide() {
@@ -82,12 +82,12 @@ public class DecisionWorker {
                     return decisions;
                 }
             })
-            .withEach("join", "race").addParents("split.*");
+            .withTasks("join", "race").addParents("split.*");
 
-        b.mark();
+        b.checkpoint();
         b.activity("afterMarker", "Activity Z", "1.0");
 
-        ArrayList<Task> tasks = b.buildTaskList();
+        List<Task> tasks = b.buildTaskList();
 
         for (Task task : tasks) {
             if (task instanceof Activity) {

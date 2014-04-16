@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
 
 /**
- * Poll for {@link DecisionTask} on a single domain and task list.
+ * Poll for {@link DecisionTask} on a single domain and task list and perform next decisions.
  * Note: Single threaded, run multiple instances as {@link Runnable} for higher throughput
  *
  * @author George Coller
@@ -20,7 +20,7 @@ public class WorkflowPoller extends BasePoller {
     /**
      * Optional context to be sent on each decision task completed event
      *
-     * @see com.amazonaws.services.simpleworkflow.model.RespondDecisionTaskCompletedRequest#executionContext
+     * @see RespondDecisionTaskCompletedRequest#executionContext
      */
     private String executionContext;
 
@@ -36,7 +36,7 @@ public class WorkflowPoller extends BasePoller {
      * @param tasks decision tasks for the workflow
      */
     public void addWorkflow(String name, String version, Collection<Task> tasks) {
-        String key = BasePoller.makeKey(name, version);
+        String key = makeKey(name, version);
         getLog().info("Register activity " + key);
         for (Task task : tasks) {
             task.setHistoryInspector(historyInspector);
@@ -51,7 +51,7 @@ public class WorkflowPoller extends BasePoller {
         DecisionTask decisionTask = null;
         historyInspector.clear();
 
-        while (historyInspector.getCurrentBreakpoint() < 1 && (decisionTask == null || decisionTask.getNextPageToken() != null)) {
+        while (historyInspector.getCurrentCheckpoint() < 1 && (decisionTask == null || decisionTask.getNextPageToken() != null)) {
             decisionTask = getSwf().pollForDecisionTask(request);
             if (decisionTask.getTaskToken() == null) {
                 getLog().info("poll timeout");
@@ -82,7 +82,7 @@ public class WorkflowPoller extends BasePoller {
 
     public List<Decision> decide(final DecisionTask decisionTask) {
         WorkflowType workflowType = decisionTask.getWorkflowType();
-        String key = BasePoller.makeKey(workflowType.getName(), workflowType.getVersion());
+        String key = makeKey(workflowType.getName(), workflowType.getVersion());
         if (!workflows.containsKey(key)) {
             throw new IllegalStateException("Workflow type not registered " + String.valueOf(workflowType));
         }
@@ -93,8 +93,8 @@ public class WorkflowPoller extends BasePoller {
         List<Decision> decisions = new ArrayList<>();
         int finishedTasks = 0;
         for (Task task : tasks) {
-            int currentBreakpoint = historyInspector.getCurrentBreakpoint();
-            if (task.getBreakpoint() < currentBreakpoint || task.isTaskFinished()) {
+            int checkpoint = historyInspector.getCurrentCheckpoint();
+            if (task.getCheckpoint() < checkpoint || task.isTaskFinished()) {
                 finishedTasks++;
             } else {
                 decisions.addAll(task.decide());

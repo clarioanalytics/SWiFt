@@ -2,6 +2,7 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.EventType;
+import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.amazonaws.services.simpleworkflow.model.SignalExternalWorkflowExecutionDecisionAttributes;
 
 import java.util.List;
@@ -12,19 +13,22 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 
 /**
- * Record a signal indicating that all {@link Task}s before this one are complete and their history events do
- * not need to be read in by the poller.
+ * Indicates to the poller that {@link HistoryEvent}s for tasks prior to this checkpoint
+ * do not need to be read in.
+ * <p/>
+ * Checkpoints should be used with workflows that generate many {@link HistoryEvent}s since only 1000 events
+ * per request are returned by Amazon SWF.
  * <p/>
  * By default this task will use all parent outputs as input.
  *
  * @author George Coller
  */
-public class BreakpointTask extends Task {
-    public static final String BREAKPOINT_PREFIX = "BREAKPOINT:";
+public class Checkpoint extends Task {
+    public static final String CHECKPOINT_PREFIX = "CHECKPOINT:";
 
-    public BreakpointTask(int counter) {
-        super(BREAKPOINT_PREFIX + counter);
-        setBreakpoint(counter);
+    public Checkpoint(int counter) {
+        super(CHECKPOINT_PREFIX + counter);
+        setCheckpoint(counter);
     }
 
     @Override
@@ -46,7 +50,7 @@ public class BreakpointTask extends Task {
     }
 
     public static int parseId(String marker) {
-        String num = marker.replaceFirst(BREAKPOINT_PREFIX, "");
+        String num = marker.replaceFirst(CHECKPOINT_PREFIX, "");
         return Integer.parseInt(num);
     }
 
