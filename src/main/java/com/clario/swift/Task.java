@@ -13,17 +13,13 @@ import static com.clario.swift.SwiftUtil.isNotEmpty;
  *
  * @author George Coller
  */
-public abstract class Task implements Comparable<Task>, Vertex {
+public abstract class Task implements Comparable<Task>, Vertex<Task> {
     /**
      * User-defined activity identifier, must be unique per instance.
      */
     private final String id;
     private final Set<Task> parents = new TreeSet<>();
 
-    /**
-     * {@link Checkpoint} of task.
-     */
-    private int checkpoint = 0;
     private int retryTimes;
     private long retryWaitInMillis;
     private HistoryInspector historyInspector;
@@ -32,6 +28,11 @@ public abstract class Task implements Comparable<Task>, Vertex {
     public Task(String id) {
         this.id = id;
     }
+
+    /**
+     * @return EventType that indicates task has been scheduled
+     */
+    public abstract EventType getScheduledEventType();
 
     /**
      * @return EventType that indicates task completed successfully
@@ -44,54 +45,46 @@ public abstract class Task implements Comparable<Task>, Vertex {
     public abstract List<EventType> getFailEventTypes();
 
     /**
-     * Called on every poll if {@link #isCanDecide()} is true.
+     * Called on poll if task state is {@link TaskState#ready_to_decide}.
      */
     public abstract List<Decision> decide();
 
-    /**
-     * @return true if this task is finished, either in a valid or error state.
-     */
-    public boolean isTaskFinished() {
-        return getSuccessEventType() == getCurrentEventType() || isTaskError();
-    }
-
-    /**
-     * @return true if this task or one of it's parents is in an error state.
-     */
-    public boolean isTaskError() {
-        return getFailEventTypes().contains(getCurrentEventType()) || isParentTaskErrors();
-    }
-
-    /**
-     * @return true if one or more parents {@link #isTaskError} is true.
-     */
-    public boolean isParentTaskErrors() {
-        for (Task parent : parents) {
-            if (parent.isTaskError()) { return true; }
+    public TaskState getState() {
+        EventType currentEventType = getCurrentEventType();
+        if (currentEventType == null) {
+            for (Task parent : parents) {
+                TaskState state = parent.getState();
+                if (state.isFinished()) {
+                    if (state.isErrorOrCancel()) {
+                        return TaskState.finish_cancel;
+                    }
+                } else {
+                    return TaskState.wait_for_parents;
+                }
+            }
+            return TaskState.ready_to_decide;
+        } else if (currentEventType == getScheduledEventType()) {
+            return TaskState.scheduled;
+        } else if (currentEventType == getSuccessEventType()) {
+            return TaskState.finish_ok;
+        } else if (getFailEventTypes().contains(currentEventType)) {
+            return TaskState.finish_error;
+        } else {
+            throw new IllegalStateException("Unknown TaskState " + this + ":\n" + SwiftUtil.join(taskEvents(), ", "));
         }
-        return false;
     }
 
-    /**
-     * @return true if all parents {@link #isTaskFinished} are true
-     */
-    public boolean isParentTasksFinished() {
-        for (Task parent : parents) {
-            if (!parent.isTaskFinished()) { return false; }
+    public boolean isMoreHistoryRequired() {
+        if (getCurrentEventType() == null) {
+            for (Task parent : parents) {
+                if (parent.isMoreHistoryRequired()) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            return false;
         }
-        return true;
-    }
-
-    /**
-     * @return true if {@link #decide()} should be called on this poll.
-     */
-    public boolean isCanDecide() {
-        return taskEvents().isEmpty() && isParentTasksFinished() && !isTaskFinished();
-    }
-
-    // TODO: Implement get error count.
-    public int getErrorCount() {
-        throw new UnsupportedOperationException("method not implemented");
     }
 
     public String getWorkflowInput() {
@@ -164,9 +157,9 @@ public abstract class Task implements Comparable<Task>, Vertex {
     }
 
     /**
-     * Return list of {@link TaskEvent} belonging to this instance in {@link TaskEvent#getEventTimestamp()} order.
+     * Return list of {@link TaskEvent} belonging to this instance in {@link TaskEvent#getEventTimestamp()} newest-first order.
      */
-    public List<TaskEvent> taskEvents() {
+    private List<TaskEvent> taskEvents() {
         return historyInspector.taskEvents(id);
     }
 
@@ -176,18 +169,6 @@ public abstract class Task implements Comparable<Task>, Vertex {
 
     public final Set<Task> getParents() {
         return parents;
-    }
-
-    public int getCheckpoint() {
-        return checkpoint;
-    }
-
-    public void setCheckpoint(int checkpoint) {
-        this.checkpoint = checkpoint;
-    }
-
-    public HistoryInspector getHistoryInspector() {
-        return historyInspector;
     }
 
     public void setHistoryInspector(HistoryInspector historyInspector) {
@@ -202,17 +183,14 @@ public abstract class Task implements Comparable<Task>, Vertex {
         this.ioSerializer = ioSerializer;
     }
 
-    @Override
     public boolean equals(Object o) {
         return this == o || o instanceof Task && id.equals(((Task) o).id);
     }
 
-    @Override
     public int hashCode() {
         return id.hashCode();
     }
 
-    @Override
     public int compareTo(Task task) {
         return id.compareTo(task.id);
     }
@@ -220,5 +198,4 @@ public abstract class Task implements Comparable<Task>, Vertex {
     public String toString() {
         return getClass().getSimpleName() + ":" + id;
     }
-
 }

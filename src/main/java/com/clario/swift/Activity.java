@@ -33,6 +33,11 @@ public class Activity extends Task {
     }
 
     @Override
+    public EventType getScheduledEventType() {
+        return ActivityTaskScheduled;
+    }
+
+    @Override
     public EventType getSuccessEventType() {
         return ActivityTaskCompleted;
     }

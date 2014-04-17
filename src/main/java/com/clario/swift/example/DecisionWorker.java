@@ -29,11 +29,13 @@ public class DecisionWorker {
         final ExecutorService service = Executors.newFixedThreadPool(threads);
 
         for (int it = 1; it <= threads; it++) {
-            WorkflowPoller poller = new WorkflowPoller(String.format("decision poller %d", it));
+            String executionContext = System.getProperty("user.name");
+            String pollerId = String.format("decision poller %d", it);
+
+            WorkflowPoller poller = new WorkflowPoller(pollerId, executionContext);
             poller.setDomain("dev-clario");
             poller.setTaskList("default");
             poller.setSwf(new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key)));
-            poller.setExecutionContext(System.getProperty("user.name"));
             wireCalcWorkflow(poller);
             wireXYZWorkflow(poller);
             service.submit(poller);
@@ -41,7 +43,7 @@ public class DecisionWorker {
     }
 
     public static void wireCalcWorkflow(WorkflowPoller poller) {
-        WorkflowBuilder b = new WorkflowBuilder()
+        WorkflowBuilder b = new WorkflowBuilder("Calculator", "1.0")
             .activity("a.right", "Calc Plus", "1.0")
             .activity("a.left", "Calc Plus", "1.0")
             .activity("b1", "Calc Plus", "1.0")
@@ -49,17 +51,15 @@ public class DecisionWorker {
             .activity("b3", "Calc Plus", "1.0")
             .withTasks("b.*").addParents("a.*")
             .activity("c", "Calc Plus", "1.0").addParents("b.*")
-            .checkpoint()
-            .activity("d", "Calc Plus", "1.0");
-        poller.addWorkflow("Calculator", "1.0", b.buildTaskList());
+            .activity("d", "Calc Plus", "1.0").addParents("c");
+        poller.addWorkflow(b.buildWorkflow());
     }
 
     public static void wireXYZWorkflow(WorkflowPoller poller) {
-        WorkflowBuilder b = new WorkflowBuilder()
+        WorkflowBuilder b = new WorkflowBuilder("XYZ", "1.0")
             .activity("first", "Activity X", "1.0")
             .activity("splitA", "Activity Y", "1.0")
             .activity("splitB", "Activity Y", "1.0")
-
             .activity("join", "Activity X", "1.0")
             .add(new Activity("race", "Activity X", "1.0") {
                 @Override
@@ -67,34 +67,30 @@ public class DecisionWorker {
                     List<Decision> decisions = new ArrayList<>();
                     Task p1 = getParent("splitA");
                     Task p2 = getParent("splitB");
-                    if (p1.isTaskFinished()) {
+                    if (p1.getState() == TaskState.finish_ok) {
                         Map<String, String> map = new LinkedHashMap<>(1);
                         map.put(getId(), p1.getOutput().get("splitA"));
                         decisions.add(createScheduleActivityDecision(new MapSerializer().marshal(map)));
                         decisions.add(((Activity) p2).createCancelActivityDecision());
-                    } else if (p2.isTaskFinished()) {
+                    } else if (p2.getState() == TaskState.finish_ok) {
                         Map<String, String> map = new LinkedHashMap<>(1);
                         map.put(getId(), p2.getOutput().get("splitB"));
                         decisions.add(createScheduleActivityDecision(new MapSerializer().marshal(map)));
                         decisions.add(((Activity) p1).createCancelActivityDecision());
+                    } else {
+                        // Should not reach here if either p1 or p2 finished with an error or cancel;
+                        throw new IllegalStateException("Activity race");
                     }
-
                     return decisions;
                 }
             })
-            .withTasks("join", "race").addParents("split.*");
+            .activity("afterMarker", "Activity Z", "1.0").addParents("join", "race")
 
-        b.checkpoint();
-        b.activity("afterMarker", "Activity Z", "1.0");
+            .withTasks("split.*").addParents("first")
+            .withTasks("join", "race").addParents("split.*")
+            .withTasks(".*").scheduleCloseTimeout(TimeUnit.MINUTES, 1);
 
-        List<Task> tasks = b.buildTaskList();
-
-        for (Task task : tasks) {
-            if (task instanceof Activity) {
-                ((Activity) task).setScheduleToCloseTimeout(TimeUnit.MINUTES, 1);
-            }
-        }
-
-        poller.addWorkflow("Demo Workflow", "1.0", tasks);
+        Workflow w = b.buildWorkflow();
+        poller.addWorkflow(w);
     }
 }

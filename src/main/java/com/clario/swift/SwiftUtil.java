@@ -4,10 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.lang.String.valueOf;
 
@@ -36,15 +33,27 @@ public class SwiftUtil {
         }
     }
 
+    /**
+     * Find vertices with no children.
+     */
+    public static <V extends Vertex<V>> Map<String, V> findLeaves(Map<String, V> vertices) {
+        Map<String, V> leaves = new LinkedHashMap<>(vertices);
+        for (V vertex : vertices.values()) {
+            for (V parent : vertex.getParents()) {
+                leaves.remove(parent.getId());
+            }
+        }
+        return leaves;
+    }
 
-    public static void cycleCheck(List<? extends Vertex> vertices) {
-        List<Vertex> checked = new ArrayList<>(vertices.size());
-        for (Vertex vertex : vertices) {
-            walk(checked, new ArrayList<Vertex>(), vertex);
+    public static <V extends Vertex<V>> void cycleCheck(Collection<V> vertices) {
+        List<V> checked = new ArrayList<>(vertices.size());
+        for (V vertex : vertices) {
+            walkCycleCheckRoute(checked, new ArrayList<V>(), vertex);
         }
     }
 
-    private static void walk(List<Vertex> checked, List<Vertex> route, Vertex vertex) {
+    private static <V extends Vertex<V>> void walkCycleCheckRoute(List<V> checked, List<V> route, V vertex) {
         if (route.contains(vertex)) {
             route.add(vertex);
             Collections.reverse(route);
@@ -54,9 +63,9 @@ public class SwiftUtil {
         if (vertex.getParents().isEmpty()) {
             checked.add(vertex);
         } else {
-            for (Vertex parent : vertex.getParents()) {
+            for (V parent : vertex.getParents()) {
                 if (!checked.contains(parent)) {
-                    walk(checked, new ArrayList<>(route), parent);
+                    walkCycleCheckRoute(checked, new ArrayList<>(route), parent);
                 }
             }
             checked.add(vertex);
@@ -75,13 +84,15 @@ public class SwiftUtil {
         return value == null ? replacement : value;
     }
 
-    public static <T> String join(List<T> items, String separator) {
+    public static <T> String join(Collection<T> items, String separator) {
         separator = defaultIfNull(separator, "");
         int size = items.size();
         StringBuilder b = new StringBuilder((10 + separator.length()) * items.size());
-        for (int i = 0; i < size; i++) {
-            b.append(valueOf(items.get(i)));
-            if (i < size - 1) {
+        int i = 0;
+        for (T item : items) {
+            b.append(valueOf(item));
+            i++;
+            if (i < size) {
                 b.append(separator);
             }
         }

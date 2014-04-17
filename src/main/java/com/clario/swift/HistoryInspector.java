@@ -1,34 +1,32 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.model.*;
+import com.amazonaws.services.simpleworkflow.model.EventType;
+import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
+import com.amazonaws.services.simpleworkflow.model.MarkerRecordedEventAttributes;
+import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionSignaledEventAttributes;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.Checkpoint.CHECKPOINT_PREFIX;
 
 /**
  * Helper class that contains convenience methods for working with a list of {@link HistoryEvent}.
  * Most of the heavy lifting comes from converting each {@link HistoryEvent} into a {@link TaskEvent}.
- * This class is meant to be used by a single {@link WorkflowPoller}.
+ * This class is not thread-safe and is meant to be used by a single {@link WorkflowPoller}.
  *
  * @author George Coller
  * @see TaskEvent
  * @see WorkflowPoller
  */
 public class HistoryInspector {
-    private String workflowId = "";
-    private String runId = "";
-    private List<TaskEvent> taskEvents = new ArrayList<>();
+    private LinkedList<TaskEvent> taskEvents = new LinkedList<>();
     private List<HistoryEvent> historyEvents = new ArrayList<>();
     private List<HistoryEvent> markerEvents = new ArrayList<>();
     private List<HistoryEvent> signalEvents = new ArrayList<>();
     private HistoryEvent workflowExecutionStarted;
 
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
+        // Note: historyEvents are sorted newest to oldest
         this.historyEvents.addAll(historyEvents);
         for (HistoryEvent event : historyEvents) {
             if (TaskEvent.isTaskEvent(event)) {
@@ -40,9 +38,7 @@ public class HistoryInspector {
         }
     }
 
-    public void clear() {
-        workflowId = "";
-        runId = "";
+    public void reset() {
         taskEvents.clear();
         historyEvents.clear();
         markerEvents.clear();
@@ -55,45 +51,37 @@ public class HistoryInspector {
     }
 
     /**
-     * Return the list of {@link TaskEvent} for a given id.
+     * Return the list of {@link TaskEvent} for a given task id.
      *
-     * @param id unique id of the Activity, Timer, or ChildWorkflow
+     * @param taskId unique id of the Activity, Timer, or ChildWorkflow
      *
      * @return the list, empty if none found
      */
-    public List<TaskEvent> taskEvents(String id) {
-        int index = -1;
-        for (int i = 0; i < taskEvents.size(); i++) {
-            if (taskEvents.get(i).isInitialTaskEvent() && taskEvents.get(i).getId().equals(id)) {
-                index = i;
-                break;
-            }
-
-        }
-
+    public List<TaskEvent> taskEvents(String taskId) {
         List<TaskEvent> list = new ArrayList<>();
-        if (index >= 0) {
-            TaskEvent initial = taskEvents.get(index);
-            for (TaskEvent it : taskEvents.subList(0, index + 1)) {
-                if (it.equals(initial) || it.getInitialTaskEventId().equals(initial.getEventId())) {
-                    list.add(it);
-                }
+
+        // iterate backwards through list (need to find initial event first)
+        Iterator<TaskEvent> iter = taskEvents.descendingIterator();
+        long initialId = -1;
+        while (iter.hasNext()) {
+            TaskEvent event = iter.next();
+            if (event.isInitialTaskEvent() && event.getTaskId().equals(taskId)) {
+                initialId = event.getEventId();
+                list.add(event);
+            } else if (initialId == event.getInitialTaskEventId()) {
+                list.add(event);
             }
         }
         return list;
     }
 
-    /**
-     * @return Current checkpoint calculated as the max of available checkpoint signals or default zero.
-     */
-    public int getCurrentCheckpoint() {
-        int i = 0;
-        for (String signal : getSignals().keySet()) {
-            if (signal.startsWith(CHECKPOINT_PREFIX)) {
-                i = Math.max(i, Checkpoint.parseId(signal));
+    public static boolean contains(List<TaskEvent> events, EventType eventType) {
+        for (TaskEvent taskEvent : events) {
+            if (taskEvent.getType() == eventType) {
+                return true;
             }
         }
-        return i;
+        return false;
     }
 
     /**
@@ -121,23 +109,10 @@ public class HistoryInspector {
     }
 
     public String getWorkflowInput() {
-        WorkflowExecutionStartedEventAttributes attrs = workflowExecutionStarted == null ? null : workflowExecutionStarted.getWorkflowExecutionStartedEventAttributes();
-        return attrs == null ? null : attrs.getInput();
-    }
-
-    public String getWorkflowId() {
-        return workflowId;
-    }
-
-    public void setWorkflowId(String workflowId) {
-        this.workflowId = workflowId;
-    }
-
-    public String getRunId() {
-        return runId;
-    }
-
-    public void setRunId(String runId) {
-        this.runId = runId;
+        if (workflowExecutionStarted == null) {
+            return null;
+        } else {
+            return workflowExecutionStarted.getWorkflowExecutionStartedEventAttributes().getInput();
+        }
     }
 }

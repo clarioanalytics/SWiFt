@@ -1,72 +1,72 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import static java.lang.String.format;
 
 /**
- * Poll for {@link DecisionTask} on a single domain and task list and perform next decisions.
+ * Poll for {@link DecisionTask} on a single domain and task list and ask a registered {@link Workflow} for next decisions.
  * Note: Single threaded, run multiple instances as {@link Runnable} for higher throughput
  *
  * @author George Coller
  */
 public class WorkflowPoller extends BasePoller {
-    private final Map<String, List<Task>> workflows = new LinkedHashMap<>();
-    private final HistoryInspector historyInspector = new HistoryInspector();
+    private final Map<String, Workflow> workflows = new LinkedHashMap<>();
+    private final String executionContext;
 
     /**
-     * Optional context to be sent on each decision task completed event
+     * Construct a workflow poller
      *
-     * @see RespondDecisionTaskCompletedRequest#executionContext
+     * @param id unique identifier of poller for logging purposes
+     * @param executionContext optional context to be sent on each {@link RespondDecisionTaskCompletedRequest}
      */
-    private String executionContext;
-
-    public WorkflowPoller(String id) {
+    public WorkflowPoller(String id, String executionContext) {
         super(id);
+        this.executionContext = executionContext;
     }
 
     /**
      * Add a workflow the poller.
      *
-     * @param name workflow name
-     * @param version workflow version
-     * @param tasks decision tasks for the workflow
+     * @param workflow workflow
      */
-    public void addWorkflow(String name, String version, Collection<Task> tasks) {
-        String key = makeKey(name, version);
-        getLog().info("Register activity " + key);
-        for (Task task : tasks) {
-            task.setHistoryInspector(historyInspector);
-        }
-
-        workflows.put(key, new ArrayList<>(tasks));
+    public void addWorkflow(Workflow workflow) {
+        getLog().info("Register workflow " + workflow.getKey());
+        workflows.put(workflow.getKey(), workflow);
     }
 
     @Override
     protected void poll() {
+        // Events are request in newest-first reverse order;
         PollForDecisionTaskRequest request = createPollForDecisionTaskRequest();
         DecisionTask decisionTask = null;
-        historyInspector.clear();
+        Workflow workflow = null;
 
-        while (historyInspector.getCurrentCheckpoint() < 1 && (decisionTask == null || decisionTask.getNextPageToken() != null)) {
+        while (decisionTask == null || decisionTask.getNextPageToken() != null) {
             decisionTask = getSwf().pollForDecisionTask(request);
             if (decisionTask.getTaskToken() == null) {
                 getLog().info("poll timeout");
-                if (historyInspector.isEmpty()) {
+                if (workflow == null) {
                     return;
                 }
             } else {
-                historyInspector.setWorkflowId(decisionTask.getWorkflowExecution().getWorkflowId());
-                historyInspector.setRunId(decisionTask.getWorkflowExecution().getRunId());
-                historyInspector.addHistoryEvents(decisionTask.getEvents());
-                request.setNextPageToken(decisionTask.getNextPageToken());
+                if (workflow == null) {
+                    workflow = initWorkflow(decisionTask);
+                }
+                workflow.addHistoryEvents(decisionTask.getEvents());
+                if (workflow.isMoreHistoryRequired()) {
+                    request.setNextPageToken(decisionTask.getNextPageToken());
+                }
             }
-
         }
-        List<Decision> decisions = decide(decisionTask);
+
+        getLog().info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + workflow.getKey());
+        List<Decision> decisions = workflow.decide(decisionTask.getWorkflowExecution().getWorkflowId());
+        workflow.reset();
 
         if (decisions.isEmpty()) {
             getLog().info("poll no decisions");
@@ -75,71 +75,18 @@ public class WorkflowPoller extends BasePoller {
                 getLog().info("poll decision: " + String.valueOf(decision));
             }
         }
-
-        assert decisionTask != null;
         getSwf().respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
     }
 
-    public List<Decision> decide(final DecisionTask decisionTask) {
-        WorkflowType workflowType = decisionTask.getWorkflowType();
-        String key = makeKey(workflowType.getName(), workflowType.getVersion());
-        if (!workflows.containsKey(key)) {
-            throw new IllegalStateException("Workflow type not registered " + String.valueOf(workflowType));
+    private Workflow initWorkflow(DecisionTask decisionTask) {
+        String name = decisionTask.getWorkflowType().getName();
+        String version = decisionTask.getWorkflowType().getVersion();
+        Workflow workflow = workflows.get(makeKey(name, version));
+        workflow.reset();
+        if (workflow == null) {
+            throw new IllegalStateException(format("Received decision task for unregistered workflow %s %s", name, version));
         }
-        getLog().info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + key);
-
-        List<Task> tasks = workflows.get(key);
-
-        List<Decision> decisions = new ArrayList<>();
-        int finishedTasks = 0;
-        for (Task task : tasks) {
-            int checkpoint = historyInspector.getCurrentCheckpoint();
-            if (task.getCheckpoint() < checkpoint || task.isTaskFinished()) {
-                finishedTasks++;
-            } else {
-                decisions.addAll(task.decide());
-            }
-        }
-
-        if (finishedTasks == tasks.size()) {
-            String result = calcResult(decisionTask, tasks);
-            decisions.add(createCompleteWorkflowExecutionDecision(result));
-        }
-
-        return decisions;
-    }
-
-
-    /**
-     * Calc the final result for the workflow run related to the {@link DecisionTask} parameter.
-     * Default implementation returns some run statistics
-     *
-     * @see CompleteWorkflowExecutionDecisionAttributes#result
-     */
-    public String calcResult(DecisionTask decisionTask, List<Task> tasks) {
-        ObjectNode result = JsonNodeFactory.instance.objectNode();
-        ObjectNode context = result.putObject("context")
-            .put("deciderId", getId())
-            .put("domain", getDomain())
-            .put("taskList", getTaskList())
-            .put("workflowId", decisionTask.getWorkflowExecution().getWorkflowId())
-            .put("runId", decisionTask.getWorkflowExecution().getRunId())
-            .put("name", decisionTask.getWorkflowType().getName());
-
-        ArrayNode taskArray = context.putArray("tasks");
-        for (Task task : tasks) {
-            taskArray.addObject()
-                .put("id", task.getId())
-                .put("error", task.isTaskError());
-        }
-        return SwiftUtil.toJson(result);
-    }
-
-
-    public static Decision createCompleteWorkflowExecutionDecision(String result) {
-        return new Decision()
-            .withDecisionType(DecisionType.CompleteWorkflowExecution)
-            .withCompleteWorkflowExecutionDecisionAttributes(new CompleteWorkflowExecutionDecisionAttributes().withResult(result));
+        return workflow;
     }
 
     public RespondDecisionTaskCompletedRequest createRespondDecisionTaskCompletedRequest(String taskToken, List<Decision> decisions) {
@@ -155,9 +102,5 @@ public class WorkflowPoller extends BasePoller {
             .withTaskList(new TaskList().withName(getTaskList()))
             .withIdentity(getId())
             .withReverseOrder(true);
-    }
-
-    public void setExecutionContext(String executionContext) {
-        this.executionContext = executionContext;
     }
 }

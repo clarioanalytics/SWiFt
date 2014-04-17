@@ -5,12 +5,23 @@ import org.junit.Test;
 
 import java.util.*;
 
-import static com.clario.swift.SwiftUtil.cycleCheck;
+import static com.clario.swift.SwiftUtil.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author George Coller
  */
 public class SwiftUtilTest {
+
+    @Test
+    public void testFindLeafNodes() {
+        Map<String, MockV> map = new LinkedHashMap<>();
+        for (MockV mockV : makeValidGraph()) {
+            map.put(mockV.getId(), mockV);
+        }
+        Map<String, MockV> actual = findLeaves(map);
+        assertEquals("3 6 7", join(actual.keySet(), " "));
+    }
 
     @Test
     public void testCycleCheckValid() {
@@ -25,7 +36,7 @@ public class SwiftUtilTest {
         try {
             cycleCheck(list);
         } catch (IllegalStateException e) {
-            Assert.assertEquals("Cycle detected: 0 -> 2 -> 5 -> 7 -> 0", e.getMessage());
+            assertEquals("Cycle detected: 0 -> 2 -> 5 -> 7 -> 0", e.getMessage());
             return;
         }
         Assert.fail();
@@ -39,7 +50,7 @@ public class SwiftUtilTest {
         try {
             cycleCheck(list);
         } catch (IllegalStateException e) {
-            Assert.assertEquals("Cycle detected: 3 -> 4 -> 3", e.getMessage());
+            assertEquals("Cycle detected: 3 -> 4 -> 3", e.getMessage());
             return;
         }
         Assert.fail();
@@ -52,7 +63,7 @@ public class SwiftUtilTest {
         try {
             cycleCheck(list);
         } catch (IllegalStateException e) {
-            Assert.assertEquals("Cycle detected: 4 -> 4", e.getMessage());
+            assertEquals("Cycle detected: 4 -> 4", e.getMessage());
             return;
         }
         Assert.fail();

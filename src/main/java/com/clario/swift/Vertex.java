@@ -7,8 +7,8 @@ import java.util.Set;
  *
  * @author George Coller
  */
-interface Vertex {
+interface Vertex<T extends Vertex> {
     String getId();
 
-    Set<? extends Vertex> getParents();
+    Set<T> getParents();
 }

@@ -4,8 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.SwiftUtil.join;
 import static java.lang.String.format;
 
 /**
@@ -16,9 +16,15 @@ import static java.lang.String.format;
 public class WorkflowBuilder {
     public static final Logger log = LoggerFactory.getLogger(WorkflowBuilder.class);
 
+    private final String name;
+    private final String version;
     private final Map<String, Task> taskMap = new LinkedHashMap<>();
     private final List<Task> withGroup = new ArrayList<>();
-    private int checkpointCounter = 0;
+
+    public WorkflowBuilder(String name, String version) {
+        this.name = name;
+        this.version = version;
+    }
 
     /**
      * Add a {@link Task} to the workflow.
@@ -33,7 +39,6 @@ public class WorkflowBuilder {
             throw new IllegalArgumentException(format("Task '%s' already added", id));
         }
         taskMap.put(id, task);
-        task.setCheckpoint(checkpointCounter);
         withGroup.clear();
         withGroup.add(task);
         return this;
@@ -55,55 +60,21 @@ public class WorkflowBuilder {
     /**
      * Select a set of tasks as parents.
      *
-     * @param regExp regular expression to match parent task ids
+     * @param regExprs one or more regular expressions to match task ids to add as parents
      *
      * @return this instance for chaining
      */
-    public WorkflowBuilder addParents(String regExp) {
+    public WorkflowBuilder addParents(String... regExprs) {
         assertWithGroup();
-        List<Task> taskList = findTasks(regExp);
-        for (Task parent : taskList) {
-            for (Task task : withGroup) {
-                if (parent.getCheckpoint() > task.getCheckpoint()) {
-                    throw new IllegalStateException(String.format("Cannot add parent task '%s' with checkpoint after task '%s'", parent.getId(), task.getId()));
+        for (String regExp : regExprs) {
+            for (Task parent : findTasks(regExp)) {
+                for (Task task : withGroup) {
+                    task.addParents(parent);
                 }
-                if (parent.getCheckpoint() < task.getCheckpoint() - 1) {
-                    throw new IllegalStateException(String.format("Cannot add parent task '%s' to task '%s' across two checkpoints", parent.getId(), task.getId()));
-                }
-                task.addParents(parent);
             }
         }
         return this;
     }
-
-    /**
-     * Apply retry settings to tasks.
-     *
-     * @param times number of times to retry task before failing
-     * @param retryWaitInMillis exponential backoff algorithm initial wait time in milliseconds
-     *
-     * @return this instance for chaining
-     */
-    public WorkflowBuilder retry(int times, long retryWaitInMillis) {
-        assertWithGroup();
-        for (Task task : withGroup) {
-            task.addRetry(times, retryWaitInMillis);
-        }
-        return this;
-    }
-
-    /**
-     * Create a {@link Checkpoint} task to indicate that all prior tasks, or prior tasks since the last checkpoint,
-     * will need to complete before continuing.
-     *
-     * @return this instance for chaining
-     * @see Checkpoint
-     */
-    public WorkflowBuilder checkpoint() {
-        checkpointCounter++;
-        return this;
-    }
-
 
     /**
      * Select a set of tasks to modify as a group.
@@ -126,52 +97,15 @@ public class WorkflowBuilder {
         return this;
     }
 
-
     /**
-     * Return the final task list representing the workflow.
-     * Ensures the workflow is complete with no cycles, self-references
-     *
-     * @return the list
+     * Return the finished workflow.
      */
-    public List<Task> buildTaskList() {
+    public Workflow buildWorkflow() {
         if (taskMap.values().isEmpty()) {
-            throw new IllegalStateException("At least one task is required");
+            throw new IllegalStateException("At least one task is required on workflow");
         }
-        List<Task> tasks = tasksWithCheckpoints();
-
-        SwiftUtil.cycleCheck(tasks);
-        return tasks;
-    }
-
-    private List<Task> tasksWithCheckpoints() {
-        List<Task> list = new ArrayList<>(taskMap.values());
-        for (int i = 1; i <= checkpointCounter; i++) {
-            Task checkpoint = new Checkpoint(i);
-            for (Task task : findLeafNodes(i - 1)) {
-                checkpoint.addParents(task);
-            }
-            for (Task task : taskMap.values()) {
-                if (task.getCheckpoint() == i && task.getParents().isEmpty()) {
-                    task.addParents(checkpoint);
-                }
-            }
-            list.add(checkpoint);
-        }
-        return list;
-    }
-
-    private Collection<Task> findLeafNodes(int checkpoint) {
-        Map<String, Task> map = new LinkedHashMap<>(taskMap);
-        for (Map.Entry<String, Task> entry : taskMap.entrySet()) {
-            if (entry.getValue().getCheckpoint() != checkpoint) {
-                map.remove(entry.getKey());
-            } else {
-                for (Task parent : entry.getValue().getParents()) {
-                    map.remove(parent.getId());
-                }
-            }
-        }
-        return map.values();
+        SwiftUtil.cycleCheck(taskMap.values());
+        return new Workflow(name, version, taskMap);
     }
 
     public static List<Task> filterTasks(Collection<Task> tasks, String regExp, boolean assertMatch) {
@@ -187,6 +121,65 @@ public class WorkflowBuilder {
         return list;
     }
 
+    /**
+     * Apply retry settings to tasks.
+     *
+     * @param times number of times to retry task before failing
+     * @param retryWaitInMillis exponential backoff algorithm initial wait time in milliseconds
+     *
+     * @return this instance for chaining
+     */
+    public WorkflowBuilder retry(int times, long retryWaitInMillis) {
+        assertWithGroup();
+        for (Task task : withGroup) {
+            task.addRetry(times, retryWaitInMillis);
+        }
+        return this;
+    }
+
+
+    public WorkflowBuilder scheduleCloseTimeout(TimeUnit minutes, int i) {
+        assertWithGroup();
+        for (Activity activity : filterActivities(withGroup)) {
+            activity.setScheduleToCloseTimeout(minutes, i);
+        }
+        return this;
+    }
+
+    public WorkflowBuilder scheduleToStartTimeout(TimeUnit minutes, int i) {
+        assertWithGroup();
+        for (Activity activity : filterActivities(withGroup)) {
+            activity.setScheduleToStartTimeout(minutes, i);
+        }
+        return this;
+    }
+
+    public WorkflowBuilder startToCloseTimeout(TimeUnit minutes, int i) {
+        assertWithGroup();
+        for (Activity activity : filterActivities(withGroup)) {
+            activity.setStartToCloseTimeout(minutes, i);
+        }
+        return this;
+    }
+
+    public WorkflowBuilder heartBeatTimeout(TimeUnit minutes, int i) {
+        assertWithGroup();
+        for (Activity activity : filterActivities(withGroup)) {
+            activity.setHeartBeatTimeout(minutes, i);
+        }
+        return this;
+    }
+
+    private List<Activity> filterActivities(List<Task> tasks) {
+        List<Activity> activities = new ArrayList<>();
+        for (Task task : tasks) {
+            if (task instanceof Activity) {
+                activities.add((Activity) task);
+            }
+        }
+        return activities;
+    }
+
     private List<Task> findTasks(String regExp) {
         return filterTasks(taskMap.values(), regExp, true);
     }
@@ -195,25 +188,5 @@ public class WorkflowBuilder {
         if (withGroup.isEmpty()) {
             throw new IllegalStateException("At least one task is required before calling method");
         }
-    }
-
-    public String toString() {
-        StringBuilder b = new StringBuilder(taskMap.size() + 50);
-        for (Task task : tasksWithCheckpoints()) {
-            b.append(task.getId());
-            if (task instanceof Activity) {
-                Activity activity = (Activity) task;
-                b.append(format(" '%s' '%s'", activity.getName(), activity.getVersion()));
-            }
-            if (!task.getParents().isEmpty()) {
-                List<String> parents = new ArrayList<>();
-                for (Task child : task.getParents()) {
-                    parents.add(child.getId());
-                }
-                b.append(format(" parents(%s)", join(parents, ", ")));
-            }
-            b.append('\n');
-        }
-        return b.toString();
     }
 }
