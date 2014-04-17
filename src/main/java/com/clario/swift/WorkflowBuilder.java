@@ -65,6 +65,19 @@ public class WorkflowBuilder {
     }
 
     /**
+     * Add an {@link Activity} task, use name as id.
+     * Convenience method for activities that are only used once in a workflow.
+     *
+     * @param name name of registered activity in SWF
+     * @param version version of registered activity in SWF
+     *
+     * @return this instance for chaining
+     */
+    public WorkflowBuilder activity(String name, String version) {
+        return add(new Activity(name, name, version));
+    }
+
+    /**
      * Select a set of tasks to be added as parents to the most recently added task.
      * <p/>
      * Note: Use with {@link #withTasks} to add parents to multiple children at once.
