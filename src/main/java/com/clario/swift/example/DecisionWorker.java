@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.SwiftUtil.createCancelActivityDecision;
+
 
 /**
  * @author George Coller
@@ -32,15 +34,15 @@ public class DecisionWorker {
             String executionContext = System.getProperty("user.name");
             String pollerId = String.format("decision poller %d", it);
 
-            WorkflowPoller poller = new WorkflowPoller(pollerId, "dev-clario", "default", executionContext);
+            DecisionPoller poller = new DecisionPoller(pollerId, "dev-clario", "default", executionContext);
             poller.setSwf(new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key)));
             wireCalcWorkflow(poller);
-            wireXYZWorkflow(poller);
+            wireDemoWorkflow(poller);
             service.submit(poller);
         }
     }
 
-    public static void wireCalcWorkflow(WorkflowPoller poller) {
+    public static void wireCalcWorkflow(DecisionPoller poller) {
         WorkflowBuilder b = new WorkflowBuilder("Calculator", "1.0")
             .activity("a.right", "Calc Plus", "1.0")
             .activity("a.left", "Calc Plus", "1.0")
@@ -53,8 +55,8 @@ public class DecisionWorker {
         poller.addWorkflow(b.buildWorkflow());
     }
 
-    public static void wireXYZWorkflow(WorkflowPoller poller) {
-        WorkflowBuilder b = new WorkflowBuilder("XYZ", "1.0")
+    public static void wireDemoWorkflow(DecisionPoller poller) {
+        WorkflowBuilder b = new WorkflowBuilder("Demo Workflow", "1.0")
             .activity("first", "Activity X", "1.0")
             .activity("splitA", "Activity Y", "1.0")
             .activity("splitB", "Activity Y", "1.0")
@@ -68,13 +70,13 @@ public class DecisionWorker {
                     if (p1.getState() == TaskState.finish_ok) {
                         Map<String, String> map = new LinkedHashMap<>(1);
                         map.put(getId(), p1.getOutput().get("splitA"));
-                        decisions.add(createScheduleActivityDecision(new MapSerializer().marshal(map)));
-                        decisions.add(((Activity) p2).createCancelActivityDecision());
+                        decisions.add(scheduleActivityDecision(new MapSerializer().marshal(map)));
+                        decisions.add(createCancelActivityDecision(p2.getId()));
                     } else if (p2.getState() == TaskState.finish_ok) {
                         Map<String, String> map = new LinkedHashMap<>(1);
                         map.put(getId(), p2.getOutput().get("splitB"));
-                        decisions.add(createScheduleActivityDecision(new MapSerializer().marshal(map)));
-                        decisions.add(((Activity) p1).createCancelActivityDecision());
+                        decisions.add(scheduleActivityDecision(new MapSerializer().marshal(map)));
+                        decisions.add(createCancelActivityDecision(p1.getId()));
                     } else {
                         // Should not reach here if either p1 or p2 finished with an error or cancel;
                         throw new IllegalStateException("Activity race");
@@ -89,6 +91,7 @@ public class DecisionWorker {
             .withTasks(".*").scheduleCloseTimeout(TimeUnit.MINUTES, 1);
 
         Workflow w = b.buildWorkflow();
+        System.out.println(w.toString());
         poller.addWorkflow(w);
     }
 }

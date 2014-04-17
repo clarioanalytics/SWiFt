@@ -71,6 +71,7 @@ public class HistoryInspector {
                 list.add(event);
             }
         }
+        Collections.reverse(list);
         return list;
     }
 

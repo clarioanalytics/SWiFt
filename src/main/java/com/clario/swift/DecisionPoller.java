@@ -14,7 +14,7 @@ import static java.lang.String.format;
  *
  * @author George Coller
  */
-public class WorkflowPoller extends BasePoller {
+public class DecisionPoller extends BasePoller {
     private final Map<String, Workflow> workflows = new LinkedHashMap<>();
     private final String executionContext;
 
@@ -24,7 +24,7 @@ public class WorkflowPoller extends BasePoller {
      * @param id unique identifier of poller for logging purposes
      * @param executionContext optional context to be sent on each {@link RespondDecisionTaskCompletedRequest}
      */
-    public WorkflowPoller(String id, String domain, String taskList, String executionContext) {
+    public DecisionPoller(String id, String domain, String taskList, String executionContext) {
         super(id, domain, taskList);
         this.executionContext = executionContext;
     }
@@ -81,11 +81,11 @@ public class WorkflowPoller extends BasePoller {
     private Workflow initWorkflow(DecisionTask decisionTask) {
         String name = decisionTask.getWorkflowType().getName();
         String version = decisionTask.getWorkflowType().getVersion();
-        Workflow workflow = workflows.get(makeKey(name, version));
-        workflow.reset();
+        Workflow workflow = workflows.get(SwiftUtil.makeKey(name, version));
         if (workflow == null) {
             throw new IllegalStateException(format("Received decision task for unregistered workflow %s %s", name, version));
         }
+        workflow.reset();
         return workflow;
     }
 

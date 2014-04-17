@@ -1,12 +1,15 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.model.*;
+import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.amazonaws.services.simpleworkflow.model.EventType;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.SwiftUtil.defaultIfNull;
+import static com.clario.swift.SwiftUtil.createScheduleActivityTaskDecision;
 import static java.util.Arrays.asList;
 
 /**
@@ -17,6 +20,7 @@ import static java.util.Arrays.asList;
 public class Activity extends Task {
     private String name;
     private String version;
+
     // TODO: Implement a way of registering activities in SWF
     // Optional fields, allow additional input to be sent to activity.
     private String control = "";
@@ -33,18 +37,15 @@ public class Activity extends Task {
     }
 
     @Override
-    public EventType getScheduledEventType() {
-        return ActivityTaskScheduled;
-    }
-
-    @Override
-    public EventType getSuccessEventType() {
-        return ActivityTaskCompleted;
-    }
-
-    @Override
-    public List<EventType> getFailEventTypes() {
-        return asList(ActivityTaskCompleted, ActivityTaskFailed, ActivityTaskTimedOut, ActivityTaskCanceled);
+    public Map<EventType, TaskState> getEventTypeTaskStateMap() {
+        Map<EventType, TaskState> map = new LinkedHashMap<>();
+        map.put(ActivityTaskScheduled, TaskState.scheduled);
+        map.put(ActivityTaskStarted, TaskState.scheduled);
+        map.put(ActivityTaskCompleted, TaskState.finish_ok);
+        map.put(ActivityTaskCanceled, TaskState.finish_cancel);
+        map.put(ActivityTaskTimedOut, TaskState.finish_cancel);
+        map.put(ActivityTaskFailed, TaskState.finish_error);
+        return map;
     }
 
     /**
@@ -54,7 +55,13 @@ public class Activity extends Task {
     @Override
     public List<Decision> decide() {
         String input = getIoSerializer().marshal(getInputs());
-        return asList(createScheduleActivityDecision(input));
+        return asList(scheduleActivityDecision(input));
+    }
+
+    protected Decision scheduleActivityDecision(String input) {
+        return createScheduleActivityTaskDecision(
+            getId(), name, version, taskList, input, control, heartBeatTimeoutTimeout, scheduleToCloseTimeout, scheduleToStartTimeout, startToCloseTimeout
+        );
     }
 
     /**
@@ -97,69 +104,15 @@ public class Activity extends Task {
         this.startToCloseTimeout = ((Long) unit.toSeconds(duration)).toString();
     }
 
-    /**
-     * Cancel activity decision for this task
-     *
-     * @return the decision
-     * @see com.amazonaws.services.simpleworkflow.model.Decision#requestCancelActivityTaskDecisionAttributes
-     */
-    public Decision createCancelActivityDecision() {
-        return new Decision()
-            .withDecisionType(DecisionType.RequestCancelActivityTask)
-            .withRequestCancelActivityTaskDecisionAttributes(
-                new RequestCancelActivityTaskDecisionAttributes().withActivityId(getId())
-            );
-    }
+    public String getName() { return name; }
 
-    /**
-     * Schedule activity decision for this task.
-     *
-     * @param input Input to activity
-     *
-     * @return the decision
-     * @see com.amazonaws.services.simpleworkflow.model.Decision#scheduleActivityTaskDecisionAttributes for input size limitations
-     */
-    public Decision createScheduleActivityDecision(String input) {
-        assert name != null;
-        assert getId() != null;
-        return new Decision()
-            .withDecisionType(DecisionType.ScheduleActivityTask)
-            .withScheduleActivityTaskDecisionAttributes(new ScheduleActivityTaskDecisionAttributes()
-                .withActivityType(new ActivityType()
-                    .withName(name)
-                    .withVersion(defaultIfNull(version, "1.0")))
-                .withActivityId(getId())
-                .withTaskList(new TaskList()
-                    .withName(defaultIfNull(taskList, "default")))
-                .withInput(defaultIfNull(input, ""))
-                .withControl(defaultIfNull(control, ""))
-                .withHeartbeatTimeout(heartBeatTimeoutTimeout)
-                .withScheduleToCloseTimeout(scheduleToCloseTimeout)
-                .withScheduleToStartTimeout(scheduleToStartTimeout)
-                .withStartToCloseTimeout(startToCloseTimeout));
-    }
+    public String getVersion() { return version; }
 
-    public String getName() {
-        return name;
-    }
+    public String getControl() { return control; }
 
-    public String getVersion() {
-        return version;
-    }
+    public void setControl(String control) { this.control = control; }
 
-    public String getControl() {
-        return control;
-    }
+    public String getTaskList() { return taskList; }
 
-    public void setControl(String control) {
-        this.control = control;
-    }
-
-    public String getTaskList() {
-        return taskList;
-    }
-
-    public void setTaskList(String taskList) {
-        this.taskList = taskList;
-    }
+    public void setTaskList(String taskList) { this.taskList = taskList; }
 }

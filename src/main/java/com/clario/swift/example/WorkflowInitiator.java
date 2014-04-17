@@ -30,6 +30,7 @@ public class WorkflowInitiator {
         String id = p.getProperty("amazon.aws.id");
         String key = p.getProperty("amazon.aws.key");
         AmazonSimpleWorkflow swf = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key));
+        log.info("create swf client");
 
         StartWorkflowExecutionRequest request = new StartWorkflowExecutionRequest()
             .withDomain("dev-clario")
@@ -41,6 +42,7 @@ public class WorkflowInitiator {
             .withWorkflowId(String.format("Demo Workflow run: %s", new Date()))
             .withInput("100")
             .withTagList(new ArrayList<>(Arrays.asList("Demo")));
+        log.info("start workflow execution: " + request);
         Run run = ((AmazonSimpleWorkflowClient) swf).startWorkflowExecution(request);
         log.info(format("Started workflow %s %s", run, request));
     }

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.clario.swift.SwiftUtil.isNotEmpty;
+import static java.lang.String.format;
 
 /**
  * Base class for workflow task implementations.
@@ -26,19 +27,9 @@ public abstract class Task extends Vertex<Task> {
     }
 
     /**
-     * @return EventType that indicates task has been scheduled
+     * Subclasses should return a mapping of each expected {@link EventType} to the appropriate {@link TaskState}.
      */
-    public abstract EventType getScheduledEventType();
-
-    /**
-     * @return EventType that indicates task completed successfully
-     */
-    public abstract EventType getSuccessEventType();
-
-    /**
-     * @return zero or more EventTypes that indicate task failed
-     */
-    public abstract List<EventType> getFailEventTypes();
+    public abstract Map<EventType, TaskState> getEventTypeTaskStateMap();
 
     /**
      * Called on poll if task state is {@link TaskState#ready_to_decide}.
@@ -59,14 +50,13 @@ public abstract class Task extends Vertex<Task> {
                 }
             }
             return TaskState.ready_to_decide;
-        } else if (currentEventType == getScheduledEventType()) {
-            return TaskState.scheduled;
-        } else if (currentEventType == getSuccessEventType()) {
-            return TaskState.finish_ok;
-        } else if (getFailEventTypes().contains(currentEventType)) {
-            return TaskState.finish_error;
         } else {
-            throw new IllegalStateException("Unknown TaskState " + this + ":\n" + SwiftUtil.join(getTaskEvents(), ", "));
+            TaskState currentState = getEventTypeTaskStateMap().get(currentEventType);
+            if (currentState == null) {
+                throw new IllegalStateException(format("Task %s is missing mapping of event type %s to task state", toString(), currentEventType));
+            } else {
+                return currentState;
+            }
         }
     }
 
@@ -83,14 +73,16 @@ public abstract class Task extends Vertex<Task> {
         }
     }
 
-    TaskEvent getCurrentTaskEvent() {
+    public List<TaskEvent> getTaskEvents() {
+        return historyInspector.taskEvents(id);
+    }
+
+    public TaskEvent getCurrentTaskEvent() {
         List<TaskEvent> events = getTaskEvents();
         return events.isEmpty() ? null : events.get(0);
     }
 
-    private List<TaskEvent> getTaskEvents() {return historyInspector.taskEvents(id);}
-
-    EventType getCurrentEventType() {
+    public EventType getCurrentEventType() {
         TaskEvent event = getCurrentTaskEvent();
         return event == null ? null : event.getType();
     }
@@ -120,9 +112,8 @@ public abstract class Task extends Vertex<Task> {
      * @throws UnsupportedOperationException if output is not available
      */
     public Map<String, String> getOutput() {
-        TaskEvent current = getCurrentTaskEvent();
-        if (getSuccessEventType() == current.getType()) {
-            return getIoSerializer().unmarshal(current.getResult());
+        if (TaskState.finish_ok == getState()) {
+            return getIoSerializer().unmarshal(getCurrentTaskEvent().getResult());
         } else {
             throw new UnsupportedOperationException("Output not available: " + toString());
         }

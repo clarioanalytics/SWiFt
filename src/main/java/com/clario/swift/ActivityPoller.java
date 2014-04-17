@@ -6,8 +6,7 @@ import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static com.clario.swift.SwiftUtil.join;
-import static com.clario.swift.SwiftUtil.joinEntries;
+import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 
@@ -17,7 +16,6 @@ import static java.lang.String.valueOf;
  * @author George Coller
  */
 public class ActivityPoller extends BasePoller {
-    public static final int MAX_REASON_DETAILS_LENGTH = 32768;
     private Map<String, ActivityInvoker> activityMap = new LinkedHashMap<>();
     private MapSerializer ioSerializer = new MapSerializer();
 
@@ -35,7 +33,7 @@ public class ActivityPoller extends BasePoller {
             for (Method m : activity.getClass().getDeclaredMethods()) {
                 if (m != null && m.isAnnotationPresent(ActivityMethod.class)) {
                     ActivityMethod activityMethod = m.getAnnotation(ActivityMethod.class);
-                    String key = BasePoller.makeKey(activityMethod.name(), activityMethod.version());
+                    String key = makeKey(activityMethod.name(), activityMethod.version());
                     log.info("Register activity " + key);
                     activityMap.put(key, new ActivityInvoker(this, m, activity));
                 }
@@ -45,16 +43,11 @@ public class ActivityPoller extends BasePoller {
 
     @Override
     protected void poll() {
-        PollForActivityTaskRequest request = new PollForActivityTaskRequest()
-            .withDomain(domain)
-            .withTaskList(new TaskList()
-                .withName(taskList))
-            .withIdentity(this.getId());
-        com.amazonaws.services.simpleworkflow.model.ActivityTask task = swf.pollForActivityTask(request);
+        ActivityTask task = swf.pollForActivityTask(createPollForActivityTask(domain, taskList, getId()));
+
         if (task.getTaskToken() == null) {
             log.info("poll timeout");
             return;
-
         }
 
         try {
@@ -69,18 +62,19 @@ public class ActivityPoller extends BasePoller {
                     String outputString = join(joinEntries(outputs, " -> "), ", ");
                     log.info(format("completed '%s': %s = '%s'", task.getActivityId(), key, outputString));
                 }
-                RespondActivityTaskCompletedRequest resp = new RespondActivityTaskCompletedRequest()
-                    .withTaskToken(task.getTaskToken())
-                    .withResult(result);
-                swf.respondActivityTaskCompleted(resp);
+                swf.respondActivityTaskCompleted(createRespondActivityCompleted(task, result));
             } else {
                 log.error("failed not registered \'" + task.getActivityId() + "\'");
-                respondActivityTaskFailed(task.getTaskToken(), "activity not registered " + valueOf(task) + " on " + getId(), null);
+                swf.respondActivityTaskFailed(
+                    createRespondActivityTaskFailed(task.getTaskToken(), "activity not registered " + valueOf(task) + " on " + getId(), null)
+                );
             }
 
         } catch (Exception e) {
             log.error("failed \'" + task.getActivityId() + "\'", e);
-            respondActivityTaskFailed(task.getTaskToken(), e.getMessage(), BasePoller.printStackTrace(e));
+            swf.respondActivityTaskFailed(
+                createRespondActivityTaskFailed(task.getTaskToken(), e.getMessage(), printStackTrace(e))
+            );
         }
 
     }
@@ -91,33 +85,13 @@ public class ActivityPoller extends BasePoller {
      * @param taskToken identifies the task recording the heartbeat
      * @param details information to be recorded
      */
-    public void recordHeartbeat(String taskToken, String details) {
+    protected void recordHeartbeat(String taskToken, String details) {
         try {
-            RecordActivityTaskHeartbeatRequest request = new RecordActivityTaskHeartbeatRequest()
-                .withTaskToken(taskToken)
-                .withDetails(details);
-            swf.recordActivityTaskHeartbeat(request);
+            swf.recordActivityTaskHeartbeat(createRecordActivityTaskHeartbeat(taskToken, details));
         } catch (Throwable e) {
             log.warn("Failed to record heartbeat: " + taskToken + ", " + details, e);
         }
 
-    }
-
-    public void respondActivityTaskFailed(String taskToken, String reason, String details) {
-        RespondActivityTaskFailedRequest failedRequest = new RespondActivityTaskFailedRequest()
-            .withTaskToken(taskToken)
-            .withReason(trimToMaxLength(reason))
-            .withDetails(trimToMaxLength(details));
-        log.warn("poll :" + valueOf(failedRequest));
-        swf.respondActivityTaskFailed(failedRequest);
-    }
-
-    private static String trimToMaxLength(String str) {
-        if (str != null && str.length() > MAX_REASON_DETAILS_LENGTH) {
-            return str.substring(0, MAX_REASON_DETAILS_LENGTH - 1);
-        } else {
-            return str;
-        }
     }
 
     public void setIoSerializer(MapSerializer ioSerializer) {

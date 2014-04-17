@@ -1,6 +1,8 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.model.*;
+import com.amazonaws.services.simpleworkflow.model.CompleteWorkflowExecutionDecisionAttributes;
+import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,7 +39,7 @@ public class Workflow {
         this.name = name;
         this.version = version;
         this.taskMap = tasks;
-        this.key = BasePoller.makeKey(name, version);
+        this.key = SwiftUtil.makeKey(name, version);
         for (Task value : tasks.values()) {
             value.setHistoryInspector(historyInspector);
         }
@@ -68,7 +70,7 @@ public class Workflow {
      * the next round of decisions.
      * <p/>
      * Since Amazon SWF only returns 1000 events at a time, for more complex workflows it
-     * is a performance gain to let the {@link WorkflowPoller} know if it can stop polling for more
+     * is a performance gain to let the {@link DecisionPoller} know if it can stop polling for more
      * {@link HistoryEvent} records.
      *
      * @see Task#isMoreHistoryRequired()
@@ -109,11 +111,11 @@ public class Workflow {
         }
 
         if (finishedTasks == taskMap.size()) {
-            String result = calcWorkflowCompletionResult(workflowId);
+            String details = calcWorkflowCompletionResult(workflowId);
             if (errorTasks > 0) {
-                decisions.add(createFailWorkflowExecutionDecision(result, null));
+                decisions.add(SwiftUtil.createFailWorkflowExecutionDecision("One or more tasks had errors", details));
             } else {
-                decisions.add(createCompleteWorkflowExecutionDecision(result));
+                decisions.add(SwiftUtil.createCompleteWorkflowExecutionDecision(details));
             }
         }
 
@@ -139,23 +141,6 @@ public class Workflow {
                 .put("error", TaskState.finish_error == task.getState());
         }
         return SwiftUtil.toJson(result);
-    }
-
-    public static Decision createCompleteWorkflowExecutionDecision(String result) {
-        return new Decision()
-            .withDecisionType(DecisionType.CompleteWorkflowExecution)
-            .withCompleteWorkflowExecutionDecisionAttributes(
-                new CompleteWorkflowExecutionDecisionAttributes().withResult(result));
-    }
-
-    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
-        return new Decision()
-            .withDecisionType(DecisionType.FailWorkflowExecution)
-            .withFailWorkflowExecutionDecisionAttributes(
-                new FailWorkflowExecutionDecisionAttributes()
-                    .withReason(reason)
-                    .withDetails(details)
-            );
     }
 
     @Override

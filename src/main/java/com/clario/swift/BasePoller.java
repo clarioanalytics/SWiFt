@@ -4,8 +4,6 @@ import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.LinkedHashMap;
 
 import static com.clario.swift.SwiftUtil.toJson;
@@ -67,23 +65,6 @@ public abstract class BasePoller implements Runnable {
      * Any exception thrown will be logged as a warning and <code>poll</code> will be called again.
      */
     protected abstract void poll();
-
-    /**
-     * Combine a name and version into a single string for easier indexing in maps, etc.
-     * In SWF registered workflows and activities are identified by the combination of name and version.
-     */
-    public static String makeKey(String name, String version) {
-        return name + " " + version;
-    }
-
-    /**
-     * Utility method to convert a stack trace to a String
-     */
-    public static String printStackTrace(final Throwable t) {
-        StringWriter sw = new StringWriter();
-        t.printStackTrace(new PrintWriter(sw));
-        return sw.toString();
-    }
 
     @Override
     public String toString() {

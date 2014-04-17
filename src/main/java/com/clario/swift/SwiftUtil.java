@@ -1,9 +1,12 @@
 package com.clario.swift;
 
+import com.amazonaws.services.simpleworkflow.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -18,6 +21,9 @@ import static java.lang.String.format;
  */
 public class SwiftUtil {
     public static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
+    public static final int MAX_REASON_LENGTH = 256;
+    public static final int MAX_DETAILS_LENGTH = 32768;
+    public static final int MAX_RESULT_LENGTH = 32768;
 
     /**
      * Convert an object into a JSON string.
@@ -49,6 +55,22 @@ public class SwiftUtil {
             return JSON_OBJECT_MAPPER.readValue(json, Map.class);
         } catch (IOException e) {
             throw new IllegalStateException(format("Failed to unmarshal JSON: \"%s\"", json), e);
+        }
+    }
+
+    /**
+     * Trim a string if it exceeds a maximum length.
+     *
+     * @param s string to trim, null allowed
+     * @param maxLength max length
+     *
+     * @return trimmed string if it exceeded maximum length, otherwise string parameter
+     */
+    public static String trimToMaxLength(String s, int maxLength) {
+        if (s != null && s.length() > maxLength) {
+            return s.substring(0, maxLength - 1);
+        } else {
+            return s;
         }
     }
 
@@ -104,5 +126,109 @@ public class SwiftUtil {
             list.add(format("%s%s%s", defaultIfNull(entry.getKey(), ""), separator, defaultIfNull(entry.getValue(), "")));
         }
         return list;
+    }
+
+    /**
+     * Combine a name and version into a single string for easier indexing in maps, etc.
+     * In SWF registered workflows and activities are identified by the combination of name and version.
+     */
+    public static String makeKey(String name, String version) {
+        return name + " " + version;
+    }
+
+    /**
+     * Utility method to convert a stack trace to a String
+     */
+    public static String printStackTrace(final Throwable t) {
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
+    }
+
+    //
+    // Amazon SWF request helpers
+    //
+
+    public static RecordActivityTaskHeartbeatRequest createRecordActivityTaskHeartbeat(String taskToken, String details) {
+        return new RecordActivityTaskHeartbeatRequest()
+            .withTaskToken(taskToken)
+            .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH));
+    }
+
+    public static PollForActivityTaskRequest createPollForActivityTask(String domain, String taskList, String id) {
+        return new PollForActivityTaskRequest()
+            .withDomain(domain)
+            .withTaskList(new TaskList()
+                .withName(taskList))
+            .withIdentity(id);
+    }
+
+    public static RespondActivityTaskFailedRequest createRespondActivityTaskFailed(String taskToken, String reason, String details) {
+        return new RespondActivityTaskFailedRequest()
+            .withTaskToken(taskToken)
+            .withReason(trimToMaxLength(reason, MAX_REASON_LENGTH))
+            .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH));
+    }
+
+    public static RespondActivityTaskCompletedRequest createRespondActivityCompleted(ActivityTask task, String result) {
+        return new RespondActivityTaskCompletedRequest()
+            .withTaskToken(task.getTaskToken())
+            .withResult(trimToMaxLength(result, MAX_RESULT_LENGTH));
+    }
+
+    public static Decision createCompleteWorkflowExecutionDecision(String result) {
+        return new Decision()
+            .withDecisionType(DecisionType.CompleteWorkflowExecution)
+            .withCompleteWorkflowExecutionDecisionAttributes(
+                new CompleteWorkflowExecutionDecisionAttributes()
+                    .withResult(trimToMaxLength(result, MAX_RESULT_LENGTH))
+            );
+    }
+
+    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
+        return new Decision()
+            .withDecisionType(DecisionType.FailWorkflowExecution)
+            .withFailWorkflowExecutionDecisionAttributes(
+                new FailWorkflowExecutionDecisionAttributes()
+                    .withReason(trimToMaxLength(reason, MAX_REASON_LENGTH))
+                    .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH))
+            );
+    }
+
+    public static Decision createCancelActivityDecision(String id) {
+        return new Decision()
+            .withDecisionType(DecisionType.RequestCancelActivityTask)
+            .withRequestCancelActivityTaskDecisionAttributes(
+                new RequestCancelActivityTaskDecisionAttributes().withActivityId(id)
+            );
+    }
+
+    public static Decision createScheduleActivityTaskDecision(
+        String activityId,
+        String name,
+        String version,
+        String taskList,
+        String input,
+        String control,
+        String heartBeatTimeoutTimeout,
+        String scheduleToCloseTimeout,
+        String scheduleToStartTimeout,
+        String startToCloseTimeout
+    ) {
+        return new Decision()
+            .withDecisionType(DecisionType.ScheduleActivityTask)
+            .withScheduleActivityTaskDecisionAttributes(new ScheduleActivityTaskDecisionAttributes()
+                .withActivityType(new ActivityType()
+                    .withName(name)
+                    .withVersion(defaultIfNull(version, "1.0")))
+                .withActivityId(activityId)
+                .withTaskList(new TaskList()
+                    .withName(defaultIfNull(taskList, "default")))
+                .withInput(defaultIfNull(input, ""))
+                .withControl(defaultIfNull(control, ""))
+                .withHeartbeatTimeout(heartBeatTimeoutTimeout)
+                .withScheduleToCloseTimeout(scheduleToCloseTimeout)
+                .withScheduleToStartTimeout(scheduleToStartTimeout)
+                .withStartToCloseTimeout(startToCloseTimeout));
     }
 }
