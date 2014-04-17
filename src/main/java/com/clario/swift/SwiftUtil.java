@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.String.format;
+import static java.lang.String.valueOf;
 
 /**
  * Utility methods.
@@ -24,6 +25,9 @@ public class SwiftUtil {
     public static final int MAX_REASON_LENGTH = 256;
     public static final int MAX_DETAILS_LENGTH = 32768;
     public static final int MAX_RESULT_LENGTH = 32768;
+
+    // Ensure all-static utility class
+    private SwiftUtil() { }
 
     /**
      * Convert an object into a JSON string.
@@ -86,6 +90,17 @@ public class SwiftUtil {
      */
     public static <T> T defaultIfNull(T value, T replacement) {
         return value == null ? replacement : value;
+    }
+
+    /**
+     * @return replacement parameter converted to a string if the value string is null or empty, otherwise return value string.
+     */
+    public static <T> String defaultIfEmpty(String value, T replacement) {
+        if (isNotEmpty(value)) {
+            return value;
+        } else {
+            return replacement == null ? null : valueOf(replacement);
+        }
     }
 
     /**
@@ -231,4 +246,29 @@ public class SwiftUtil {
                 .withScheduleToStartTimeout(scheduleToStartTimeout)
                 .withStartToCloseTimeout(startToCloseTimeout));
     }
+
+
+    public static RegisterActivityTypeRequest createRegisterActivityType(
+        String domain,
+        String taskList,
+        String name,
+        String version,
+        String description,
+        String heartBeatTimeoutTimeout,
+        String startToCloseTimeout,
+        String scheduleToStartTimeout,
+        String scheduleToCloseTimeout
+    ) {
+        return new RegisterActivityTypeRequest()
+            .withDomain(domain)
+            .withDefaultTaskList(new TaskList().withName(taskList))
+            .withName(name)
+            .withVersion(version)
+            .withDescription(defaultIfEmpty(description, null))
+            .withDefaultTaskHeartbeatTimeout(defaultIfEmpty(heartBeatTimeoutTimeout, null))
+            .withDefaultTaskStartToCloseTimeout(defaultIfEmpty(startToCloseTimeout, null))
+            .withDefaultTaskScheduleToStartTimeout(defaultIfEmpty(scheduleToStartTimeout, null))
+            .withDefaultTaskScheduleToCloseTimeout(defaultIfEmpty(scheduleToCloseTimeout, null));
+    }
+
 }

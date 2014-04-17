@@ -1,6 +1,8 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.model.*;
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import com.amazonaws.services.simpleworkflow.model.ActivityTask;
+import com.amazonaws.services.simpleworkflow.model.TypeAlreadyExistsException;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
@@ -24,18 +26,52 @@ public class ActivityPoller extends BasePoller {
     }
 
     /**
-     * Register one or more objects having methods annotated with {@link ActivityMethod}.
+     * Call to register all added activities on this poller's domain and task list.
+     * <p/>
+     * Method is idempotent and will log warning messages for any activities that were already registered.
      *
-     * @param activities annotated objects
+     * @see ActivityMethod
+     * @see AmazonSimpleWorkflow#registerActivityType
      */
-    public void addActivities(Object... activities) {
-        for (Object activity : activities) {
-            for (Method m : activity.getClass().getDeclaredMethods()) {
-                if (m != null && m.isAnnotationPresent(ActivityMethod.class)) {
-                    ActivityMethod activityMethod = m.getAnnotation(ActivityMethod.class);
+    public void registerSimpleWorkflowActivities() {
+        for (ActivityInvoker invoker : activityMap.values()) {
+            ActivityMethod method = invoker.getActivityMethod();
+            try {
+                log.info(format("Register activity '%s' '%s'", method.name(), method.version()));
+                swf.registerActivityType(createRegisterActivityType(
+                    domain,
+                    taskList,
+                    method.name(),
+                    method.version(),
+                    method.description(),
+                    method.heartbeatTimeout(),
+                    method.startToCloseTimeout(),
+                    method.scheduleToStartTimeout(),
+                    method.scheduleToCloseTimeout()
+                ));
+                log.info(format("Register activity succeeded '%s' '%s'", method.name(), method.version()));
+            } catch (TypeAlreadyExistsException e) {
+                log.warn(format("Activity already registered '%s' '%s'", method.name(), method.version()));
+            } catch (Exception e) {
+                log.warn(format("Failed to register activity '%s' '%s'", method.name(), method.version()));
+            }
+        }
+    }
+
+
+    /**
+     * Add one or more objects having methods annotated with {@link ActivityMethod}.
+     *
+     * @param annotatedObjects annotated objects
+     */
+    public void addActivities(Object... annotatedObjects) {
+        for (Object object : annotatedObjects) {
+            for (Method method : object.getClass().getDeclaredMethods()) {
+                if (method != null && method.isAnnotationPresent(ActivityMethod.class)) {
+                    ActivityMethod activityMethod = method.getAnnotation(ActivityMethod.class);
                     String key = makeKey(activityMethod.name(), activityMethod.version());
-                    log.info("Register activity " + key);
-                    activityMap.put(key, new ActivityInvoker(this, m, activity));
+                    log.info("Added activity " + key);
+                    activityMap.put(key, new ActivityInvoker(this, method, object));
                 }
             }
         }
@@ -124,6 +160,10 @@ public class ActivityPoller extends BasePoller {
             }
         }
 
+        ActivityMethod getActivityMethod() {
+            return method.getAnnotation(ActivityMethod.class);
+        }
+
         @Override
         public String getId() {
             return task.getActivityId();
@@ -141,5 +181,6 @@ public class ActivityPoller extends BasePoller {
 
         @Override
         public void setOutput(String value) { outputs.put(getId(), value); }
+
     }
 }

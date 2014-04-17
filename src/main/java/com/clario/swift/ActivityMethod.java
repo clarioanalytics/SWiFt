@@ -31,6 +31,13 @@ public @interface ActivityMethod {
     String version();
 
     /**
+     * Description of activity.
+     *
+     * @see RegisterActivityTypeRequest#description
+     */
+    String description() default "";
+
+    /**
      * Override activity's default schedule to close timeout.
      * <pre>
      * schedule ---> start ---> close

@@ -31,11 +31,16 @@ public class ActivityWorker {
         String key = p.getProperty("amazon.aws.key");
         int threads = Integer.parseInt(p.getProperty("activity.threads"));
         ExecutorService service = Executors.newFixedThreadPool(threads);
+        AmazonSimpleWorkflowClient swf = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key));
 
         for (int it = 1; it <= threads; it++) {
             ActivityPoller poller = new ActivityPoller(String.format("activity poller %s", it), "dev-clario", "default");
-            poller.setSwf(new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key)));
+            poller.setSwf(swf);
             poller.addActivities(new ActivityWorker());
+            if (it == 1) {
+                poller.registerSimpleWorkflowActivities();
+            }
+            log.info("start: " + poller.getId());
             service.submit(poller);
         }
     }

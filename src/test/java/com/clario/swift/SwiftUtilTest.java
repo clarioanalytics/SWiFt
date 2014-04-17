@@ -22,6 +22,16 @@ public class SwiftUtilTest {
         assertEquals("Bob", defaultIfNull("Bob", "Jones"));
         assertEquals("", defaultIfNull("", "Jones"));
         assertEquals("Jones", defaultIfNull(null, "Jones"));
+        assertEquals((Integer) 2, defaultIfNull(null, 2));
+        assertEquals((Integer) 3, defaultIfNull(3, 2));
+    }
+
+    @Test
+    public void testDefaultIfEmpty() {
+        assertEquals("Bob", defaultIfEmpty("Bob", "Jones"));
+        assertEquals("Jones", defaultIfEmpty("", "Jones"));
+        assertEquals("Jones", defaultIfEmpty(null, "Jones"));
+        assertEquals("2", defaultIfEmpty(null, 2));
     }
 
     @Test
