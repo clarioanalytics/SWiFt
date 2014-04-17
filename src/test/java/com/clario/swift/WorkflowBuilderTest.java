@@ -1,9 +1,10 @@
 package com.clario.swift;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author George Coller
@@ -41,7 +42,7 @@ public class WorkflowBuilderTest {
             .activity("f", "Act 3", "1.0")
             .withTasks("d", "f").addParents("c")
             .activity("g", "Act 1", "2.0").addParents("f");
-        Assert.assertEquals(expected, builder.buildWorkflow().toString());
+        assertEquals(expected, builder.buildWorkflow().toString());
     }
 
 }

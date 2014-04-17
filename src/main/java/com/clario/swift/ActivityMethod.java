@@ -8,7 +8,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Mark any method as an activity method.
+ * Mark any method as an activity method that can handle a registered SWF Activity Tasks.
  *
  * @author George Coller
  * @see RegisterActivityTypeRequest

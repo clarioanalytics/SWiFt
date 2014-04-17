@@ -24,8 +24,8 @@ public class WorkflowPoller extends BasePoller {
      * @param id unique identifier of poller for logging purposes
      * @param executionContext optional context to be sent on each {@link RespondDecisionTaskCompletedRequest}
      */
-    public WorkflowPoller(String id, String executionContext) {
-        super(id);
+    public WorkflowPoller(String id, String domain, String taskList, String executionContext) {
+        super(id, domain, taskList);
         this.executionContext = executionContext;
     }
 
@@ -35,7 +35,7 @@ public class WorkflowPoller extends BasePoller {
      * @param workflow workflow
      */
     public void addWorkflow(Workflow workflow) {
-        getLog().info("Register workflow " + workflow.getKey());
+        log.info("Register workflow " + workflow.getKey());
         workflows.put(workflow.getKey(), workflow);
     }
 
@@ -47,9 +47,9 @@ public class WorkflowPoller extends BasePoller {
         Workflow workflow = null;
 
         while (decisionTask == null || decisionTask.getNextPageToken() != null) {
-            decisionTask = getSwf().pollForDecisionTask(request);
+            decisionTask = swf.pollForDecisionTask(request);
             if (decisionTask.getTaskToken() == null) {
-                getLog().info("poll timeout");
+                log.info("poll timeout");
                 if (workflow == null) {
                     return;
                 }
@@ -64,18 +64,18 @@ public class WorkflowPoller extends BasePoller {
             }
         }
 
-        getLog().info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + workflow.getKey());
+        log.info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + workflow.getKey());
         List<Decision> decisions = workflow.decide(decisionTask.getWorkflowExecution().getWorkflowId());
         workflow.reset();
 
         if (decisions.isEmpty()) {
-            getLog().info("poll no decisions");
+            log.info("poll no decisions");
         } else {
             for (Decision decision : decisions) {
-                getLog().info("poll decision: " + String.valueOf(decision));
+                log.info("poll decision: " + String.valueOf(decision));
             }
         }
-        getSwf().respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
+        swf.respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
     }
 
     private Workflow initWorkflow(DecisionTask decisionTask) {
@@ -98,8 +98,8 @@ public class WorkflowPoller extends BasePoller {
 
     public PollForDecisionTaskRequest createPollForDecisionTaskRequest() {
         return new PollForDecisionTaskRequest()
-            .withDomain(getDomain())
-            .withTaskList(new TaskList().withName(getTaskList()))
+            .withDomain(domain)
+            .withTaskList(new TaskList().withName(taskList))
             .withIdentity(getId())
             .withReverseOrder(true);
     }

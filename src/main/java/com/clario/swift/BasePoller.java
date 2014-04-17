@@ -11,29 +11,46 @@ import java.util.LinkedHashMap;
 import static com.clario.swift.SwiftUtil.toJson;
 
 /**
- * Base class for polling
+ * Base class for Activity and Decision pollers.
  *
  * @author George Coller
  */
 public abstract class BasePoller implements Runnable {
-    private final Logger log;
-    private final String id;
-    private AmazonSimpleWorkflow swf;
+    protected final Logger log;
+    protected final String id;
+    protected final String taskList;
+    protected final String domain;
+    protected AmazonSimpleWorkflow swf;
     private boolean isRunning = true;
-    private String taskList = "default";
-    private String domain = "domain";
 
-    public BasePoller(String id) {
+    /**
+     * @param id unique id for poller, used for logging and recording in SWF
+     * @param domain SWF domain to poll
+     * @param taskList SWF taskList to filter on
+     */
+    public BasePoller(String id, String domain, String taskList) {
         this.id = id;
+        this.domain = domain;
+        this.taskList = taskList;
         log = LoggerFactory.getLogger(id);
     }
 
     public String getId() {return id;}
 
+    /**
+     * Call to gracefully stop the poller after it is finished with the current polling.
+     */
     public void stop() {
         isRunning = false;
     }
 
+    /**
+     * Start polling in an endless loop until this thread is interrupted or stop is called.
+     * Exceptions thrown during loop will be logged.
+     *
+     * @see #stop() method to stop the run
+     * @see #poll() actual polling method called within this loop
+     */
     public void run() {
         log.info("Start " + this);
         while (isRunning) {
@@ -42,7 +59,6 @@ public abstract class BasePoller implements Runnable {
             } catch (Throwable e) {
                 log.warn(this.toString(), e);
             }
-
         }
     }
 
@@ -52,12 +68,16 @@ public abstract class BasePoller implements Runnable {
      */
     protected abstract void poll();
 
+    /**
+     * Combine a name and version into a single string for easier indexing in maps, etc.
+     * In SWF registered workflows and activities are identified by the combination of name and version.
+     */
     public static String makeKey(String name, String version) {
         return name + " " + version;
     }
 
     /**
-     * Utility method to convert a stack trace to a String.
+     * Utility method to convert a stack trace to a String
      */
     public static String printStackTrace(final Throwable t) {
         StringWriter sw = new StringWriter();
@@ -74,26 +94,5 @@ public abstract class BasePoller implements Runnable {
         return toJson(map);
     }
 
-    public final Logger getLog() { return log; }
-
-    public AmazonSimpleWorkflow getSwf() { return swf; }
-
     public void setSwf(AmazonSimpleWorkflow swf) { this.swf = swf; }
-
-    public String getTaskList() {
-        return taskList;
-    }
-
-    public void setTaskList(String taskList) {
-        this.taskList = taskList;
-    }
-
-    public String getDomain() {
-        return domain;
-    }
-
-    public void setDomain(String domain) {
-        this.domain = domain;
-    }
-
 }

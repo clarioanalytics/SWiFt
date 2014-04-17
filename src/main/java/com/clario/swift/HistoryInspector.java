@@ -12,11 +12,11 @@ import static com.amazonaws.services.simpleworkflow.model.EventType.*;
 /**
  * Helper class that contains convenience methods for working with a list of {@link HistoryEvent}.
  * Most of the heavy lifting comes from converting each {@link HistoryEvent} into a {@link TaskEvent}.
- * This class is not thread-safe and is meant to be used by a single {@link WorkflowPoller}.
+ * This class is not thread-safe and is meant to be used by a single {@link Workflow} instance.
  *
  * @author George Coller
  * @see TaskEvent
- * @see WorkflowPoller
+ * @see Workflow
  */
 public class HistoryInspector {
     private LinkedList<TaskEvent> taskEvents = new LinkedList<>();
@@ -38,16 +38,15 @@ public class HistoryInspector {
         }
     }
 
+    /**
+     * Reset instance to prepare for new set of history.
+     */
     public void reset() {
         taskEvents.clear();
         historyEvents.clear();
         markerEvents.clear();
         signalEvents.clear();
         workflowExecutionStarted = null;
-    }
-
-    public boolean isEmpty() {
-        return historyEvents.isEmpty();
     }
 
     /**
@@ -108,6 +107,11 @@ public class HistoryInspector {
         return signals;
     }
 
+    /**
+     * If available return the input string given to this workflow when it was initiated on SWF.
+     *
+     * @return the input or null if not available
+     */
     public String getWorkflowInput() {
         if (workflowExecutionStarted == null) {
             return null;

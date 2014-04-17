@@ -3,9 +3,10 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static com.clario.swift.SwiftUtil.firstOrNull;
 import static com.clario.swift.SwiftUtil.isNotEmpty;
 
 /**
@@ -13,20 +14,15 @@ import static com.clario.swift.SwiftUtil.isNotEmpty;
  *
  * @author George Coller
  */
-public abstract class Task implements Comparable<Task>, Vertex<Task> {
-    /**
-     * User-defined activity identifier, must be unique per instance.
-     */
-    private final String id;
-    private final Set<Task> parents = new TreeSet<>();
+public abstract class Task extends Vertex<Task> {
 
-    private int retryTimes;
-    private long retryWaitInMillis;
     private HistoryInspector historyInspector;
     private MapSerializer ioSerializer = new MapSerializer();
+    private int retryTimes;
+    private long retryWaitInMillis;
 
     public Task(String id) {
-        this.id = id;
+        super(id);
     }
 
     /**
@@ -70,7 +66,7 @@ public abstract class Task implements Comparable<Task>, Vertex<Task> {
         } else if (getFailEventTypes().contains(currentEventType)) {
             return TaskState.finish_error;
         } else {
-            throw new IllegalStateException("Unknown TaskState " + this + ":\n" + SwiftUtil.join(taskEvents(), ", "));
+            throw new IllegalStateException("Unknown TaskState " + this + ":\n" + SwiftUtil.join(getTaskEvents(), ", "));
         }
     }
 
@@ -87,12 +83,15 @@ public abstract class Task implements Comparable<Task>, Vertex<Task> {
         }
     }
 
-    public String getWorkflowInput() {
-        return historyInspector.getWorkflowInput();
+    TaskEvent getCurrentTaskEvent() {
+        List<TaskEvent> events = getTaskEvents();
+        return events.isEmpty() ? null : events.get(0);
     }
 
+    private List<TaskEvent> getTaskEvents() {return historyInspector.taskEvents(id);}
+
     EventType getCurrentEventType() {
-        TaskEvent event = firstOrNull(taskEvents());
+        TaskEvent event = getCurrentTaskEvent();
         return event == null ? null : event.getType();
     }
 
@@ -103,8 +102,9 @@ public abstract class Task implements Comparable<Task>, Vertex<Task> {
      */
     public Map<String, String> getInputs() {
         final Map<String, String> input = new LinkedHashMap<>();
-        if (parents.isEmpty() && isNotEmpty(getWorkflowInput())) {
-            input.put("", getWorkflowInput());
+        String workflowInput = historyInspector.getWorkflowInput();
+        if (parents.isEmpty() && isNotEmpty(workflowInput)) {
+            input.put("", workflowInput);
         } else {
             for (Task parent : parents) {
                 input.putAll(parent.getOutput());
@@ -120,55 +120,18 @@ public abstract class Task implements Comparable<Task>, Vertex<Task> {
      * @throws UnsupportedOperationException if output is not available
      */
     public Map<String, String> getOutput() {
-        if (getSuccessEventType() == getCurrentEventType()) {
-            return getIoSerializer().unmarshal(taskEvents().get(0).getResult());
+        TaskEvent current = getCurrentTaskEvent();
+        if (getSuccessEventType() == current.getType()) {
+            return getIoSerializer().unmarshal(current.getResult());
         } else {
             throw new UnsupportedOperationException("Output not available: " + toString());
         }
     }
 
-    /**
-     * Add given tasks as parents
-     *
-     * @return this instance
-     */
-    public Task addParents(Task... parentTasks) {
-        Collections.addAll(Task.this.parents, parentTasks);
-        return this;
-    }
-
-    /**
-     * Find a parent by <code>uniqueId</code>.
-     *
-     * @throws IllegalArgumentException if parent not found
-     */
-    public Task getParent(final String uniqueId) {
-        for (Task parent : parents) {
-            if (parent.getId().equals(uniqueId)) {
-                return parent;
-            }
-        }
-        throw new IllegalArgumentException("Parent not found: " + uniqueId);
-    }
 
     public void addRetry(int times, long waitInMillis) {
         this.retryTimes = times;
         this.retryWaitInMillis = waitInMillis;
-    }
-
-    /**
-     * Return list of {@link TaskEvent} belonging to this instance in {@link TaskEvent#getEventTimestamp()} newest-first order.
-     */
-    private List<TaskEvent> taskEvents() {
-        return historyInspector.taskEvents(id);
-    }
-
-    public final String getId() {
-        return id;
-    }
-
-    public final Set<Task> getParents() {
-        return parents;
     }
 
     public void setHistoryInspector(HistoryInspector historyInspector) {
@@ -181,21 +144,5 @@ public abstract class Task implements Comparable<Task>, Vertex<Task> {
 
     public void setIoSerializer(MapSerializer ioSerializer) {
         this.ioSerializer = ioSerializer;
-    }
-
-    public boolean equals(Object o) {
-        return this == o || o instanceof Task && id.equals(((Task) o).id);
-    }
-
-    public int hashCode() {
-        return id.hashCode();
-    }
-
-    public int compareTo(Task task) {
-        return id.compareTo(task.id);
-    }
-
-    public String toString() {
-        return getClass().getSimpleName() + ":" + id;
     }
 }

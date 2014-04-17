@@ -1,12 +1,16 @@
 package com.clario.swift;
 
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.clario.swift.SwiftUtil.*;
-import static org.junit.Assert.assertEquals;
+import static java.util.Arrays.asList;
+import static java.util.Collections.*;
+import static org.junit.Assert.*;
 
 /**
  * @author George Coller
@@ -14,102 +18,50 @@ import static org.junit.Assert.assertEquals;
 public class SwiftUtilTest {
 
     @Test
-    public void testFindLeafNodes() {
-        Map<String, MockV> map = new LinkedHashMap<>();
-        for (MockV mockV : makeValidGraph()) {
-            map.put(mockV.getId(), mockV);
-        }
-        Map<String, MockV> actual = findLeaves(map);
-        assertEquals("3 6 7", join(actual.keySet(), " "));
+    public void testDefaultIfNull() {
+        assertEquals("Bob", defaultIfNull("Bob", "Jones"));
+        assertEquals("", defaultIfNull("", "Jones"));
+        assertEquals("Jones", defaultIfNull(null, "Jones"));
     }
 
     @Test
-    public void testCycleCheckValid() {
-        List<MockV> list = makeValidGraph();
-        cycleCheck(list);
+    public void testIsNotEmpty() {
+        assertTrue(isNotEmpty(" "));
+        assertTrue(isNotEmpty("ABC"));
+        assertFalse(isNotEmpty(""));
+        assertFalse(isNotEmpty(null));
     }
 
     @Test
-    public void testCycleEndToBeginning() {
-        List<MockV> list = makeValidGraph();
-        list.get(0).addAll(list.get(7));
-        try {
-            cycleCheck(list);
-        } catch (IllegalStateException e) {
-            assertEquals("Cycle detected: 0 -> 2 -> 5 -> 7 -> 0", e.getMessage());
-            return;
-        }
-        Assert.fail();
+    public void testJson() {
+        String expected = "{\"A\":1,\"B\":{\"C\":[1,2,3]},\"D\":null}";
+        assertEquals(expected, toJson(fromJson(expected)));
     }
 
     @Test
-    public void testCycleInner() {
-        List<MockV> list = makeValidGraph();
-        list.get(3).addAll(list.get(4));
-        list.get(4).addAll(list.get(3));
-        try {
-            cycleCheck(list);
-        } catch (IllegalStateException e) {
-            assertEquals("Cycle detected: 3 -> 4 -> 3", e.getMessage());
-            return;
-        }
-        Assert.fail();
+    public void testJoin() {
+        assertEquals("", join(emptySet(), null));
+        assertEquals("", join(emptySet(), ""));
+        assertEquals("", join(emptySet(), ",,,"));
+        assertEquals("ABC", join(asList("A", "B", "C"), null));
+        assertEquals("ABC", join(asList("A", "B", "C"), ""));
+        assertEquals("A,B,C", join(asList("A", "B", "C"), ","));
+        assertEquals("A||B||C", join(asList("A", "B", "C"), "||"));
     }
 
     @Test
-    public void testCycleSelfReference() {
-        List<MockV> list = makeValidGraph();
-        list.get(4).addAll(list.get(4));
-        try {
-            cycleCheck(list);
-        } catch (IllegalStateException e) {
-            assertEquals("Cycle detected: 4 -> 4", e.getMessage());
-            return;
-        }
-        Assert.fail();
-    }
-
-    private List<MockV> makeValidGraph() {
-        MockV[] vs = new MockV[8];
-        for (int i = 0; i < vs.length; i++) {
-            vs[i] = new MockV(String.valueOf(i));
-        }
-        vs[1].addAll(vs[0]);
-        vs[2].addAll(vs[0]);
-        vs[3].addAll(vs[1], vs[2]);
-        vs[4].addAll(vs[2]);
-        vs[5].addAll(vs[1], vs[2]);
-        vs[6].addAll(vs[0], vs[4]);
-        vs[7].addAll(vs[5]);
-        List<MockV> list = new ArrayList<>();
-        Collections.addAll(list, vs);
-        return list;
-    }
-
-
-    private static class MockV implements Vertex {
-        private final String id;
-        private final Set<MockV> parents = new HashSet<>();
-
-        private MockV(String id) {
-            this.id = id;
-        }
-
-        void addAll(MockV... parents) { Collections.addAll(this.parents, parents); }
-
-        @Override
-        public String getId() { return id; }
-
-        @Override
-        public Set<? extends Vertex> getParents() { return parents; }
-
-        @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
-        public boolean equals(Object o) { return id.equals(((MockV) o).id); }
-
-        public int hashCode() { return id.hashCode(); }
-
-        public String toString() {
-            return id;
-        }
+    public void testJoinEntries() {
+        List<String> empty = emptyList();
+        assertEquals(empty, joinEntries(emptyMap(), null));
+        assertEquals(empty, joinEntries(emptyMap(), ""));
+        assertEquals(empty, joinEntries(emptyMap(), ",,,"));
+        Map<String, Integer> map = new HashMap<>();
+        map.put("A", 1);
+        map.put("B", 2);
+        map.put("C", null);
+        assertEquals(Arrays.asList("A1", "B2", "C"), joinEntries(map, null));
+        assertEquals(Arrays.asList("A1", "B2", "C"), joinEntries(map, ""));
+        assertEquals(Arrays.asList("A-1", "B-2", "C-"), joinEntries(map, "-"));
+        assertEquals(Arrays.asList("A||1", "B||2", "C||"), joinEntries(map, "||"));
     }
 }

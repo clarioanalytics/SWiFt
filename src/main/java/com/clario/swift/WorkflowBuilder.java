@@ -20,7 +20,14 @@ public class WorkflowBuilder {
     private final String version;
     private final Map<String, Task> taskMap = new LinkedHashMap<>();
     private final List<Task> withGroup = new ArrayList<>();
+    private boolean disableCycleAssertion = false;
 
+    /**
+     * Create an instance to match an SWF-registered workflow.
+     *
+     * @param name registered workflow name
+     * @param version registered workflow version
+     */
     public WorkflowBuilder(String name, String version) {
         this.name = name;
         this.version = version;
@@ -58,7 +65,9 @@ public class WorkflowBuilder {
     }
 
     /**
-     * Select a set of tasks as parents.
+     * Select a set of tasks to be added as parents to the most recently added task.
+     * <p/>
+     * Note: Use with {@link #withTasks} to add parents to multiple children at once.
      *
      * @param regExprs one or more regular expressions to match task ids to add as parents
      *
@@ -98,16 +107,39 @@ public class WorkflowBuilder {
     }
 
     /**
+     * Disable the graph cycle assertion when building the workflow.
+     * By default workflows detects if any routes are cycles including self-referencing tasks to avoid endless workflow executions.
+     * <p/>
+     * Note: it is preferable to set a {@link #retry} for tasks that should be retried on failure.
+     */
+    public void setDisableCycleAssertion() {
+        this.disableCycleAssertion = true;
+    }
+
+    /**
      * Return the finished workflow.
+     *
+     * @throws AssertionError if no tasks were added to the workflow or a cycle was detected.
+     * @see #setDisableCycleAssertion() to disable cycle detection
      */
     public Workflow buildWorkflow() {
         if (taskMap.values().isEmpty()) {
-            throw new IllegalStateException("At least one task is required on workflow");
+            throw new AssertionError("At least one task is required on workflow");
         }
-        SwiftUtil.cycleCheck(taskMap.values());
+        if (!disableCycleAssertion) { Vertex.assertNoCycles(taskMap.values()); }
         return new Workflow(name, version, taskMap);
     }
 
+    /**
+     * Utility function to filter a collection of tasks by applying a regular expression against each task id.
+     *
+     * @param tasks tasks to filter
+     * @param regExp regular expression to apply
+     * @param assertMatch if true, throw an exception if zero matches were found
+     *
+     * @return list of filtered tasks
+     * @throws AssertionError if assertMatch is true and zero matches were found
+     */
     public static List<Task> filterTasks(Collection<Task> tasks, String regExp, boolean assertMatch) {
         List<Task> list = new ArrayList<>();
         for (Task task : tasks) {
@@ -116,7 +148,7 @@ public class WorkflowBuilder {
             }
         }
         if (assertMatch && list.isEmpty()) {
-            throw new IllegalStateException(format("Regular expression '%s' did not find any matching tasks", regExp));
+            throw new AssertionError(format("Regular expression '%s' did not find any matching tasks", regExp));
         }
         return list;
     }
@@ -138,34 +170,46 @@ public class WorkflowBuilder {
     }
 
 
-    public WorkflowBuilder scheduleCloseTimeout(TimeUnit minutes, int i) {
+    /**
+     * Set {@link Activity#setScheduleToCloseTimeout} to a task or tasks if they are an activity task.
+     */
+    public WorkflowBuilder scheduleCloseTimeout(TimeUnit minutes, int duration) {
         assertWithGroup();
         for (Activity activity : filterActivities(withGroup)) {
-            activity.setScheduleToCloseTimeout(minutes, i);
+            activity.setScheduleToCloseTimeout(minutes, duration);
         }
         return this;
     }
 
-    public WorkflowBuilder scheduleToStartTimeout(TimeUnit minutes, int i) {
+    /**
+     * Set {@link Activity#setScheduleToStartTimeout} to a task or tasks if they are an activity task.
+     */
+    public WorkflowBuilder scheduleToStartTimeout(TimeUnit minutes, int duration) {
         assertWithGroup();
         for (Activity activity : filterActivities(withGroup)) {
-            activity.setScheduleToStartTimeout(minutes, i);
+            activity.setScheduleToStartTimeout(minutes, duration);
         }
         return this;
     }
 
-    public WorkflowBuilder startToCloseTimeout(TimeUnit minutes, int i) {
+    /**
+     * Set {@link Activity#setStartToCloseTimeout} to a task or tasks if they are an activity task.
+     */
+    public WorkflowBuilder startToCloseTimeout(TimeUnit minutes, int duration) {
         assertWithGroup();
         for (Activity activity : filterActivities(withGroup)) {
-            activity.setStartToCloseTimeout(minutes, i);
+            activity.setStartToCloseTimeout(minutes, duration);
         }
         return this;
     }
 
-    public WorkflowBuilder heartBeatTimeout(TimeUnit minutes, int i) {
+    /**
+     * Set {@link Activity#setHeartBeatTimeout} to a task or tasks if they are an activity task.
+     */
+    public WorkflowBuilder heartBeatTimeout(TimeUnit minutes, int duration) {
         assertWithGroup();
         for (Activity activity : filterActivities(withGroup)) {
-            activity.setHeartBeatTimeout(minutes, i);
+            activity.setHeartBeatTimeout(minutes, duration);
         }
         return this;
     }
@@ -186,7 +230,7 @@ public class WorkflowBuilder {
 
     private void assertWithGroup() {
         if (withGroup.isEmpty()) {
-            throw new IllegalStateException("At least one task is required before calling method");
+            throw new AssertionError("At least one task is required before calling method");
         }
     }
 }

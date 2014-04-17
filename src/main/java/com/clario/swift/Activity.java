@@ -10,7 +10,7 @@ import static com.clario.swift.SwiftUtil.defaultIfNull;
 import static java.util.Arrays.asList;
 
 /**
- * Task that performs an activity.
+ * Task that returns an SWF activity decision.
  *
  * @author George Coller
  */
@@ -104,7 +104,11 @@ public class Activity extends Task {
      * @see com.amazonaws.services.simpleworkflow.model.Decision#requestCancelActivityTaskDecisionAttributes
      */
     public Decision createCancelActivityDecision() {
-        return new Decision().withDecisionType(DecisionType.RequestCancelActivityTask).withRequestCancelActivityTaskDecisionAttributes(new RequestCancelActivityTaskDecisionAttributes().withActivityId(getId()));
+        return new Decision()
+            .withDecisionType(DecisionType.RequestCancelActivityTask)
+            .withRequestCancelActivityTaskDecisionAttributes(
+                new RequestCancelActivityTaskDecisionAttributes().withActivityId(getId())
+            );
     }
 
     /**

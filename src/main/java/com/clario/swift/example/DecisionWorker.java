@@ -32,9 +32,7 @@ public class DecisionWorker {
             String executionContext = System.getProperty("user.name");
             String pollerId = String.format("decision poller %d", it);
 
-            WorkflowPoller poller = new WorkflowPoller(pollerId, executionContext);
-            poller.setDomain("dev-clario");
-            poller.setTaskList("default");
+            WorkflowPoller poller = new WorkflowPoller(pollerId, "dev-clario", "default", executionContext);
             poller.setSwf(new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key)));
             wireCalcWorkflow(poller);
             wireXYZWorkflow(poller);

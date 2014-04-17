@@ -15,6 +15,8 @@ import static java.util.Collections.unmodifiableList;
 
 /**
  * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, or External Signal tasks.
+ * <p/>
+ * Basically trying to extract all the ugliness of Amazon's SWF model into one place so that this API can be cleaner.
  *
  * @author George Coller
  * @see HistoryInspector
@@ -212,7 +214,6 @@ public class TaskEvent {
         return null;
     }
 
-    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     public boolean equals(Object o) {
         return this == o || o instanceof TaskEvent && eventId == ((TaskEvent) o).eventId;
     }

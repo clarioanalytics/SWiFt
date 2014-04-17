@@ -33,9 +33,7 @@ public class ActivityWorker {
         ExecutorService service = Executors.newFixedThreadPool(threads);
 
         for (int it = 1; it <= threads; it++) {
-            ActivityPoller poller = new ActivityPoller(String.format("activity poller %s", it));
-            poller.setDomain("dev-clario");
-            poller.setTaskList("default");
+            ActivityPoller poller = new ActivityPoller(String.format("activity poller %s", it), "dev-clario", "default");
             poller.setSwf(new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key)));
             poller.addActivities(new ActivityWorker());
             service.submit(poller);

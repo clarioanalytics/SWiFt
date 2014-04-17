@@ -13,6 +13,9 @@ import static com.clario.swift.SwiftUtil.join;
 import static java.lang.String.format;
 
 /**
+ * Maps to a registered Simple Workflow 'workflow' and contains a graph of {@link Task}
+ * to be decided.
+ *
  * @author George Coller
  */
 public class Workflow {
@@ -23,23 +26,53 @@ public class Workflow {
     private final String key;
     private final HistoryInspector historyInspector = new HistoryInspector();
 
-    public Workflow(String name, String version, Map<String, Task> taskMap) {
+    /**
+     * Construct a workflow mapping to a registered SWF workflow.
+     *
+     * @param name registered name
+     * @param version registered version
+     * @param tasks graph of tasks to be decided
+     */
+    public Workflow(String name, String version, Map<String, Task> tasks) {
         this.name = name;
         this.version = version;
-        this.taskMap = taskMap;
+        this.taskMap = tasks;
         this.key = BasePoller.makeKey(name, version);
-        for (Task value : taskMap.values()) {
+        for (Task value : tasks.values()) {
             value.setHistoryInspector(historyInspector);
         }
-        this.leafTasks = SwiftUtil.findLeaves(taskMap);
+        this.leafTasks = Vertex.findLeaves(tasks);
     }
 
+    /**
+     * Unique id for this workflow, combination of name and version.
+     */
     public String getKey() { return key;}
 
+    /**
+     * Reset the workflow state so it can be reused on the next polling.
+     */
     public void reset() { historyInspector.reset(); }
 
-    public void addHistoryEvents(List<HistoryEvent> events) { historyInspector.addHistoryEvents(events); }
+    /**
+     * Add more {@link HistoryEvent} instances to the workflow.
+     *
+     * @see #isMoreHistoryRequired()
+     */
+    public void addHistoryEvents(List<HistoryEvent> events) {
+        historyInspector.addHistoryEvents(events);
+    }
 
+    /**
+     * Are more history events required before this workflow instance can make
+     * the next round of decisions.
+     * <p/>
+     * Since Amazon SWF only returns 1000 events at a time, for more complex workflows it
+     * is a performance gain to let the {@link WorkflowPoller} know if it can stop polling for more
+     * {@link HistoryEvent} records.
+     *
+     * @see Task#isMoreHistoryRequired()
+     */
     public boolean isMoreHistoryRequired() {
         for (Task task : leafTasks.values()) {
             if (task.isMoreHistoryRequired()) {
@@ -49,6 +82,16 @@ public class Workflow {
         return false;
     }
 
+    /**
+     * Make decisions given the current state of the workflow.
+     * <p/>
+     * If the workflow is finished (all tasks are in a finish state) then a final
+     * workflow complete decision will be returned.
+     *
+     * @param workflowId id given to this run of the workflow.
+     *
+     * @return list of zero or more decisions made
+     */
     public List<Decision> decide(String workflowId) {
         List<Decision> decisions = new ArrayList<>();
         int finishedTasks = 0;
