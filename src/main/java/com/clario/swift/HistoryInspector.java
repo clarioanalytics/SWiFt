@@ -1,13 +1,12 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.model.EventType;
-import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
-import com.amazonaws.services.simpleworkflow.model.MarkerRecordedEventAttributes;
-import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionSignaledEventAttributes;
+import com.amazonaws.services.simpleworkflow.model.*;
 
 import java.util.*;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
+import static com.clario.swift.SwiftUtil.makeKey;
+import static java.lang.String.format;
 
 /**
  * Helper class that contains convenience methods for working with a list of {@link HistoryEvent}.
@@ -23,6 +22,7 @@ public class HistoryInspector {
     private List<HistoryEvent> historyEvents = new ArrayList<>();
     private List<HistoryEvent> markerEvents = new ArrayList<>();
     private List<HistoryEvent> signalEvents = new ArrayList<>();
+    private List<HistoryEvent> scheduleActivityErrors = new ArrayList<>();
     private HistoryEvent workflowExecutionStarted;
 
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
@@ -35,6 +35,7 @@ public class HistoryInspector {
             if (MarkerRecorded.name().equals(event.getEventType())) { markerEvents.add(event); }
             if (WorkflowExecutionSignaled.name().equals(event.getEventType())) { signalEvents.add(event); }
             if (WorkflowExecutionStarted.name().equals(event.getEventType())) { workflowExecutionStarted = event; }
+            if (ScheduleActivityTaskFailed.name().equals(event.getEventType())) { scheduleActivityErrors.add(event);}
         }
     }
 
@@ -46,6 +47,7 @@ public class HistoryInspector {
         historyEvents.clear();
         markerEvents.clear();
         signalEvents.clear();
+        scheduleActivityErrors.clear();
         workflowExecutionStarted = null;
     }
 
@@ -119,5 +121,16 @@ public class HistoryInspector {
         } else {
             return workflowExecutionStarted.getWorkflowExecutionStartedEventAttributes().getInput();
         }
+    }
+
+    public List<String> getScheduleActivityErrors() {
+        List<String> errors = new ArrayList<>();
+        for (HistoryEvent event : scheduleActivityErrors) {
+            ScheduleActivityTaskFailedEventAttributes attrs = event.getScheduleActivityTaskFailedEventAttributes();
+            String id = attrs.getActivityId();
+            String key = makeKey(attrs.getActivityType().getName(), attrs.getActivityType().getVersion());
+            errors.add(format("Activity '%s' %s", id, key));
+        }
+        return errors;
     }
 }

@@ -7,11 +7,8 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import java.util.Date;
-import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableList;
 
 /**
  * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, or External Signal tasks.
@@ -23,11 +20,6 @@ import static java.util.Collections.unmodifiableList;
  */
 public class TaskEvent {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = ISODateTimeFormat.basicDateTimeNoMillis();
-    private static final List<EventType> INITIATOR_EVENT_TYPES = unmodifiableList(asList(ActivityTaskScheduled, TimerStarted, StartChildWorkflowExecutionInitiated, WorkflowExecutionSignaled));
-    private static final List<EventType> ACTIVITY_EVENT_TYPES = unmodifiableList(asList(ActivityTaskScheduled, ActivityTaskStarted, ActivityTaskCompleted, ActivityTaskFailed, ActivityTaskTimedOut, ActivityTaskCanceled));
-    private static final List<EventType> TIMER_EVENT_TYPES = unmodifiableList(asList(TimerStarted, TimerFired, TimerCanceled));
-    private static final List<EventType> CHILD_WORKFLOW_EVENT_TYPES = unmodifiableList(asList(StartChildWorkflowExecutionInitiated, ChildWorkflowExecutionStarted, ChildWorkflowExecutionCompleted, ChildWorkflowExecutionFailed, ChildWorkflowExecutionTimedOut, ChildWorkflowExecutionCanceled, ChildWorkflowExecutionTerminated));
-    private static final List<EventType> SIGNAL_EVENT_TYPES = unmodifiableList(asList(WorkflowExecutionSignaled));
 
     private final EventType eventType;
     private final boolean isInitialTaskEvent;
@@ -50,7 +42,7 @@ public class TaskEvent {
             this.eventType = EventType.valueOf(historyEvent.getEventType());
             this.eventId = historyEvent.getEventId();
             this.eventTimestamp = historyEvent.getEventTimestamp();
-            this.isInitialTaskEvent = INITIATOR_EVENT_TYPES.contains(eventType);
+            this.isInitialTaskEvent = isInitialEventType(eventType);
             this.initialTaskEventId = findInitialEventId(historyEvent);
             this.taskId = findTaskId(historyEvent);
             this.result = findResult(historyEvent);
@@ -77,8 +69,7 @@ public class TaskEvent {
      * Determine if a {@link HistoryEvent} has an SWF {@link EventType} that can be constructed as a <code>TaskEvent</code>.
      */
     public static boolean isTaskEvent(HistoryEvent historyEvent) {
-        EventType type = EventType.valueOf(historyEvent.getEventType());
-        return ACTIVITY_EVENT_TYPES.contains(type) || TIMER_EVENT_TYPES.contains(type) || CHILD_WORKFLOW_EVENT_TYPES.contains(type) || SIGNAL_EVENT_TYPES.contains(type);
+        return findTaskState(EventType.valueOf(historyEvent.getEventType())) != null;
     }
 
     /**
@@ -147,7 +138,59 @@ public class TaskEvent {
         throw new UnsupportedOptionException("Result not available for task: " + this);
     }
 
-    private static Long findInitialEventId(HistoryEvent historyEvent) {
+    public TaskState getTaskState() {
+        return findTaskState(eventType);
+    }
+
+    static boolean isInitialEventType(EventType eventType) {
+        return ActivityTaskScheduled == eventType
+            || TimerStarted == eventType
+            || StartChildWorkflowExecutionInitiated == eventType
+            || WorkflowExecutionSignaled == eventType;
+    }
+
+    static TaskState findTaskState(EventType eventType) {
+        switch (eventType) {
+            // Activity Tasks
+            case ActivityTaskScheduled:
+            case ActivityTaskStarted:
+                return TaskState.decided;
+            case ActivityTaskCompleted:
+                return TaskState.finish_ok;
+            case ActivityTaskCanceled:
+            case ActivityTaskFailed:
+            case ActivityTaskTimedOut:
+                return TaskState.finish_error;
+
+            // Timers
+            case TimerStarted:
+                return TaskState.decided;
+            case TimerFired:
+                return TaskState.finish_ok;
+            case TimerCanceled:
+                return TaskState.finish_error;
+
+            // Child Workflows
+            case StartChildWorkflowExecutionInitiated:
+            case ChildWorkflowExecutionStarted:
+                return TaskState.decided;
+            case ChildWorkflowExecutionCompleted:
+                return TaskState.finish_ok;
+            case ChildWorkflowExecutionCanceled:
+            case ChildWorkflowExecutionFailed:
+            case ChildWorkflowExecutionTerminated:
+            case ChildWorkflowExecutionTimedOut:
+                return TaskState.finish_error;
+
+            // Signals
+            case WorkflowExecutionSignaled:
+                return TaskState.finish_ok;
+            default:
+                return null;
+        }
+    }
+
+    static Long findInitialEventId(HistoryEvent historyEvent) {
         switch (EventType.valueOf(historyEvent.getEventType())) {
             // Activity Tasks
             case ActivityTaskScheduled:

@@ -10,7 +10,6 @@ import java.util.Map;
 
 import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
-import static java.lang.String.valueOf;
 
 /**
  * Polls for activities on a given domain and task list and executes them.
@@ -19,7 +18,6 @@ import static java.lang.String.valueOf;
  */
 public class ActivityPoller extends BasePoller {
     private Map<String, ActivityInvoker> activityMap = new LinkedHashMap<>();
-    private MapSerializer ioSerializer = new MapSerializer();
 
     public ActivityPoller(String id, String domain, String taskList) {
         super(id, domain, taskList);
@@ -86,28 +84,28 @@ public class ActivityPoller extends BasePoller {
             return;
         }
 
+        String input = task.getInput();
+        String key = makeKey(task.getActivityType().getName(), task.getActivityType().getVersion());
         try {
-            String key = makeKey(task.getActivityType().getName(), task.getActivityType().getVersion());
-            log.info(format("invoke '%s': %s", task.getActivityId(), key));
+            if (log.isInfoEnabled()) {
+                log.info(format("invoke %s %s(%s)", task.getActivityId(), key, input));
+            }
             if (activityMap.containsKey(key)) {
-                Map<String, String> inputs = ioSerializer.unmarshal(task.getInput());
-                Map<String, String> outputs = activityMap.get(key).invoke(task, inputs);
-                String result = ioSerializer.marshal(outputs);
+                String result = activityMap.get(key).invoke(task, input);
 
                 if (log.isInfoEnabled()) {
-                    String outputString = join(joinEntries(outputs, " -> "), ", ");
-                    log.info(format("completed '%s': %s = '%s'", task.getActivityId(), key, outputString));
+                    log.info(format("completed %s %s(%s)=%s", task.getActivityId(), key, input, result));
                 }
                 swf.respondActivityTaskCompleted(createRespondActivityCompleted(task, result));
             } else {
-                log.error("failed not registered \'" + task.getActivityId() + "\'");
+                String format = format("Activity '%s' not registered on poller %s", task.getActivityId(), getId());
+                log.error(format);
                 swf.respondActivityTaskFailed(
-                    createRespondActivityTaskFailed(task.getTaskToken(), "activity not registered " + valueOf(task) + " on " + getId(), null)
+                    createRespondActivityTaskFailed(task.getTaskToken(), format, null)
                 );
             }
-
         } catch (Exception e) {
-            log.error("failed \'" + task.getActivityId() + "\'", e);
+            log.error(format("failed %s %s(%s)", task.getActivityId(), key, input));
             swf.respondActivityTaskFailed(
                 createRespondActivityTaskFailed(task.getTaskToken(), e.getMessage(), printStackTrace(e))
             );
@@ -130,16 +128,12 @@ public class ActivityPoller extends BasePoller {
 
     }
 
-    public void setIoSerializer(MapSerializer ioSerializer) {
-        this.ioSerializer = ioSerializer;
-    }
-
     static class ActivityInvoker implements ActivityContext {
         private final ActivityPoller poller;
         private final Method method;
         private final Object instance;
-        private Map<String, String> inputs = new LinkedHashMap<>();
-        private Map<String, String> outputs = new LinkedHashMap<>();
+        private String input;
+        private String output;
         private ActivityTask task;
 
         ActivityInvoker(ActivityPoller poller, Method method, Object instance) {
@@ -148,15 +142,14 @@ public class ActivityPoller extends BasePoller {
             this.instance = instance;
         }
 
-        Map<String, String> invoke(final ActivityTask task, Map<String, String> inputs) {
+        String invoke(final ActivityTask task, String input) {
             try {
                 this.task = task;
-                this.inputs = inputs;
-                outputs = new LinkedHashMap<>();
+                this.input = input;
                 method.invoke(instance, this);
-                return outputs;
+                return output;
             } catch (Throwable e) {
-                throw new IllegalStateException("Failed to invoke with: " + task.getActivityId() + ": " + valueOf(inputs), e);
+                throw new IllegalStateException(format("Failed to invoke with: %s: %s", task.getActivityId(), input), e);
             }
         }
 
@@ -174,13 +167,20 @@ public class ActivityPoller extends BasePoller {
             poller.recordHeartbeat(task.getTaskToken(), details);
         }
 
-        @Override
-        public Map<String, String> getInputs() {
-            return inputs;
+        public String getInput() {
+            return input;
         }
 
-        @Override
-        public void setOutput(String value) { outputs.put(getId(), value); }
+        public void setInput(String input) {
+            this.input = input;
+        }
 
+        public String getOutput() {
+            return output;
+        }
+
+        public void setOutput(String output) {
+            this.output = output;
+        }
     }
 }

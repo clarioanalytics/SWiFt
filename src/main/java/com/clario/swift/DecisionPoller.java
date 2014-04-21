@@ -2,10 +2,13 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.clario.swift.SwiftUtil.createFailWorkflowExecutionDecision;
+import static com.clario.swift.SwiftUtil.join;
 import static java.lang.String.format;
 
 /**
@@ -35,8 +38,8 @@ public class DecisionPoller extends BasePoller {
      * @param workflow workflow
      */
     public void addWorkflow(Workflow workflow) {
-        log.info("Register workflow " + workflow.getKey());
-        workflows.put(workflow.getKey(), workflow);
+        log.info(format("Register workflow %s", workflow.getWorkflowKey()));
+        workflows.put(workflow.getWorkflowKey(), workflow);
     }
 
     @Override
@@ -55,7 +58,8 @@ public class DecisionPoller extends BasePoller {
                 }
             } else {
                 if (workflow == null) {
-                    workflow = initWorkflow(decisionTask);
+                    workflow = lookupWorkflow(decisionTask);
+                    workflow.reset();
                 }
                 workflow.addHistoryEvents(decisionTask.getEvents());
                 if (workflow.isMoreHistoryRequired()) {
@@ -64,28 +68,45 @@ public class DecisionPoller extends BasePoller {
             }
         }
 
-        log.info("decide " + decisionTask.getWorkflowExecution().getWorkflowId() + " " + workflow.getKey());
-        List<Decision> decisions = workflow.decide(decisionTask.getWorkflowExecution().getWorkflowId());
-        workflow.reset();
-
-        if (decisions.isEmpty()) {
-            log.info("poll no decisions");
+        String workflowId = decisionTask.getWorkflowExecution().getWorkflowId();
+        List<Decision> decisions = new ArrayList<>();
+        List<String> errors = workflow.getSchedulingErrors();
+        if (!errors.isEmpty()) {
+            String errorMessage = format("Workflow %s %s schedule activity errors: %s ", workflowId, workflow.getWorkflowKey(), join(errors, ", "));
+            log.error(errorMessage);
+            decisions.add(createFailWorkflowExecutionDecision("One or more activities failed during scheduling", errorMessage));
         } else {
-            for (Decision decision : decisions) {
-                log.info("poll decision: " + String.valueOf(decision));
+            if (log.isInfoEnabled()) {
+                log.info(format("decide %s %s", workflowId, workflow.getWorkflowKey()));
+            }
+            workflow.decide(workflowId, decisions);
+
+            if (decisions.isEmpty()) {
+                log.info("poll no decisions");
+            } else {
+                for (Decision decision : decisions) {
+                    // TODO: Convert to debug
+                    log.info(format("poll decision: %s", decision));
+                }
             }
         }
-        swf.respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
+
+        try {
+            swf.respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
+        } catch (Exception e) {
+            log.error(format("decide %s %s", workflowId, workflow.getWorkflowKey()), e);
+        }
     }
 
-    private Workflow initWorkflow(DecisionTask decisionTask) {
+
+    private Workflow lookupWorkflow(DecisionTask decisionTask) {
         String name = decisionTask.getWorkflowType().getName();
         String version = decisionTask.getWorkflowType().getVersion();
-        Workflow workflow = workflows.get(SwiftUtil.makeKey(name, version));
+        String key = SwiftUtil.makeKey(name, version);
+        Workflow workflow = workflows.get(key);
         if (workflow == null) {
-            throw new IllegalStateException(format("Received decision task for unregistered workflow %s %s", name, version));
+            throw new IllegalStateException(format("Received decision task for unregistered workflow %s", key));
         }
-        workflow.reset();
         return workflow;
     }
 
