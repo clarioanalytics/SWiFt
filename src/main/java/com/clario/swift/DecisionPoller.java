@@ -32,6 +32,19 @@ public class DecisionPoller extends BasePoller {
         this.executionContext = executionContext;
     }
 
+    public void registerSwfWorkflows() {
+        for (Workflow workflow : workflows.values()) {
+            try {
+                swf.registerWorkflowType(workflow.createRegisterWorkflowTypeRequest());
+                log.info(format("Register workflow succeeded '%s' '%s'", workflow.getName(), workflow.getVersion()));
+            } catch (TypeAlreadyExistsException e) {
+                log.warn(format("Workflow already registered '%s' '%s'", workflow.getName(), workflow.getVersion()));
+            } catch (Exception e) {
+                log.warn(format("Failed to register workflow '%s' '%s'", workflow.getName(), workflow.getVersion()));
+            }
+        }
+    }
+
     /**
      * Add a workflow the poller.
      *
@@ -59,7 +72,7 @@ public class DecisionPoller extends BasePoller {
             } else {
                 if (workflow == null) {
                     workflow = lookupWorkflow(decisionTask);
-                    workflow.reset();
+                    workflow.init(domain, taskList);
                 }
                 workflow.addHistoryEvents(decisionTask.getEvents());
                 if (workflow.isMoreHistoryRequired()) {
@@ -70,16 +83,16 @@ public class DecisionPoller extends BasePoller {
 
         String workflowId = decisionTask.getWorkflowExecution().getWorkflowId();
         List<Decision> decisions = new ArrayList<>();
-        List<String> errors = workflow.getSchedulingErrors();
+        List<HistoryEvent> errors = workflow.getWorkflowStateErrors();
         if (!errors.isEmpty()) {
-            String errorMessage = format("Workflow %s %s schedule activity errors: %s ", workflowId, workflow.getWorkflowKey(), join(errors, ", "));
+            String errorMessage = format("Workflow %s %s schedule activity errors:\n%s", workflowId, workflow.getWorkflowKey(), join(errors, "\n"));
             log.error(errorMessage);
             decisions.add(createFailWorkflowExecutionDecision("One or more activities failed during scheduling", errorMessage));
         } else {
             if (log.isInfoEnabled()) {
                 log.info(format("decide %s %s", workflowId, workflow.getWorkflowKey()));
             }
-            workflow.decide(workflowId, decisions);
+            workflow.decide(decisions);
 
             if (decisions.isEmpty()) {
                 log.info("poll no decisions");

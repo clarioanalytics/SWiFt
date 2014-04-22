@@ -3,48 +3,50 @@ package com.clario.swift;
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
+import com.clario.swift.action.SwfAction;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import java.util.Date;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
+import static com.clario.swift.action.SwfAction.ActionState.*;
 
 /**
- * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, or External Signal tasks.
+ * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, Marker, or External Signal activities.
  * <p/>
  * Basically trying to extract all the ugliness of Amazon's SWF model into one place so that this API can be cleaner.
  *
  * @author George Coller
- * @see HistoryInspector
+ * @see SwfHistory
  */
-public class TaskEvent {
+public class SwfHistoryEvent {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = ISODateTimeFormat.basicDateTimeNoMillis();
 
     private final EventType eventType;
-    private final boolean isInitialTaskEvent;
+    private final boolean isInitialEvent;
     private final long eventId;
     private final Date eventTimestamp;
-    private final Long initialTaskEventId;
-    private final String taskId;
+    private final Long initialEventId;
+    private final String actionId;
     private final String result;
 
     /**
      * Construct using an SWF <code>HistoryEvent</code>.
-     * Use {@link TaskEvent#isTaskEvent} to determine if a given <code>HistoryEvent</code> is allowed.
+     * Use {@link SwfHistoryEvent#isActionHistoryEvent} to determine if a given <code>HistoryEvent</code> is allowed.
      *
-     * @param historyEvent must be compatible with task event
+     * @param historyEvent must be compatible with action event
      *
-     * @see #isTaskEvent(HistoryEvent)
+     * @see #isActionHistoryEvent(HistoryEvent)
      */
-    public TaskEvent(HistoryEvent historyEvent) {
-        if (isTaskEvent(historyEvent)) {
+    public SwfHistoryEvent(HistoryEvent historyEvent) {
+        if (isActionHistoryEvent(historyEvent)) {
             this.eventType = EventType.valueOf(historyEvent.getEventType());
             this.eventId = historyEvent.getEventId();
             this.eventTimestamp = historyEvent.getEventTimestamp();
-            this.isInitialTaskEvent = isInitialEventType(eventType);
-            this.initialTaskEventId = findInitialEventId(historyEvent);
-            this.taskId = findTaskId(historyEvent);
+            this.isInitialEvent = isInitialEventType(eventType);
+            this.initialEventId = findInitialEventId(historyEvent);
+            this.actionId = findActionId(historyEvent);
             this.result = findResult(historyEvent);
         } else {
             throw new IllegalArgumentException("HistoryEvent type is not allowable: " + historyEvent);
@@ -55,44 +57,44 @@ public class TaskEvent {
      * Construct directly with values.
      * Unit test constructor
      */
-    TaskEvent(Date eventTimestamp, long eventId, EventType eventType, boolean isInitialTaskEvent, Long initialTaskEventId, String taskId, String result) {
+    SwfHistoryEvent(Date eventTimestamp, long eventId, EventType eventType, boolean isInitialEvent, Long initialEventId, String actionId, String result) {
         this.eventType = eventType;
-        this.isInitialTaskEvent = isInitialTaskEvent;
+        this.isInitialEvent = isInitialEvent;
         this.eventId = eventId;
         this.eventTimestamp = eventTimestamp;
-        this.initialTaskEventId = initialTaskEventId;
-        this.taskId = taskId;
+        this.initialEventId = initialEventId;
+        this.actionId = actionId;
         this.result = result;
     }
 
     /**
-     * Determine if a {@link HistoryEvent} has an SWF {@link EventType} that can be constructed as a <code>TaskEvent</code>.
+     * Determine if a {@link HistoryEvent} has an SWF {@link EventType} that can be constructed as a <code>ActionEvent</code>.
      */
-    public static boolean isTaskEvent(HistoryEvent historyEvent) {
-        return findTaskState(EventType.valueOf(historyEvent.getEventType())) != null;
+    public static boolean isActionHistoryEvent(HistoryEvent historyEvent) {
+        return findActionState(EventType.valueOf(historyEvent.getEventType())) != null;
     }
 
     /**
-     * Initial task events have an {@link #getType()} that starts an activity, timer, or child workflow decision.
+     * Initial action events have an {@link #getType()} that starts an activity, timer, or child workflow decision.
      * Clients can use this to check if {@link #getEventId()} is available for this instance.
      *
-     * @return true if task type is an initial task event
+     * @return true if action type is an initial action event
      * @see #getEventId()
      */
-    public boolean isInitialTaskEvent() {
-        return isInitialTaskEvent;
+    public boolean isInitialEvent() {
+        return isInitialEvent;
     }
 
     /**
-     * @return unique task identifier for an initiator task event.
-     * @throws UnsupportedOperationException if instance is not an initiator task event.
-     * @see #isInitialTaskEvent()
+     * @return unique action identifier for an initiator action event.
+     * @throws UnsupportedOperationException if instance is not an initiator action event.
+     * @see #isInitialEvent()
      */
-    public String getTaskId() {
-        if (isInitialTaskEvent) {
-            return taskId;
+    public String getActionId() {
+        if (isInitialEvent) {
+            return actionId;
         } else {
-            throw new UnsupportedOperationException("Cannot get task id on non-initial task event: " + this);
+            throw new UnsupportedOperationException("Cannot get action id on non-initial action event: " + this);
         }
     }
 
@@ -118,28 +120,28 @@ public class TaskEvent {
     }
 
     /**
-     * Return the initial task event of the wrapped {@link HistoryEvent}.
+     * Return the initial action event of the wrapped {@link HistoryEvent}.
      * <p/>
      * If this event is an initial event, return it's event id
      * otherwise return it's pointer to the initial event id
      */
-    public Long getInitialTaskEventId() {
-        return initialTaskEventId;
+    public Long getInitialEventId() {
+        return initialEventId;
     }
 
     /**
-     * @return result if this instance is an activity task completed event
+     * @return result if this instance is an activity action completed event
      * @throws java.lang.UnsupportedOperationException if event type does not return a result
      */
     public String getResult() {
         if (ActivityTaskCompleted == getType()) {
             return result;
         }
-        throw new UnsupportedOptionException("Result not available for task: " + this);
+        throw new UnsupportedOptionException("Result not available for action: " + this);
     }
 
-    public TaskState getTaskState() {
-        return findTaskState(eventType);
+    public SwfAction.ActionState getActionState() {
+        return findActionState(eventType);
     }
 
     static boolean isInitialEventType(EventType eventType) {
@@ -149,42 +151,48 @@ public class TaskEvent {
             || WorkflowExecutionSignaled == eventType;
     }
 
-    static TaskState findTaskState(EventType eventType) {
+    static SwfAction.ActionState findActionState(EventType eventType) {
         switch (eventType) {
             // Activity Tasks
             case ActivityTaskScheduled:
             case ActivityTaskStarted:
-                return TaskState.decided;
+                return started;
             case ActivityTaskCompleted:
-                return TaskState.finish_ok;
+                return finish_ok;
             case ActivityTaskCanceled:
             case ActivityTaskFailed:
             case ActivityTaskTimedOut:
-                return TaskState.finish_error;
+                return finish_error;
 
             // Timers
             case TimerStarted:
-                return TaskState.decided;
+                return started;
             case TimerFired:
-                return TaskState.finish_ok;
+                return finish_ok;
             case TimerCanceled:
-                return TaskState.finish_error;
+                return finish_error;
+
+            // Markers
+            case MarkerRecorded:
+                return finish_ok;
+            case RecordMarkerFailed:
+                return finish_error;
 
             // Child Workflows
             case StartChildWorkflowExecutionInitiated:
             case ChildWorkflowExecutionStarted:
-                return TaskState.decided;
+                return started;
             case ChildWorkflowExecutionCompleted:
-                return TaskState.finish_ok;
+                return finish_ok;
             case ChildWorkflowExecutionCanceled:
             case ChildWorkflowExecutionFailed:
             case ChildWorkflowExecutionTerminated:
             case ChildWorkflowExecutionTimedOut:
-                return TaskState.finish_error;
+                return finish_error;
 
             // Signals
             case WorkflowExecutionSignaled:
-                return TaskState.finish_ok;
+                return finish_ok;
             default:
                 return null;
         }
@@ -205,13 +213,21 @@ public class TaskEvent {
                 return historyEvent.getActivityTaskFailedEventAttributes().getScheduledEventId();
             case ActivityTaskTimedOut:
                 return historyEvent.getActivityTaskTimedOutEventAttributes().getScheduledEventId();
+
             // Timers
             case TimerStarted:
-                return Long.valueOf(historyEvent.getTimerStartedEventAttributes().getTimerId());
+                return historyEvent.getEventId();
             case TimerFired:
                 return historyEvent.getTimerFiredEventAttributes().getStartedEventId();
             case TimerCanceled:
                 return historyEvent.getTimerCanceledEventAttributes().getStartedEventId();
+
+            // Markers
+            case MarkerRecorded:
+                return historyEvent.getEventId();
+            case RecordMarkerFailed:
+                return historyEvent.getRecordMarkerFailedEventAttributes().getDecisionTaskCompletedEventId();
+
             // Child Workflows
             case StartChildWorkflowExecutionInitiated:
                 return historyEvent.getEventId();
@@ -227,6 +243,7 @@ public class TaskEvent {
                 return historyEvent.getChildWorkflowExecutionTerminatedEventAttributes().getInitiatedEventId();
             case ChildWorkflowExecutionTimedOut:
                 return historyEvent.getChildWorkflowExecutionTimedOutEventAttributes().getInitiatedEventId();
+
             // Signals
             case WorkflowExecutionSignaled:
                 return historyEvent.getEventId();
@@ -235,12 +252,14 @@ public class TaskEvent {
         }
     }
 
-    private static String findTaskId(HistoryEvent historyEvent) {
+    static String findActionId(HistoryEvent historyEvent) {
         switch (EventType.valueOf(historyEvent.getEventType())) {
             case ActivityTaskScheduled:
                 return historyEvent.getActivityTaskScheduledEventAttributes().getActivityId();
             case TimerStarted:
                 return historyEvent.getTimerStartedEventAttributes().getTimerId();
+            case MarkerRecorded:
+                return historyEvent.getMarkerRecordedEventAttributes().getMarkerName();
             case StartChildWorkflowExecutionInitiated:
                 return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes().getWorkflowId();
             case WorkflowExecutionSignaled:
@@ -250,7 +269,7 @@ public class TaskEvent {
         }
     }
 
-    private static String findResult(HistoryEvent historyEvent) {
+    static String findResult(HistoryEvent historyEvent) {
         if (ActivityTaskCompleted == EventType.valueOf(historyEvent.getEventType())) {
             return historyEvent.getActivityTaskCompletedEventAttributes().getResult();
         }
@@ -258,7 +277,7 @@ public class TaskEvent {
     }
 
     public boolean equals(Object o) {
-        return this == o || o instanceof TaskEvent && eventId == ((TaskEvent) o).eventId;
+        return this == o || o instanceof SwfHistoryEvent && eventId == ((SwfHistoryEvent) o).eventId;
     }
 
     public int hashCode() {
@@ -270,7 +289,7 @@ public class TaskEvent {
         return DATE_TIME_FORMATTER.print(eventTimestamp.getTime())
             + ' ' + eventType
             + ' ' + eventId
-            + (isInitialTaskEvent ? ' ' : " -> ")
-            + (isInitialTaskEvent ? taskId : initialTaskEventId);
+            + (isInitialEvent ? ' ' : " -> ")
+            + (isInitialEvent ? actionId : initialEventId);
     }
 }

@@ -31,7 +31,7 @@ public class ActivityPoller extends BasePoller {
      * @see ActivityMethod
      * @see AmazonSimpleWorkflow#registerActivityType
      */
-    public void registerSimpleWorkflowActivities() {
+    public void registerSwfActivities() {
         for (ActivityInvoker invoker : activityMap.values()) {
             ActivityMethod method = invoker.getActivityMethod();
             try {

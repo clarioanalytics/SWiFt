@@ -1,4 +1,4 @@
-package com.clario.swift.example;
+package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Run;
 import com.amazonaws.services.simpleworkflow.model.StartWorkflowExecutionRequest;

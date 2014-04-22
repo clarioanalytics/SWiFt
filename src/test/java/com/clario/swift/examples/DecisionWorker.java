@@ -1,7 +1,6 @@
-package com.clario.swift.example;
+package com.clario.swift.examples;
 
 import com.clario.swift.DecisionPoller;
-import com.clario.swift.Workflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +23,9 @@ public class DecisionWorker {
 
             DecisionPoller poller = new DecisionPoller(pollerId, "dev-clario", "default", executionContext);
             poller.setSwf(config.getAmazonSimpleWorkflow());
-            poller.addWorkflow(new Workflow("Demo Workflow", "1.0", "default"));
+            poller.addWorkflow(new DemoWorkflow());
+            poller.addWorkflow(new SimpleWorkflow());
+            poller.addWorkflow(new TimerWorkflow());
             config.getService().submit(poller);
         }
     }

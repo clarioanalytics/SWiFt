@@ -1,41 +1,47 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.model.*;
+import com.amazonaws.services.simpleworkflow.model.EventType;
+import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
+import com.amazonaws.services.simpleworkflow.model.MarkerRecordedEventAttributes;
+import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionSignaledEventAttributes;
 
 import java.util.*;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.SwiftUtil.makeKey;
-import static java.lang.String.format;
 
 /**
- * Helper class that contains convenience methods for working with a list of {@link HistoryEvent}.
- * Most of the heavy lifting comes from converting each {@link HistoryEvent} into a {@link TaskEvent}.
+ * Helper class that contains convenience methods for working with a list of {@link SwfHistoryEvent}.
+ * Most of the heavy lifting comes from converting each SWF {@link HistoryEvent} into a {@link SwfHistoryEvent} to
+ * unify the event API across * various SWF tasks like Activities, Timers, Markers, Signals, ChildWorkflows.
+ * <p/>
  * This class is not thread-safe and is meant to be used by a single {@link Workflow} instance.
  *
  * @author George Coller
- * @see TaskEvent
+ * @see SwfHistoryEvent
  * @see Workflow
  */
-public class HistoryInspector {
-    private LinkedList<TaskEvent> taskEvents = new LinkedList<>();
+public class SwfHistory {
+    private LinkedList<SwfHistoryEvent> swfHistoryEvents = new LinkedList<>();
     private List<HistoryEvent> historyEvents = new ArrayList<>();
     private List<HistoryEvent> markerEvents = new ArrayList<>();
     private List<HistoryEvent> signalEvents = new ArrayList<>();
-    private List<HistoryEvent> scheduleActivityErrors = new ArrayList<>();
+    private List<HistoryEvent> workflowStateErrors = new ArrayList<>();
     private HistoryEvent workflowExecutionStarted;
 
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
         // Note: historyEvents are sorted newest to oldest
         this.historyEvents.addAll(historyEvents);
         for (HistoryEvent event : historyEvents) {
-            if (TaskEvent.isTaskEvent(event)) {
-                taskEvents.add(new TaskEvent(event));
+            if (SwfHistoryEvent.isActionHistoryEvent(event)) {
+                swfHistoryEvents.add(new SwfHistoryEvent(event));
             }
             if (MarkerRecorded.name().equals(event.getEventType())) { markerEvents.add(event); }
             if (WorkflowExecutionSignaled.name().equals(event.getEventType())) { signalEvents.add(event); }
             if (WorkflowExecutionStarted.name().equals(event.getEventType())) { workflowExecutionStarted = event; }
-            if (ScheduleActivityTaskFailed.name().equals(event.getEventType())) { scheduleActivityErrors.add(event);}
+            if (ScheduleActivityTaskFailed.name().equals(event.getEventType())
+                || WorkflowExecutionCancelRequested.name().equals(event.getEventType())) {
+                workflowStateErrors.add(event);
+            }
         }
     }
 
@@ -43,33 +49,33 @@ public class HistoryInspector {
      * Reset instance to prepare for new set of history.
      */
     public void reset() {
-        taskEvents.clear();
+        swfHistoryEvents.clear();
         historyEvents.clear();
         markerEvents.clear();
         signalEvents.clear();
-        scheduleActivityErrors.clear();
+        workflowStateErrors.clear();
         workflowExecutionStarted = null;
     }
 
     /**
-     * Return the list of {@link TaskEvent} for a given task id.
+     * Return the list of {@link SwfHistoryEvent} for a given action id.
      *
-     * @param taskId unique id of the Activity, Timer, or ChildWorkflow
+     * @param activityId unique id of the Activity, Timer, or ChildWorkflow
      *
      * @return the list, empty if none found
      */
-    public List<TaskEvent> taskEvents(String taskId) {
-        List<TaskEvent> list = new ArrayList<>();
+    public List<SwfHistoryEvent> actionEvents(String activityId) {
+        List<SwfHistoryEvent> list = new ArrayList<>();
 
         // iterate backwards through list (need to find initial event first)
-        Iterator<TaskEvent> iter = taskEvents.descendingIterator();
+        Iterator<SwfHistoryEvent> iter = swfHistoryEvents.descendingIterator();
         long initialId = -1;
         while (iter.hasNext()) {
-            TaskEvent event = iter.next();
-            if (event.isInitialTaskEvent() && event.getTaskId().equals(taskId)) {
+            SwfHistoryEvent event = iter.next();
+            if (event.isInitialEvent() && event.getActionId().equals(activityId)) {
                 initialId = event.getEventId();
                 list.add(event);
-            } else if (initialId == event.getInitialTaskEventId()) {
+            } else if (initialId == event.getInitialEventId()) {
                 list.add(event);
             }
         }
@@ -77,9 +83,9 @@ public class HistoryInspector {
         return list;
     }
 
-    public static boolean contains(List<TaskEvent> events, EventType eventType) {
-        for (TaskEvent taskEvent : events) {
-            if (taskEvent.getType() == eventType) {
+    public static boolean contains(List<SwfHistoryEvent> events, EventType eventType) {
+        for (SwfHistoryEvent swfHistoryEvent : events) {
+            if (swfHistoryEvent.getType() == eventType) {
                 return true;
             }
         }
@@ -123,14 +129,7 @@ public class HistoryInspector {
         }
     }
 
-    public List<String> getScheduleActivityErrors() {
-        List<String> errors = new ArrayList<>();
-        for (HistoryEvent event : scheduleActivityErrors) {
-            ScheduleActivityTaskFailedEventAttributes attrs = event.getScheduleActivityTaskFailedEventAttributes();
-            String id = attrs.getActivityId();
-            String key = makeKey(attrs.getActivityType().getName(), attrs.getActivityType().getVersion());
-            errors.add(format("Activity '%s' %s", id, key));
-        }
-        return errors;
+    public List<HistoryEvent> getWorkflowStateErrors() {
+        return workflowStateErrors;
     }
 }

@@ -93,7 +93,7 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.5</version>
-            <scope>optional</scope>
+            <scope>test</scope>
         </dependency>
 
 

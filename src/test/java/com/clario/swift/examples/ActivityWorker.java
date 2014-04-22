@@ -1,4 +1,4 @@
-package com.clario.swift.example;
+package com.clario.swift.examples;
 
 import com.clario.swift.ActivityContext;
 import com.clario.swift.ActivityMethod;
@@ -26,7 +26,7 @@ public class ActivityWorker {
             poller.setSwf(config.getAmazonSimpleWorkflow());
             poller.addActivities(new ActivityWorker());
             if (it == 1) {
-                poller.registerSimpleWorkflowActivities();
+                poller.registerSwfActivities();
             }
             log.info("start: " + poller.getId());
             config.getService().submit(poller);

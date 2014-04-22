@@ -210,14 +210,6 @@ public class SwiftUtil {
             );
     }
 
-    public static Decision createCancelActivityDecision(String id) {
-        return new Decision()
-            .withDecisionType(DecisionType.RequestCancelActivityTask)
-            .withRequestCancelActivityTaskDecisionAttributes(
-                new RequestCancelActivityTaskDecisionAttributes().withActivityId(id)
-            );
-    }
-
     public static Decision createScheduleActivityTaskDecision(
         String activityId,
         String name,
