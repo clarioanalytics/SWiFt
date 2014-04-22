@@ -11,7 +11,7 @@ import static com.amazonaws.services.simpleworkflow.model.EventType.*;
 import static com.clario.swift.action.SwfAction.ActionState.*;
 
 /**
- * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, Marker, or External Signal activities.
+ * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, or External Signal activities.
  * <p/>
  * Basically trying to extract all the ugliness of Amazon's SWF model into one place so that this API can be cleaner.
  *
@@ -170,12 +170,6 @@ public class SwfHistoryEvent {
             case TimerCanceled:
                 return finish_error;
 
-            // Markers
-            case MarkerRecorded:
-                return finish_ok;
-            case RecordMarkerFailed:
-                return finish_error;
-
             // Child Workflows
             case StartChildWorkflowExecutionInitiated:
             case ChildWorkflowExecutionStarted:
@@ -220,12 +214,6 @@ public class SwfHistoryEvent {
             case TimerCanceled:
                 return historyEvent.getTimerCanceledEventAttributes().getStartedEventId();
 
-            // Markers
-            case MarkerRecorded:
-                return historyEvent.getEventId();
-            case RecordMarkerFailed:
-                return historyEvent.getRecordMarkerFailedEventAttributes().getDecisionTaskCompletedEventId();
-
             // Child Workflows
             case StartChildWorkflowExecutionInitiated:
                 return historyEvent.getEventId();
@@ -256,8 +244,6 @@ public class SwfHistoryEvent {
                 return historyEvent.getActivityTaskScheduledEventAttributes().getActivityId();
             case TimerStarted:
                 return historyEvent.getTimerStartedEventAttributes().getTimerId();
-            case MarkerRecorded:
-                return historyEvent.getMarkerRecordedEventAttributes().getMarkerName();
             case StartChildWorkflowExecutionInitiated:
                 return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes().getWorkflowId();
             case WorkflowExecutionSignaled:

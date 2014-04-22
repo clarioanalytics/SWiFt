@@ -222,6 +222,15 @@ public class SwiftUtil {
             );
     }
 
+    public static Decision createRecordMarkerDecision(String name, String details) {
+        return new Decision()
+            .withDecisionType(DecisionType.RecordMarker)
+            .withRecordMarkerDecisionAttributes(new RecordMarkerDecisionAttributes()
+                    .withMarkerName(name)
+                    .withDetails(details)
+            );
+    }
+
     public static Decision createScheduleActivityTaskDecision(
         String activityId,
         String name,
