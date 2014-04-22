@@ -27,7 +27,7 @@ public class TimerWorkflow extends Workflow {
             .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
             .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30)
             .withChildPolicy(ChildPolicy.TERMINATE);
-        Config.register(workflow);
+//        Config.register(workflow);
         Config.submit(workflow, "100");
     }
 

@@ -50,7 +50,7 @@ public class CreatePollers {
             DecisionPoller poller = new DecisionPoller(pollerId, "dev-clario", "default", executionContext);
             poller.setSwf(swf);
             poller.addWorkflows(new DemoWorkflow(), new SimpleWorkflow());
-            poller.addWorkflows(new TimerWorkflow());
+            poller.addWorkflows(new TimerWorkflow(), new WaitForSignalWorkflow());
             poller.addWorkflows(new StartChildWorkflow(), new WaitForSignalWorkflow());
             if (registerWorkflows && it == 1) {
                 poller.registerSwfWorkflows();

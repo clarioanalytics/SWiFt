@@ -32,14 +32,14 @@ public class WaitForSignalWorkflow extends Workflow {
             .withTaskList("default")
             .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
             .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30);
-        Config.register(workflow);
+//        Config.register(workflow);
         Config.submit(workflow, "100");
     }
 
     private final SwfActivity step1 = new SwfActivity("childStep1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
 
     public WaitForSignalWorkflow() {
-        super("WaitForSignalWorkflow", "1.0");
+        super("Wait For Signal Workflow", "1.0");
         withExecutionStartToCloseTimeout(MINUTES, 30);
     }
 
@@ -52,7 +52,9 @@ public class WaitForSignalWorkflow extends Workflow {
     public void decide(List<Decision> decisions) {
         // Wait until a signal is received, then do a activity
         Map<String, String> signals = getSwfHistory().getSignals();
-        if (!signals.isEmpty()) {
+        if (signals.isEmpty()) {
+            log.info("No signal received yet");
+        } else {
             log.info(format("Signals received: %s", join(joinEntries(signals, "->"), ", ")));
 
             String signalValue = new ArrayList<>(signals.values()).get(0);

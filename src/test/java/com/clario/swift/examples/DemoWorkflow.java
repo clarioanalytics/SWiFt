@@ -21,7 +21,7 @@ public class DemoWorkflow extends Workflow {
         Workflow workflow = new DemoWorkflow()
             .withDomain("dev-clario")
             .withTaskList("default");
-        Config.register(workflow);
+//        Config.register(workflow);
         Config.submit(workflow, "100");
     }
 
