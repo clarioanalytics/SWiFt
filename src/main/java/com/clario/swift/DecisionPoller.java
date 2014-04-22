@@ -46,13 +46,13 @@ public class DecisionPoller extends BasePoller {
     }
 
     /**
-     * Add a workflow the poller.
-     *
-     * @param workflow workflow
+     * Add one or more workflows to the poller.
      */
-    public void addWorkflow(Workflow workflow) {
-        log.info(format("Register workflow %s", workflow.getWorkflowKey()));
-        workflows.put(workflow.getWorkflowKey(), workflow);
+    public void addWorkflows(Workflow... workflows) {
+        for (Workflow workflow : workflows) {
+            log.info(format("Register workflow %s", workflow.getWorkflowKey()));
+            this.workflows.put(workflow.getWorkflowKey(), workflow);
+        }
     }
 
     @Override

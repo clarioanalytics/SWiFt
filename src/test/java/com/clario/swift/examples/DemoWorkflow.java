@@ -18,8 +18,10 @@ import static java.util.concurrent.TimeUnit.HOURS;
 public class DemoWorkflow extends Workflow {
 
     public static void main(String[] args) {
-        Workflow workflow = new DemoWorkflow();
-        workflow.init("dev-clario", "default");
+        Workflow workflow = new DemoWorkflow()
+            .withDomain("dev-clario")
+            .withTaskList("default");
+        Config.register(workflow);
         Config.submit(workflow, "100");
     }
 

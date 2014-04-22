@@ -4,8 +4,6 @@ import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.clario.swift.action.SwfAction;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 
 import java.util.Date;
 
@@ -21,7 +19,6 @@ import static com.clario.swift.action.SwfAction.ActionState.*;
  * @see SwfHistory
  */
 public class SwfHistoryEvent {
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = ISODateTimeFormat.basicDateTimeNoMillis();
 
     private final EventType eventType;
     private final boolean isInitialEvent;
@@ -57,7 +54,8 @@ public class SwfHistoryEvent {
      * Construct directly with values.
      * Unit test constructor
      */
-    SwfHistoryEvent(Date eventTimestamp, long eventId, EventType eventType, boolean isInitialEvent, Long initialEventId, String actionId, String result) {
+    SwfHistoryEvent(Date eventTimestamp, long eventId, EventType eventType, boolean isInitialEvent, Long initialEventId, String actionId,
+                    String result) {
         this.eventType = eventType;
         this.isInitialEvent = isInitialEvent;
         this.eventId = eventId;
@@ -134,10 +132,10 @@ public class SwfHistoryEvent {
      * @throws java.lang.UnsupportedOperationException if event type does not return a result
      */
     public String getResult() {
-        if (ActivityTaskCompleted == getType()) {
-            return result;
+        if (result == null) {
+            throw new UnsupportedOptionException("Result not available for action: " + this);
         }
-        throw new UnsupportedOptionException("Result not available for action: " + this);
+        return result;
     }
 
     public SwfAction.ActionState getActionState() {
@@ -270,8 +268,13 @@ public class SwfHistoryEvent {
     }
 
     static String findResult(HistoryEvent historyEvent) {
-        if (ActivityTaskCompleted == EventType.valueOf(historyEvent.getEventType())) {
+        EventType type = EventType.valueOf(historyEvent.getEventType());
+        if (ActivityTaskCompleted == type) {
             return historyEvent.getActivityTaskCompletedEventAttributes().getResult();
+        } else if (ChildWorkflowExecutionStarted == type) {
+            return historyEvent.getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getRunId();
+        } else if (ChildWorkflowExecutionCompleted == type) {
+            return historyEvent.getChildWorkflowExecutionCompletedEventAttributes().getResult();
         }
         return null;
     }
@@ -286,10 +289,11 @@ public class SwfHistoryEvent {
 
     @Override
     public String toString() {
-        return DATE_TIME_FORMATTER.print(eventTimestamp.getTime())
+        return SwiftUtil.DATE_TIME_FORMATTER.print(eventTimestamp.getTime())
             + ' ' + eventType
             + ' ' + eventId
             + (isInitialEvent ? ' ' : " -> ")
             + (isInitialEvent ? actionId : initialEventId);
     }
+
 }

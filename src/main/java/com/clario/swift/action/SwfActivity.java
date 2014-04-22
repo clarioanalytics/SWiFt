@@ -42,9 +42,11 @@ public class SwfActivity extends SwfAction {
 
     /**
      * Override activity's default heartbeat timeout.
+     *
+     * @see ScheduleActivityTaskDecisionAttributes#heartbeatTimeout
      */
     public SwfAction withHeartBeatTimeoutTimeout(TimeUnit unit, long duration) {
-        this.heartBeatTimeoutTimeout = Long.toString(unit.toMillis(duration));
+        this.heartBeatTimeoutTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 
@@ -54,9 +56,11 @@ public class SwfActivity extends SwfAction {
      * schedule ---> start ---> close
      * |_____________________________|
      * </pre>
+     *
+     * @see ScheduleActivityTaskDecisionAttributes#scheduleToCloseTimeout
      */
     public SwfAction withScheduleToCloseTimeout(TimeUnit unit, long duration) {
-        this.scheduleToCloseTimeout = Long.toString(unit.toMillis(duration));
+        this.scheduleToCloseTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 
@@ -66,9 +70,11 @@ public class SwfActivity extends SwfAction {
      * schedule ---> start ---> close
      * |_________________|
      * </pre>
+     *
+     * @see ScheduleActivityTaskDecisionAttributes#scheduleToStartTimeout
      */
     public SwfAction withScheduleToStartTimeout(TimeUnit unit, long duration) {
-        this.scheduleToStartTimeout = Long.toString(unit.toMillis(duration));
+        this.scheduleToStartTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 
@@ -78,9 +84,11 @@ public class SwfActivity extends SwfAction {
      * schedule ---> start ---> close
      *              |_______________|
      * </pre>
+     *
+     * @see ScheduleActivityTaskDecisionAttributes#startToCloseTimeout
      */
     public SwfActivity withStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.startToCloseTimeout = Long.toString(unit.toMillis(duration));
+        this.startToCloseTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 

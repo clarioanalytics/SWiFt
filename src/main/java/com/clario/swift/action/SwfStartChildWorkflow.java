@@ -1,11 +1,15 @@
 package com.clario.swift.action;
 
+import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.*;
+import com.clario.swift.SwfHistoryEvent;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static java.lang.String.format;
 
 /**
  * Start a child workflow from the current workflow.
@@ -13,27 +17,26 @@ import java.util.concurrent.TimeUnit;
  * @author George Coller
  */
 public class SwfStartChildWorkflow extends SwfAction {
-    private String childWorkflowId;
     private String name;
     private String version;
-    private String domain;
     private String taskList;
     private String input;
     private String executionStartToCloseTimeout;
     private String taskStartToCloseTimeout;
-    private String childPolicy;
+    private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
     private final List<String> tagList = new ArrayList<>();
 
     public SwfStartChildWorkflow(String id) {
         super(id);
     }
 
-    public String getName() { return name; }
+    public SwfStartChildWorkflow withName(String name) {
+        this.name = name;
+        return this;
+    }
 
-    public String getVersion() { return version; }
-
-    public SwfStartChildWorkflow withDomain(String domain) {
-        this.domain = domain;
+    public SwfStartChildWorkflow withVersion(String version) {
+        this.version = version;
         return this;
     }
 
@@ -50,13 +53,18 @@ public class SwfStartChildWorkflow extends SwfAction {
         return this;
     }
 
+    public SwfStartChildWorkflow withInput(String input) {
+        this.input = input;
+        return this;
+    }
+
     /**
      * The total duration for this workflow execution.
      *
      * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
      */
     public SwfStartChildWorkflow withExecutionStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.executionStartToCloseTimeout = Long.toString(unit.toMillis(duration));
+        this.executionStartToCloseTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 
@@ -76,7 +84,7 @@ public class SwfStartChildWorkflow extends SwfAction {
      * @see StartWorkflowExecutionRequest#taskStartToCloseTimeout
      */
     public SwfStartChildWorkflow withTaskStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.taskStartToCloseTimeout = Long.toString(unit.toMillis(duration));
+        this.taskStartToCloseTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 
@@ -104,7 +112,7 @@ public class SwfStartChildWorkflow extends SwfAction {
         return new Decision()
             .withDecisionType(DecisionType.StartChildWorkflowExecution)
             .withStartChildWorkflowExecutionDecisionAttributes(new StartChildWorkflowExecutionDecisionAttributes()
-                    .withWorkflowId(childWorkflowId)
+                    .withWorkflowId(id)
                     .withWorkflowType(new WorkflowType().withName(name).withVersion((version)))
                     .withTaskList(new TaskList().withName(taskList))
                     .withInput(input)
@@ -113,5 +121,21 @@ public class SwfStartChildWorkflow extends SwfAction {
                     .withChildPolicy(childPolicy)
                     .withTagList(tagList)
             );
+    }
+
+    public String getChildRunId() {
+        for (SwfHistoryEvent event : getActionHistoryEvents()) {
+            if (event.getType() == EventType.ChildWorkflowExecutionStarted) {
+                return event.getResult();
+            }
+        }
+        throw new UnsupportedOptionException(format("RunId not available %s %s", this, getState()));
+    }
+
+    public String getOutput() {
+        if (ActionState.finish_ok != getState()) {
+            throw new UnsupportedOptionException(format("Result not available %s %s", this, getState()));
+        }
+        return getCurrentActionHistoryEvent().getResult();
     }
 }

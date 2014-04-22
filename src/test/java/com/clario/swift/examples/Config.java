@@ -1,31 +1,26 @@
 package com.clario.swift.examples;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.Workflow;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
+import static com.clario.swift.SwiftUtil.timestamp;
 import static java.lang.String.format;
-import static java.lang.System.currentTimeMillis;
 
 /**
  * @author George Coller
  */
 public class Config {
-    public static final DateTimeFormatter TIME_FORMATTER = ISODateTimeFormat.basicTime();
     public static final Logger log = LoggerFactory.getLogger(Config.class);
 
     private static final Config config = new Config();
-    private final ExecutorService service;
     private final AmazonSimpleWorkflow amazonSimpleWorkflow;
     private int poolSize;
 
@@ -36,15 +31,9 @@ public class Config {
             String id = p.getProperty("amazon.aws.id");
             String key = p.getProperty("amazon.aws.key");
             poolSize = Integer.parseInt(p.getProperty("poolSize"));
-            amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key));
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                public void run() {
-                    log.info("Shutting down pool");
-                    service.shutdownNow();
-                }
-            });
-            log.info("Starting pool");
-            service = Executors.newFixedThreadPool(poolSize);
+            amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key),
+                new ClientConfiguration().withConnectionTimeout(5 * 1000)
+            );
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
@@ -52,10 +41,6 @@ public class Config {
 
     public static Config getConfig() {
         return config;
-    }
-
-    public ExecutorService getService() {
-        return service;
     }
 
     public AmazonSimpleWorkflow getAmazonSimpleWorkflow() {
@@ -87,7 +72,7 @@ public class Config {
     }
 
     public static void submit(Workflow workflow, String input) {
-        String workflowId = format("%s %s", workflow.getWorkflowKey(), TIME_FORMATTER.print(currentTimeMillis()));
+        String workflowId = format("%s %s", workflow.getWorkflowKey(), timestamp());
         log.info(format("submit workflow: %s", workflowId));
 
         StartWorkflowExecutionRequest request = workflow.createWorkflowExecutionRequest(workflowId, input);

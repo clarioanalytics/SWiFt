@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
  * @author George Coller
@@ -22,20 +21,20 @@ public class SimpleWorkflow extends Workflow {
         Workflow workflow = new SimpleWorkflow()
             .withDomain("dev-clario")
             .withTaskList("default")
-            .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30)
+            .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 1)
+            .withTaskStartToCloseTimeout(TimeUnit.SECONDS, 20)
             .withChildPolicy(ChildPolicy.TERMINATE);
         Config.register(workflow);
         Config.submit(workflow, "100");
     }
 
-    private final SwfActivity step1 = new SwfActivity("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final SwfActivity step2 = new SwfActivity("step2", "Activity Y", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final SwfActivity step3 = new SwfActivity("step3", "Activity Z", "1.0").withStartToCloseTimeout(MINUTES, 2);
+    private final SwfActivity step1 = new SwfActivity("step1", "Activity X", "1.0");
+    private final SwfActivity step2 = new SwfActivity("step2", "Activity Y", "1.0");
+    private final SwfActivity step3 = new SwfActivity("step3", "Activity Z", "1.0");
 
 
     public SimpleWorkflow() {
-        super("Simple Workflow", "1.0");
+        super("Simple Workflow", "2.0");
     }
 
     @Override

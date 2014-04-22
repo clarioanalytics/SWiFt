@@ -35,11 +35,14 @@ public class SwfHistory {
             if (SwfHistoryEvent.isActionHistoryEvent(event)) {
                 swfHistoryEvents.add(new SwfHistoryEvent(event));
             }
-            if (MarkerRecorded.name().equals(event.getEventType())) { markerEvents.add(event); }
-            if (WorkflowExecutionSignaled.name().equals(event.getEventType())) { signalEvents.add(event); }
-            if (WorkflowExecutionStarted.name().equals(event.getEventType())) { workflowExecutionStarted = event; }
-            if (ScheduleActivityTaskFailed.name().equals(event.getEventType())
-                || WorkflowExecutionCancelRequested.name().equals(event.getEventType())) {
+            EventType eventType = EventType.valueOf(event.getEventType());
+            if (MarkerRecorded == eventType) { markerEvents.add(event); }
+            if (WorkflowExecutionSignaled == eventType) { signalEvents.add(event); }
+            if (WorkflowExecutionStarted == eventType) { workflowExecutionStarted = event; }
+            if (ScheduleActivityTaskFailed == eventType
+                || WorkflowExecutionCancelRequested == eventType
+                || StartChildWorkflowExecutionFailed == eventType
+                ) {
                 workflowStateErrors.add(event);
             }
         }

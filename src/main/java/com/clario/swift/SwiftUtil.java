@@ -3,6 +3,8 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -21,6 +23,8 @@ import static java.lang.String.valueOf;
  * @author George Coller
  */
 public class SwiftUtil {
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC();
+    public static final DateTimeFormatter DATE_TIME_MILLIS_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
     public static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
     public static final int MAX_REASON_LENGTH = 256;
     public static final int MAX_DETAILS_LENGTH = 32768;
@@ -158,6 +162,14 @@ public class SwiftUtil {
         StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
         return sw.toString();
+    }
+
+
+    /**
+     * Create a millisecond-accurate timestamp using current time;
+     */
+    public static String timestamp() {
+        return DATE_TIME_MILLIS_FORMATTER.print(System.currentTimeMillis());
     }
 
     //

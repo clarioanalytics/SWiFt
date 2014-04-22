@@ -26,7 +26,7 @@ public abstract class Workflow {
     private String description;
     private String executionStartToCloseTimeout;
     private String taskStartToCloseTimeout;
-    private String childPolicy;
+    private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
 
     public Workflow(String name, String version) {
         this.version = version;
@@ -124,7 +124,7 @@ public abstract class Workflow {
      * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
      */
     public Workflow withExecutionStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.executionStartToCloseTimeout = Long.toString(unit.toMillis(duration));
+        this.executionStartToCloseTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 
@@ -144,7 +144,7 @@ public abstract class Workflow {
      * @see StartWorkflowExecutionRequest#taskStartToCloseTimeout
      */
     public Workflow withTaskStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.taskStartToCloseTimeout = Long.toString(unit.toMillis(duration));
+        this.taskStartToCloseTimeout = Long.toString(unit.toSeconds(duration));
         return this;
     }
 

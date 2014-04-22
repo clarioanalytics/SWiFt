@@ -1,6 +1,5 @@
 package com.clario.swift.examples;
 
-import com.amazonaws.services.simpleworkflow.model.ChildPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.SwiftUtil;
 import com.clario.swift.Workflow;
@@ -9,10 +8,12 @@ import com.clario.swift.action.SwfActivity;
 import com.clario.swift.action.SwfMarker;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author George Coller
@@ -24,8 +25,7 @@ public class MarkerWorkflow extends Workflow {
             .withDomain("dev-clario")
             .withTaskList("default")
             .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withChildPolicy(ChildPolicy.TERMINATE);
+            .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30);
         Config.register(workflow);
         Config.submit(workflow, "100");
     }
@@ -36,7 +36,7 @@ public class MarkerWorkflow extends Workflow {
     private final SwfMarker marker2 = new SwfMarker("marker2").withDetails("456");
 
     public MarkerWorkflow() {
-        super("Timer Workflow", "1.0");
+        super("Marker Workflow", "1.0");
     }
 
     @Override
@@ -53,6 +53,11 @@ public class MarkerWorkflow extends Workflow {
 
             if (marker1.decide(decisions) && marker2.decide(decisions)) {
                 if (step2.withInput(output).decide(decisions)) {
+                    // Step 2 ensures that we wait for a followup decision task so we can assert markers were recorded;
+                    Map<String, String> markers = getSwfHistory().getMarkers();
+                    assertEquals(2, markers.size());
+                    assertEquals("123", markers.get("marker1"));
+                    assertEquals("456", markers.get("marker2"));
                     output = step2.getOutput();
                     decisions.add(SwiftUtil.createCompleteWorkflowExecutionDecision(output));
                 }
