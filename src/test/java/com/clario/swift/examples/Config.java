@@ -4,7 +4,8 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
-import com.amazonaws.services.simpleworkflow.model.*;
+import com.amazonaws.services.simpleworkflow.model.Run;
+import com.amazonaws.services.simpleworkflow.model.StartWorkflowExecutionRequest;
 import com.clario.swift.Workflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,28 +52,8 @@ public class Config {
         return poolSize;
     }
 
-    public static void register(Workflow workflow) {
-        log.info(format("register workflow: %s", workflow.getWorkflowKey()));
-        try {
-            WorkflowTypeInfos response = config.amazonSimpleWorkflow.listWorkflowTypes(new ListWorkflowTypesRequest()
-                    .withDomain(workflow.getDomain())
-                    .withName(workflow.getName())
-                    .withRegistrationStatus(RegistrationStatus.REGISTERED)
-            );
-            for (WorkflowTypeInfo typeInfo : response.getTypeInfos()) {
-                if (typeInfo.getWorkflowType().equals(workflow.getWorkflowType())) {
-                    log.info(format("Already registered workflow %s", workflow.getWorkflowKey()));
-                    return;
-                }
-            }
-            config.amazonSimpleWorkflow.registerWorkflowType(workflow.createRegisterWorkflowTypeRequest());
-        } catch (Exception e) {
-            log.warn(format("Failed to register workflow %s", workflow.getWorkflowKey(), e));
-        }
-    }
-
     public static void submit(Workflow workflow, String input) {
-        String workflowId = format("%s %s", workflow.getWorkflowKey(), timestamp());
+        String workflowId = format("%s %s", workflow.getKey(), timestamp());
         log.info(format("submit workflow: %s", workflowId));
 
         StartWorkflowExecutionRequest request = workflow.createWorkflowExecutionRequest(workflowId, input);

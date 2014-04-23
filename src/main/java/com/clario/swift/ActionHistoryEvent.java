@@ -3,12 +3,12 @@ package com.clario.swift;
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
-import com.clario.swift.action.SwfAction;
+import com.clario.swift.action.Action;
 
 import java.util.Date;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.action.SwfAction.ActionState.*;
+import static com.clario.swift.action.Action.State.*;
 
 /**
  * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, or External Signal activities.
@@ -16,53 +16,51 @@ import static com.clario.swift.action.SwfAction.ActionState.*;
  * Basically trying to extract all the ugliness of Amazon's SWF model into one place so that this API can be cleaner.
  *
  * @author George Coller
- * @see SwfHistory
+ * @see WorkflowHistory
  */
-public class SwfHistoryEvent {
+public class ActionHistoryEvent {
 
     private final EventType eventType;
-    private final boolean isInitialEvent;
-    private final long eventId;
     private final Date eventTimestamp;
+    private final long eventId;
     private final Long initialEventId;
     private final String actionId;
     private final String result;
+    private final boolean isInitialEvent;
 
     /**
      * Construct using an SWF <code>HistoryEvent</code>.
-     * Use {@link SwfHistoryEvent#isActionHistoryEvent} to determine if a given <code>HistoryEvent</code> is allowed.
+     * Use {@link ActionHistoryEvent#isActionHistoryEvent} to determine if a given <code>HistoryEvent</code> is allowed.
      *
      * @param historyEvent must be compatible with action event
      *
      * @see #isActionHistoryEvent(HistoryEvent)
      */
-    public SwfHistoryEvent(HistoryEvent historyEvent) {
+    public ActionHistoryEvent(HistoryEvent historyEvent) {
         if (isActionHistoryEvent(historyEvent)) {
             this.eventType = EventType.valueOf(historyEvent.getEventType());
-            this.eventId = historyEvent.getEventId();
             this.eventTimestamp = historyEvent.getEventTimestamp();
+            this.eventId = historyEvent.getEventId();
             this.isInitialEvent = isInitialEventType(eventType);
-            this.initialEventId = findInitialEventId(historyEvent);
             this.actionId = findActionId(historyEvent);
             this.result = findResult(historyEvent);
+            this.initialEventId = findInitialEventId(historyEvent);
         } else {
             throw new IllegalArgumentException("HistoryEvent type is not allowable: " + historyEvent);
         }
     }
 
     /**
-     * Construct directly with values.
-     * Unit test constructor
+     * Construct directly with values for unit testing.
      */
-    SwfHistoryEvent(Date eventTimestamp, long eventId, EventType eventType, boolean isInitialEvent, Long initialEventId, String actionId,
-                    String result) {
+    ActionHistoryEvent(EventType eventType, Date eventTimestamp, long eventId, boolean isInitialEvent, String actionId, String result, long initialEventId) {
         this.eventType = eventType;
-        this.isInitialEvent = isInitialEvent;
-        this.eventId = eventId;
         this.eventTimestamp = eventTimestamp;
-        this.initialEventId = initialEventId;
+        this.eventId = eventId;
+        this.isInitialEvent = isInitialEvent;
         this.actionId = actionId;
         this.result = result;
+        this.initialEventId = initialEventId;
     }
 
     /**
@@ -104,24 +102,24 @@ public class SwfHistoryEvent {
     }
 
     /**
-     * @return proxy to {@link HistoryEvent#eventId}
+     * @return {@link HistoryEvent#eventId}
      */
     public Long getEventId() {
         return eventId;
     }
 
     /**
-     * @return proxy to {@link HistoryEvent#eventTimestamp}
+     * @return {@link HistoryEvent#eventTimestamp}
      */
     public Date getEventTimestamp() {
         return eventTimestamp;
     }
 
     /**
-     * Return the initial action event of the wrapped {@link HistoryEvent}.
+     * Return the initial event id of the wrapped {@link HistoryEvent}.
      * <p/>
-     * If this event is an initial event, return it's event id
-     * otherwise return it's pointer to the initial event id
+     * If this event is an initial event, return its event id
+     * otherwise return it's pointer to the initial history event id
      */
     public Long getInitialEventId() {
         return initialEventId;
@@ -138,10 +136,17 @@ public class SwfHistoryEvent {
         return result;
     }
 
-    public SwfAction.ActionState getActionState() {
+    public Action.State getActionState() {
         return findActionState(eventType);
     }
 
+    //
+    // Methods used to convert Amazon objects to Swift.
+    //
+
+    /**
+     * @return true if type indicates an event that initiated an action.
+     */
     static boolean isInitialEventType(EventType eventType) {
         return ActivityTaskScheduled == eventType
             || TimerStarted == eventType
@@ -149,46 +154,49 @@ public class SwfHistoryEvent {
             || SignalExternalWorkflowExecutionInitiated == eventType;
     }
 
-    static SwfAction.ActionState findActionState(EventType eventType) {
+    /**
+     * @return map an EventType to an action state.
+     */
+    static Action.State findActionState(EventType eventType) {
         switch (eventType) {
             // Activity Tasks
             case ActivityTaskScheduled:
             case ActivityTaskStarted:
-                return started;
+                return active;
             case ActivityTaskCompleted:
-                return finish_ok;
+                return success;
             case ActivityTaskCanceled:
             case ActivityTaskFailed:
             case ActivityTaskTimedOut:
-                return finish_error;
+                return error;
 
             // Timers
             case TimerStarted:
-                return started;
+                return active;
             case TimerFired:
-                return finish_ok;
+                return success;
             case TimerCanceled:
-                return finish_error;
+                return error;
 
             // Child Workflows
             case StartChildWorkflowExecutionInitiated:
             case ChildWorkflowExecutionStarted:
-                return started;
+                return active;
             case ChildWorkflowExecutionCompleted:
-                return finish_ok;
+                return success;
             case ChildWorkflowExecutionCanceled:
             case ChildWorkflowExecutionFailed:
             case ChildWorkflowExecutionTerminated:
             case ChildWorkflowExecutionTimedOut:
-                return finish_error;
+                return error;
 
             // Signals
             case SignalExternalWorkflowExecutionInitiated:
-                return started;
+                return active;
             case ExternalWorkflowExecutionSignaled:
-                return finish_ok;
+                return success;
             case SignalExternalWorkflowExecutionFailed:
-                return finish_error;
+                return error;
             default:
                 return null;
         }
@@ -273,8 +281,12 @@ public class SwfHistoryEvent {
         return null;
     }
 
+
+    /**
+     * Two events are consider equal if they share the same {@link #eventId}.
+     */
     public boolean equals(Object o) {
-        return this == o || o instanceof SwfHistoryEvent && eventId == ((SwfHistoryEvent) o).eventId;
+        return this == o || o instanceof ActionHistoryEvent && eventId == ((ActionHistoryEvent) o).eventId;
     }
 
     public int hashCode() {
@@ -289,5 +301,4 @@ public class SwfHistoryEvent {
             + (isInitialEvent ? ' ' : " -> ")
             + (isInitialEvent ? actionId : initialEventId);
     }
-
 }

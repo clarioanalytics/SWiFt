@@ -6,41 +6,51 @@ import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.SwiftUtil.calcTimeoutString;
+
 /**
+ * Represents an SWF Timer.
+ *
  * @author George Coller
  */
-public class SwfTimer extends SwfAction {
+public class TimerAction extends Action {
     private String startToFireTimeout;
     private String control;
 
-    public SwfTimer(String timerId) {
-        super(timerId);
+    public TimerAction(String actionId) {
+        super(actionId);
     }
 
     /**
      * The duration to wait before firing the timer. This field is required.
+     * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
      * @see StartTimerDecisionAttributes#startToFireTimeout
      */
-    public SwfTimer withStartToFireTimeout(TimeUnit unit, long duration) {
-        assertTrue(duration >= 0, "duration must be > 0");
-        String string = Long.toString(unit.toSeconds(duration));
-        assertStringLength(string, 1, 8, "start to fire timeout");
-        this.startToFireTimeout = string;
+    public TimerAction withStartToFireTimeout(TimeUnit unit, long duration) {
+        startToFireTimeout = calcTimeoutString(unit, duration);
         return this;
     }
 
-    public SwfTimer withControl(String value) {
+    /**
+     * Optional control value to add to this timer.
+     *
+     * @see StartTimerDecisionAttributes#control
+     */
+    public TimerAction withControl(String control) {
         this.control = control;
         return this;
     }
 
+    /**
+     * @return a decision of type {@link DecisionType#StartTimer}.
+     */
     @Override
-    public Decision createDecision() {
+    public Decision createInitiateActivityDecision() {
         return new Decision()
             .withDecisionType(DecisionType.StartTimer)
             .withStartTimerDecisionAttributes(new StartTimerDecisionAttributes()
-                .withTimerId(id)
+                .withTimerId(getActionId())
                 .withStartToFireTimeout(startToFireTimeout)
                 .withControl(control));
     }

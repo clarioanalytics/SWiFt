@@ -22,7 +22,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * @author George Coller
  */
 public class CreatePollers {
-    public static final Logger log = LoggerFactory.getLogger(ActivityWorker.class);
+    private static final Logger log = LoggerFactory.getLogger(ActivityWorker.class);
 
     public static void main(String[] args) throws IOException {
         final Config config = Config.getConfig();
@@ -49,7 +49,7 @@ public class CreatePollers {
 
             DecisionPoller poller = new DecisionPoller(pollerId, "dev-clario", "default", executionContext);
             poller.setSwf(swf);
-            poller.addWorkflows(new DemoWorkflow(), new SimpleWorkflow());
+            poller.addWorkflows(new PollingCheckpointWorkflow(), new SimpleWorkflow());
             poller.addWorkflows(new TimerWorkflow(), new WaitForSignalWorkflow(), new SignalWaitForSignalWorkflow());
             poller.addWorkflows(new StartChildWorkflow(), new WaitForSignalWorkflow());
             if (registerWorkflows && it == 1) {
@@ -74,27 +74,27 @@ public class CreatePollers {
 
 
     @ActivityMethod(name = "Activity X", version = "1.0")
-    public void activityX(ActivityContext context) {
+    public Integer activityX(ActivityContext context) {
         final int i = Integer.parseInt(context.getInput());
         sleep(SECONDS.toMillis(2));
-        context.setOutput(valueOf(i + 1));
+        return i + 1;
     }
 
     @ActivityMethod(name = "Activity Y", version = "1.0")
-    public void activityY(ActivityContext context) {
+    public Integer activityY(ActivityContext context) {
         final int i = Integer.parseInt(context.getInput());
         sleep(SECONDS.toMillis(2));
-        context.setOutput(valueOf(i + 100));
+        return i + 100;
     }
 
     @ActivityMethod(name = "Activity Z", version = "1.0")
-    public void activityZ(final ActivityContext context) {
+    public Integer activityZ(final ActivityContext context) {
         final int i = Integer.parseInt(context.getInput());
         sleep(SECONDS.toMillis(5));
-        log.info("Activity Z " + context.getId() + ": record heartbeat");
+        log.info("Activity Z " + context.getActionId() + ": record heartbeat");
         context.recordHeartbeat("some deets: " + valueOf(new Date()));
         sleep(SECONDS.toMillis(10));
-        context.setOutput(valueOf(i + 1000));
+        return i + 1000;
     }
 
     private static void sleep(long time) {

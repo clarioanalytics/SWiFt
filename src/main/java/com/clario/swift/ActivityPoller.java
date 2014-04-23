@@ -1,8 +1,6 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
-import com.amazonaws.services.simpleworkflow.model.ActivityTask;
-import com.amazonaws.services.simpleworkflow.model.TypeAlreadyExistsException;
+import com.amazonaws.services.simpleworkflow.model.*;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
@@ -17,41 +15,26 @@ import static java.lang.String.format;
  * @author George Coller
  */
 public class ActivityPoller extends BasePoller {
-    private Map<String, ActivityInvoker> activityMap = new LinkedHashMap<>();
+    private final Map<String, ActivityInvoker> activityMap = new LinkedHashMap<>();
 
     public ActivityPoller(String id, String domain, String taskList) {
         super(id, domain, taskList);
     }
 
     /**
-     * Call to register all added activities on this poller's domain and task list.
-     * <p/>
-     * Method is idempotent and will log warning messages for any activities that were already registered.
+     * Register activities added to this poller on Amazon SWF, {@link TypeAlreadyExistsException} are ignored.
      *
      * @see ActivityMethod
-     * @see AmazonSimpleWorkflow#registerActivityType
      */
     public void registerSwfActivities() {
         for (ActivityInvoker invoker : activityMap.values()) {
             ActivityMethod method = invoker.getActivityMethod();
             try {
                 log.info(format("Register activity '%s' '%s'", method.name(), method.version()));
-                swf.registerActivityType(createRegisterActivityType(
-                    domain,
-                    taskList,
-                    method.name(),
-                    method.version(),
-                    method.description(),
-                    method.heartbeatTimeout(),
-                    method.startToCloseTimeout(),
-                    method.scheduleToStartTimeout(),
-                    method.scheduleToCloseTimeout()
-                ));
+                swf.registerActivityType(createRegisterActivityType(domain, taskList, method));
                 log.info(format("Register activity succeeded '%s' '%s'", method.name(), method.version()));
             } catch (TypeAlreadyExistsException e) {
                 log.warn(format("Activity already registered '%s' '%s'", method.name(), method.version()));
-            } catch (Exception e) {
-                log.warn(format("Failed to register activity '%s' '%s'", method.name(), method.version()));
             }
         }
     }
@@ -127,12 +110,57 @@ public class ActivityPoller extends BasePoller {
 
     }
 
+    public static RegisterActivityTypeRequest createRegisterActivityType(String domain, String taskList, ActivityMethod method) {
+        return new RegisterActivityTypeRequest()
+            .withDomain(domain)
+            .withDefaultTaskList(new TaskList().withName(taskList))
+            .withName(method.name())
+            .withVersion(method.version())
+            .withDescription(defaultIfEmpty(method.description(), null))
+            .withDefaultTaskHeartbeatTimeout(defaultIfEmpty(method.heartbeatTimeout(), null))
+            .withDefaultTaskStartToCloseTimeout(defaultIfEmpty(method.startToCloseTimeout(), null))
+            .withDefaultTaskScheduleToStartTimeout(defaultIfEmpty(method.scheduleToStartTimeout(), null))
+            .withDefaultTaskScheduleToCloseTimeout(defaultIfEmpty(method.scheduleToCloseTimeout(), null));
+    }
+
+    public static PollForActivityTaskRequest createPollForActivityTask(String domain, String taskList, String id) {
+        return new PollForActivityTaskRequest()
+            .withDomain(domain)
+            .withTaskList(new TaskList()
+                .withName(taskList))
+            .withIdentity(id);
+    }
+
+    public static RecordActivityTaskHeartbeatRequest createRecordActivityTaskHeartbeat(String taskToken, String details) {
+        return new RecordActivityTaskHeartbeatRequest()
+            .withTaskToken(taskToken)
+            .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH));
+    }
+
+    public static RespondActivityTaskFailedRequest createRespondActivityTaskFailed(String taskToken, String reason, String details) {
+        return new RespondActivityTaskFailedRequest()
+            .withTaskToken(taskToken)
+            .withReason(trimToMaxLength(reason, MAX_REASON_LENGTH))
+            .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH));
+    }
+
+    public static RespondActivityTaskCompletedRequest createRespondActivityCompleted(ActivityTask task, String result) {
+        return new RespondActivityTaskCompletedRequest()
+            .withTaskToken(task.getTaskToken())
+            .withResult(trimToMaxLength(result, MAX_RESULT_LENGTH));
+    }
+
+    /**
+     * Added methods annotated with {@link ActivityMethod} are converted into this
+     * helper class and registered on the poller activity map
+     * <p/>
+     * Class acts both as a
+     */
     static class ActivityInvoker implements ActivityContext {
         private final ActivityPoller poller;
         private final Method method;
         private final Object instance;
         private String input;
-        private String output;
         private ActivityTask task;
 
         ActivityInvoker(ActivityPoller poller, Method method, Object instance) {
@@ -145,8 +173,8 @@ public class ActivityPoller extends BasePoller {
             try {
                 this.task = task;
                 this.input = input;
-                method.invoke(instance, this);
-                return output;
+                Object result = method.invoke(instance, this);
+                return result == null ? "" : result.toString();
             } catch (Throwable e) {
                 throw new IllegalStateException(format("Failed to invoke with: %s: %s", task.getActivityId(), input), e);
             }
@@ -157,7 +185,7 @@ public class ActivityPoller extends BasePoller {
         }
 
         @Override
-        public String getId() {
+        public String getActionId() {
             return task.getActivityId();
         }
 
@@ -168,18 +196,6 @@ public class ActivityPoller extends BasePoller {
 
         public String getInput() {
             return input;
-        }
-
-        public void setInput(String input) {
-            this.input = input;
-        }
-
-        public String getOutput() {
-            return output;
-        }
-
-        public void setOutput(String output) {
-            this.output = output;
         }
     }
 }

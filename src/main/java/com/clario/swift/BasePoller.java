@@ -15,7 +15,7 @@ import static com.clario.swift.SwiftUtil.toJson;
  */
 public abstract class BasePoller implements Runnable {
     protected final Logger log;
-    protected final String id;
+    private final String id;
     protected final String taskList;
     protected final String domain;
     protected AmazonSimpleWorkflow swf;

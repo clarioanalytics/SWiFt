@@ -1,6 +1,7 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.RegisterActivityTypeRequest;
+import com.amazonaws.services.simpleworkflow.model.RespondActivityTaskCompletedRequest;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -8,10 +9,27 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Mark any method as an activity method that can handle a registered SWF Activity Tasks.
+ * Mark a method as an activity method that can handle a registered SWF Activity Tasks.
+ * Methods annotated with <code>ActivityMethod</code> must have the following signature:
+ * <pre>
+ * &#64;ActivityMethod(name="doSomething", version="1.0")
+ * Object methodName({@link ActivityContext} context) {...}
+ *
+ * or
+ *
+ * &#64;ActivityMethod(name="doSomething", version="1.0")
+ * void methodName({@link ActivityContext} context) {...}
+ * </pre>
+ * <p/>
+ * If the return type is void or the method returns null an empty string will be recorded as the activity task result.
+ * Otherwise the result will be recorded as the return value converted to a string using {@link #toString}.
+ * <p/>
+ * Activities that throw exceptions will be recorded as an error on their related workflow.
  *
  * @author George Coller
- * @see RegisterActivityTypeRequest
+ * @see ActivityContext
+ * @see RegisterActivityTypeRequest for details and limits of the parameters.
+ * @see RespondActivityTaskCompletedRequest#result
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})

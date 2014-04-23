@@ -7,44 +7,48 @@ import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionSignaledEven
 
 import java.util.*;
 
-import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-
 /**
- * Helper class that contains convenience methods for working with a list of {@link SwfHistoryEvent}.
- * Most of the heavy lifting comes from converting each SWF {@link HistoryEvent} into a {@link SwfHistoryEvent} to
- * unify the event API across * various SWF tasks like Activities, Timers, Markers, Signals, ChildWorkflows.
+ * Container class of {@link ActionHistoryEvent}.
+ * <p/>
+ * Most of the heavy lifting comes from converting each SWF {@link HistoryEvent} into a {@link ActionHistoryEvent} to
+ * unify the event API across various SWF tasks like Activities, Timers, Markers, Signals, ChildWorkflows.
  * <p/>
  * This class is not thread-safe and is meant to be used by a single {@link Workflow} instance.
  *
  * @author George Coller
- * @see SwfHistoryEvent
+ * @see ActionHistoryEvent
  * @see Workflow
  */
-public class SwfHistory {
-    private LinkedList<SwfHistoryEvent> swfHistoryEvents = new LinkedList<>();
-    private List<HistoryEvent> historyEvents = new ArrayList<>();
-    private List<HistoryEvent> markerEvents = new ArrayList<>();
-    private List<HistoryEvent> signalEvents = new ArrayList<>();
-    private List<HistoryEvent> workflowStateErrors = new ArrayList<>();
+public class WorkflowHistory {
+    private final LinkedList<ActionHistoryEvent> actionEvents = new LinkedList<>();
+    private final List<HistoryEvent> markerEvents = new ArrayList<>();
+    private final List<HistoryEvent> signalEvents = new ArrayList<>();
+    private final List<HistoryEvent> errorEvents = new ArrayList<>();
     private HistoryEvent workflowExecutionStarted;
 
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
         // Note: historyEvents are sorted newest to oldest
-        this.historyEvents.addAll(historyEvents);
         for (HistoryEvent event : historyEvents) {
-            if (SwfHistoryEvent.isActionHistoryEvent(event)) {
-                swfHistoryEvents.add(new SwfHistoryEvent(event));
+            if (ActionHistoryEvent.isActionHistoryEvent(event)) {
+                actionEvents.add(new ActionHistoryEvent(event));
             }
-            EventType eventType = EventType.valueOf(event.getEventType());
-            if (MarkerRecorded == eventType) { markerEvents.add(event); }
-            if (WorkflowExecutionSignaled == eventType) { signalEvents.add(event); }
-            if (WorkflowExecutionStarted == eventType) { workflowExecutionStarted = event; }
-            if (ScheduleActivityTaskFailed == eventType
-                || WorkflowExecutionCancelRequested == eventType
-                || StartChildWorkflowExecutionFailed == eventType
-                || SignalExternalWorkflowExecutionFailed == eventType
-                ) {
-                workflowStateErrors.add(event);
+
+            switch (EventType.valueOf(event.getEventType())) {
+                case MarkerRecorded:
+                    markerEvents.add(event);
+                    break;
+                case WorkflowExecutionSignaled:
+                    signalEvents.add(event);
+                    break;
+                case WorkflowExecutionStarted:
+                    workflowExecutionStarted = event;
+                    break;
+                case ScheduleActivityTaskFailed:
+                case WorkflowExecutionCancelRequested:
+                case StartChildWorkflowExecutionFailed:
+                case SignalExternalWorkflowExecutionFailed:
+                    errorEvents.add(event);
+                    break;
             }
         }
     }
@@ -53,30 +57,30 @@ public class SwfHistory {
      * Reset instance to prepare for new set of history.
      */
     public void reset() {
-        swfHistoryEvents.clear();
-        historyEvents.clear();
+        actionEvents.clear();
         markerEvents.clear();
         signalEvents.clear();
-        workflowStateErrors.clear();
+        errorEvents.clear();
         workflowExecutionStarted = null;
     }
 
     /**
-     * Return the list of {@link SwfHistoryEvent} for a given action id.
+     * Return the current list of {@link ActionHistoryEvent} polled for a action.
+     * The list is sorted by event timestamp in descending order (most recent first).
      *
-     * @param activityId unique id of the Activity, Timer, or ChildWorkflow
+     * @param actionId unique id of the action.
      *
      * @return the list, empty if none found
      */
-    public List<SwfHistoryEvent> actionEvents(String activityId) {
-        List<SwfHistoryEvent> list = new ArrayList<>();
+    public List<ActionHistoryEvent> filterEvents(String actionId) {
+        List<ActionHistoryEvent> list = new ArrayList<>();
 
         // iterate backwards through list (need to find initial event first)
-        Iterator<SwfHistoryEvent> iter = swfHistoryEvents.descendingIterator();
+        Iterator<ActionHistoryEvent> iter = actionEvents.descendingIterator();
         long initialId = -1;
         while (iter.hasNext()) {
-            SwfHistoryEvent event = iter.next();
-            if (event.isInitialEvent() && event.getActionId().equals(activityId)) {
+            ActionHistoryEvent event = iter.next();
+            if (event.isInitialEvent() && event.getActionId().equals(actionId)) {
                 initialId = event.getEventId();
                 list.add(event);
             } else if (initialId == event.getInitialEventId()) {
@@ -85,15 +89,6 @@ public class SwfHistory {
         }
         Collections.reverse(list);
         return list;
-    }
-
-    public static boolean contains(List<SwfHistoryEvent> events, EventType eventType) {
-        for (SwfHistoryEvent swfHistoryEvent : events) {
-            if (swfHistoryEvent.getType() == eventType) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -124,16 +119,17 @@ public class SwfHistory {
      * If available return the input string given to this workflow when it was initiated on SWF.
      *
      * @return the input or null if not available
+     * @throws java.lang.UnsupportedOperationException if workflow input is unavailable
      */
     public String getWorkflowInput() {
         if (workflowExecutionStarted == null) {
-            return null;
+            throw new UnsupportedOperationException("Workflow input unavailable");
         } else {
             return workflowExecutionStarted.getWorkflowExecutionStartedEventAttributes().getInput();
         }
     }
 
-    public List<HistoryEvent> getWorkflowStateErrors() {
-        return workflowStateErrors;
+    public List<HistoryEvent> getErrorEvents() {
+        return errorEvents;
     }
 }

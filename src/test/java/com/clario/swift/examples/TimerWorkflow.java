@@ -2,16 +2,13 @@ package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.ChildPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.clario.swift.SwiftUtil;
 import com.clario.swift.Workflow;
-import com.clario.swift.action.SwfAction;
-import com.clario.swift.action.SwfActivity;
-import com.clario.swift.action.SwfTimer;
+import com.clario.swift.action.ActivityAction;
+import com.clario.swift.action.TimerAction;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -31,32 +28,28 @@ public class TimerWorkflow extends Workflow {
         Config.submit(workflow, "100");
     }
 
-    private final SwfActivity step1 = new SwfActivity("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final SwfActivity step2 = new SwfActivity("step2", "Activity Y", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final SwfTimer timerStep1 = new SwfTimer("timer1").withStartToFireTimeout(SECONDS, 30);
+    private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
+    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0").withStartToCloseTimeout(MINUTES, 2);
+    private final TimerAction timerStep1 = new TimerAction("timer1").withStartToFireTimeout(SECONDS, 30);
 
 
     public TimerWorkflow() {
         super("Timer Workflow", "1.0");
-    }
-
-    @Override
-    public List<SwfAction> getActions() {
-        return asList(step1, step2, timerStep1);
+        addActions(step1, step2, timerStep1);
     }
 
     @Override
     public void decide(List<Decision> decisions) {
         String input = getWorkflowInput();
         String output;
-        if (step1.withInput(input).decide(decisions)) {
+        if (step1.withInput(input).decide(decisions).isSuccess()) {
             output = step1.getOutput();
 
             // Timer makes workflow sleep for 30 seconds
-            if (timerStep1.decide(decisions)) {
-                if (step2.withInput(output).decide(decisions)) {
+            if (timerStep1.decide(decisions).isSuccess()) {
+                if (step2.withInput(output).decide(decisions).isSuccess()) {
                     output = step2.getOutput();
-                    decisions.add(SwiftUtil.createCompleteWorkflowExecutionDecision(output));
+                    decisions.add(createCompleteWorkflowExecutionDecision(output));
                 }
             }
         }

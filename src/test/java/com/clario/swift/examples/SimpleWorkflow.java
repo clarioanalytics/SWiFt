@@ -2,15 +2,11 @@ package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.ChildPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.clario.swift.SwiftUtil;
 import com.clario.swift.Workflow;
-import com.clario.swift.action.SwfAction;
-import com.clario.swift.action.SwfActivity;
+import com.clario.swift.action.ActivityAction;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static java.util.Arrays.asList;
 
 /**
  * @author George Coller
@@ -28,27 +24,23 @@ public class SimpleWorkflow extends Workflow {
         Config.submit(workflow, "100");
     }
 
-    private final SwfActivity step1 = new SwfActivity("step1", "Activity X", "1.0");
-    private final SwfActivity step2 = new SwfActivity("step2", "Activity Y", "1.0");
-    private final SwfActivity step3 = new SwfActivity("step3", "Activity Z", "1.0");
+    private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0");
+    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0");
+    private final ActivityAction step3 = new ActivityAction("step3", "Activity Z", "1.0");
 
 
     public SimpleWorkflow() {
         super("Simple Workflow", "2.0");
-    }
-
-    @Override
-    public List<SwfAction> getActions() {
-        return asList((SwfAction) step1, step2, step3);
+        addActions(step1, step2, step3);
     }
 
     @Override
     public void decide(List<Decision> decisions) {
         String input = getWorkflowInput();
-        if (step1.withInput(input).decide(decisions)) {
-            if (step2.withInput(step1.getOutput()).decide(decisions)) {
-                if (step3.withInput(step2.getOutput()).decide(decisions)) {
-                    decisions.add(SwiftUtil.createCompleteWorkflowExecutionDecision(step3.getOutput()));
+        if (step1.withInput(input).decide(decisions).isSuccess()) {
+            if (step2.withInput(step1.getOutput()).decide(decisions).isSuccess()) {
+                if (step3.withInput(step2.getOutput()).decide(decisions).isSuccess()) {
+                    decisions.add(createCompleteWorkflowExecutionDecision(step3.getOutput()));
                 }
             }
         }

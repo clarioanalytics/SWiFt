@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.clario.swift.SwiftUtil.createFailWorkflowExecutionDecision;
 import static com.clario.swift.SwiftUtil.join;
 import static java.lang.String.format;
 
@@ -32,15 +31,16 @@ public class DecisionPoller extends BasePoller {
         this.executionContext = executionContext;
     }
 
+    /**
+     * Register workflows added to this poller on Amazon SWF, {@link TypeAlreadyExistsException} are ignored.
+     */
     public void registerSwfWorkflows() {
         for (Workflow workflow : workflows.values()) {
             try {
                 swf.registerWorkflowType(workflow.createRegisterWorkflowTypeRequest());
-                log.info(format("Register workflow succeeded '%s' '%s'", workflow.getName(), workflow.getVersion()));
+                log.info(format("Register workflow succeeded '%s'", workflow.getKey()));
             } catch (TypeAlreadyExistsException e) {
-                log.warn(format("Workflow already registered '%s' '%s'", workflow.getName(), workflow.getVersion()));
-            } catch (Exception e) {
-                log.warn(format("Failed to register workflow '%s' '%s'", workflow.getName(), workflow.getVersion()));
+                log.info(format("Workflow already registered '%s'", workflow.getKey()));
             }
         }
     }
@@ -50,8 +50,8 @@ public class DecisionPoller extends BasePoller {
      */
     public void addWorkflows(Workflow... workflows) {
         for (Workflow workflow : workflows) {
-            log.info(format("add workflow '%s'", workflow.getWorkflowKey()));
-            this.workflows.put(workflow.getWorkflowKey(), workflow);
+            log.info(format("add workflow '%s'", workflow.getKey()));
+            this.workflows.put(workflow.getKey(), workflow);
         }
     }
 
@@ -79,7 +79,7 @@ public class DecisionPoller extends BasePoller {
                     workflow.init();
                 }
                 workflow.addHistoryEvents(decisionTask.getEvents());
-                if (workflow.isMoreHistoryRequired()) {
+                if (workflow.getCurrentCheckpoint() != null) {
                     request.setNextPageToken(decisionTask.getNextPageToken());
                 }
             }
@@ -87,14 +87,14 @@ public class DecisionPoller extends BasePoller {
 
         String workflowId = decisionTask.getWorkflowExecution().getWorkflowId();
         List<Decision> decisions = new ArrayList<>();
-        List<HistoryEvent> errors = workflow.getWorkflowStateErrors();
+        List<HistoryEvent> errors = workflow.getErrorEvents();
         if (!errors.isEmpty()) {
-            String errorMessage = format("Workflow %s %s schedule activity errors:\n%s", workflowId, workflow.getWorkflowKey(), join(errors, "\n"));
+            String errorMessage = format("Workflow %s %s schedule activity errors:\n%s", workflowId, workflow.getKey(), join(errors, "\n"));
             log.error(errorMessage);
             decisions.add(createFailWorkflowExecutionDecision("One or more activities failed during scheduling", errorMessage));
         } else {
             if (log.isInfoEnabled()) {
-                log.info(format("decide %s %s", workflowId, workflow.getWorkflowKey()));
+                log.info(format("decide %s %s", workflowId, workflow.getKey()));
             }
             workflow.decide(decisions);
 
@@ -111,7 +111,7 @@ public class DecisionPoller extends BasePoller {
         try {
             swf.respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
         } catch (Exception e) {
-            log.error(format("decide %s %s", workflowId, workflow.getWorkflowKey()), e);
+            log.error(format("decide %s %s", workflowId, workflow.getKey()), e);
         }
     }
 
@@ -125,6 +125,16 @@ public class DecisionPoller extends BasePoller {
             throw new IllegalStateException(format("Received decision task for unregistered workflow %s", key));
         }
         return workflow;
+    }
+
+    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
+        return new Decision()
+            .withDecisionType(DecisionType.FailWorkflowExecution)
+            .withFailWorkflowExecutionDecisionAttributes(
+                new FailWorkflowExecutionDecisionAttributes()
+                    .withReason(reason)
+                    .withDetails(details)
+            );
     }
 
     public RespondDecisionTaskCompletedRequest createRespondDecisionTaskCompletedRequest(String taskToken, List<Decision> decisions) {

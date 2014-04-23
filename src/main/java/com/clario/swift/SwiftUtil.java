@@ -1,10 +1,11 @@
 package com.clario.swift;
 
-import com.amazonaws.services.simpleworkflow.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
@@ -176,112 +178,18 @@ public class SwiftUtil {
     // Amazon SWF request helpers
     //
 
-    public static RecordActivityTaskHeartbeatRequest createRecordActivityTaskHeartbeat(String taskToken, String details) {
-        return new RecordActivityTaskHeartbeatRequest()
-            .withTaskToken(taskToken)
-            .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH));
-    }
+    /** SWF value for timeouts to indicate no-timeout value */
+    public static final String TIMEOUT_NONE = "NONE";
 
-    public static PollForActivityTaskRequest createPollForActivityTask(String domain, String taskList, String id) {
-        return new PollForActivityTaskRequest()
-            .withDomain(domain)
-            .withTaskList(new TaskList()
-                .withName(taskList))
-            .withIdentity(id);
-    }
-
-    public static RespondActivityTaskFailedRequest createRespondActivityTaskFailed(String taskToken, String reason, String details) {
-        return new RespondActivityTaskFailedRequest()
-            .withTaskToken(taskToken)
-            .withReason(trimToMaxLength(reason, MAX_REASON_LENGTH))
-            .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH));
-    }
-
-    public static RespondActivityTaskCompletedRequest createRespondActivityCompleted(ActivityTask task, String result) {
-        return new RespondActivityTaskCompletedRequest()
-            .withTaskToken(task.getTaskToken())
-            .withResult(trimToMaxLength(result, MAX_RESULT_LENGTH));
-    }
-
-    public static Decision createCompleteWorkflowExecutionDecision(String result) {
-        return new Decision()
-            .withDecisionType(DecisionType.CompleteWorkflowExecution)
-            .withCompleteWorkflowExecutionDecisionAttributes(
-                new CompleteWorkflowExecutionDecisionAttributes()
-                    .withResult(trimToMaxLength(result, MAX_RESULT_LENGTH))
-            );
-    }
-
-    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
-        return new Decision()
-            .withDecisionType(DecisionType.FailWorkflowExecution)
-            .withFailWorkflowExecutionDecisionAttributes(
-                new FailWorkflowExecutionDecisionAttributes()
-                    .withReason(trimToMaxLength(reason, MAX_REASON_LENGTH))
-                    .withDetails(trimToMaxLength(details, MAX_DETAILS_LENGTH))
-            );
-    }
-
-    public static Decision createRecordMarkerDecision(String name, String details) {
-        return new Decision()
-            .withDecisionType(DecisionType.RecordMarker)
-            .withRecordMarkerDecisionAttributes(new RecordMarkerDecisionAttributes()
-                    .withMarkerName(name)
-                    .withDetails(details)
-            );
-    }
-
-    public static Decision createScheduleActivityTaskDecision(
-        String activityId,
-        String name,
-        String version,
-        String taskList,
-        String input,
-        String control,
-        String heartBeatTimeoutTimeout,
-        String scheduleToCloseTimeout,
-        String scheduleToStartTimeout,
-        String startToCloseTimeout
-    ) {
-        return new Decision()
-            .withDecisionType(DecisionType.ScheduleActivityTask)
-            .withScheduleActivityTaskDecisionAttributes(new ScheduleActivityTaskDecisionAttributes()
-                .withActivityType(new ActivityType()
-                    .withName(name)
-                    .withVersion(defaultIfNull(version, "1.0")))
-                .withActivityId(activityId)
-                .withTaskList(new TaskList()
-                    .withName(defaultIfNull(taskList, "default")))
-                .withInput(defaultIfNull(input, ""))
-                .withControl(defaultIfNull(control, ""))
-                .withHeartbeatTimeout(heartBeatTimeoutTimeout)
-                .withScheduleToCloseTimeout(scheduleToCloseTimeout)
-                .withScheduleToStartTimeout(scheduleToStartTimeout)
-                .withStartToCloseTimeout(startToCloseTimeout));
-    }
-
-
-    public static RegisterActivityTypeRequest createRegisterActivityType(
-        String domain,
-        String taskList,
-        String name,
-        String version,
-        String description,
-        String heartBeatTimeoutTimeout,
-        String startToCloseTimeout,
-        String scheduleToStartTimeout,
-        String scheduleToCloseTimeout
-    ) {
-        return new RegisterActivityTypeRequest()
-            .withDomain(domain)
-            .withDefaultTaskList(new TaskList().withName(taskList))
-            .withName(name)
-            .withVersion(version)
-            .withDescription(defaultIfEmpty(description, null))
-            .withDefaultTaskHeartbeatTimeout(defaultIfEmpty(heartBeatTimeoutTimeout, null))
-            .withDefaultTaskStartToCloseTimeout(defaultIfEmpty(startToCloseTimeout, null))
-            .withDefaultTaskScheduleToStartTimeout(defaultIfEmpty(scheduleToStartTimeout, null))
-            .withDefaultTaskScheduleToCloseTimeout(defaultIfEmpty(scheduleToCloseTimeout, null));
+    /**
+     * Calc a SWF timeout string.
+     * Pass null unit or duration &lt;= 0 for a timeout of NONE.
+     *
+     * @param unit time unit to use with duration
+     * @param duration duration converted to seconds
+     */
+    public static String calcTimeoutString(TimeUnit unit, long duration) {
+        return duration <= 0 ? TIMEOUT_NONE : valueOf(unit.toSeconds(duration));
     }
 
 }

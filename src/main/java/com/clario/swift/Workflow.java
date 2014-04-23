@@ -1,24 +1,25 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
-import com.clario.swift.action.SwfAction;
+import com.clario.swift.action.Action;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.SwiftUtil.calcTimeoutString;
 import static java.lang.String.format;
 
 /**
+ * Implementation of a registered SWF Workflow.
+ *
  * @author George Coller
  */
 public abstract class Workflow {
     protected final String name;
     protected final String version;
     protected final String key;
-    protected final SwfHistory swfHistory;
-    private final List<String> tagList = new ArrayList<>();
+    protected final WorkflowHistory workflowHistory;
+    private final List<String> tags = new ArrayList<>();
 
     // Optional fields used for submitting workflow.
     private String description;
@@ -32,108 +33,153 @@ public abstract class Workflow {
     private String workflowId;
     private String runId;
 
+    private final Set<String> checkpoints = new LinkedHashSet<>();
+
     public Workflow(String name, String version) {
         this.version = version;
         this.name = name;
         this.key = SwiftUtil.makeKey(name, version);
-        swfHistory = new SwfHistory();
+        workflowHistory = new WorkflowHistory();
     }
 
-    public abstract List<SwfAction> getActions();
+    /**
+     * Called by subclass add a reference of this instance to each action used on the workflow.
+     * Actions require a reference to their enclosing workflow to access the current decision task state.
+     */
+    protected void addActions(Action... actions) {
+        for (Action action : actions) {
+            action.setWorkflow(this);
+        }
+    }
 
+    /**
+     * Subclasses add zero or more decisions to the parameter during a decision task.
+     * A final {@link DecisionType#CompleteWorkflowExecution} or  {@link DecisionType#FailWorkflowExecution}
+     * should be returned to indicate the workflow is complete.
+     *
+     * @see #createWorkflowExecutionRequest
+     * @see #createFailWorkflowExecutionDecision
+     */
     public abstract void decide(List<Decision> decisions);
 
     /**
-     * Optional list of activity ids or marker names used to tell poller to stop polling for more history.
+     * Override to add one or more strings that will match to either an {@link Action#actionId} or recorded SWF Marker name to indicate
+     * to the {@link DecisionPoller} that it can stop polling for more history for a given {@link DecisionTask}.
+     * <p/>
+     * Amazon limits the number of {@link HistoryEvent} returned when polling for the next decision task to 1000 at a time.  For
+     * complex workflows that generate thousands of events (note even a simple workflow can create several dozen events) it may
+     * be important to create polling checkpoints to reduce the load on {@link DecisionPoller} instances.
+     *
+     * @see #getCurrentCheckpoint()
      */
-    public List<String> getPollingCheckpoints() {
-        return Collections.emptyList();
-    }
-
-    public String getWorkflowKey() {
-        return key;
-    }
-
-    public SwfHistory getSwfHistory() { return swfHistory; }
-
-    public boolean isMoreHistoryRequired() {
-        for (String checkPoint : getPollingCheckpoints()) {
-            if (!swfHistory.actionEvents(checkPoint).isEmpty() || swfHistory.getMarkers().containsKey(checkPoint)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public void addHistoryEvents(List<HistoryEvent> events) {
-        swfHistory.addHistoryEvents(events);
-    }
-
-    public List<HistoryEvent> getWorkflowStateErrors() {
-        return swfHistory.getWorkflowStateErrors();
-    }
-
-    public String getWorkflowInput() {
-        return swfHistory.getWorkflowInput();
+    public void withCheckpoints(String... checkpoints) {
+        Collections.addAll(this.checkpoints, checkpoints);
     }
 
     /**
-     * Called by {@link DecisionPoller} to initialize workflow for current polling.
+     * Return the most recent checkpoint value found in the added {@link HistoryEvent} for the current decision task;
+     *
+     * @return the checkpoint or null if none found;
+     * @see #withCheckpoints
      */
-    public void init() {
-        for (SwfAction action : getActions()) {
-            action.setWorkflow(this);
+    public String getCurrentCheckpoint() {
+        for (String checkpoint : checkpoints) {
+            if (!workflowHistory.filterEvents(checkpoint).isEmpty() || workflowHistory.getMarkers().containsKey(checkpoint)) {
+                return checkpoint;
+            }
         }
-        swfHistory.reset();
+        return null;
     }
 
-    public String getName() { return name; }
+    /**
+     * Called by {@link DecisionPoller} to initialize workflow for a new decision task.
+     */
+    public void init() {
+        workflowHistory.reset();
+    }
 
-    public String getVersion() { return version; }
 
+    /**
+     * Workflow name and version glued together to make a key.
+     *
+     * @see SwiftUtil#makeKey
+     */
+    public String getKey() { return key; }
+
+    /**
+     * @return this instance's history container
+     */
+    public WorkflowHistory getWorkflowHistory() { return workflowHistory; }
+
+
+    /**
+     * Add history events for current SWF decision task.
+     *
+     * @see WorkflowHistory#addHistoryEvents
+     */
+    public void addHistoryEvents(List<HistoryEvent> events) {
+        workflowHistory.addHistoryEvents(events);
+    }
+
+    /**
+     * Get any error events recorded for current SWF decision task.
+     *
+     * @see WorkflowHistory#getErrorEvents
+     */
+    public List<HistoryEvent> getErrorEvents() {
+        return workflowHistory.getErrorEvents();
+    }
+
+    /**
+     * Get input provided when current decision task's workflow was submitted.
+     *
+     * @see WorkflowHistory#getWorkflowInput()
+     */
+    public String getWorkflowInput() {
+        return workflowHistory.getWorkflowInput();
+    }
+
+    /** SWF domain */
     public Workflow withDomain(String domain) {
         this.domain = domain;
         return this;
     }
 
-    public String getDomain() {
-        return domain;
-    }
-
+    /** Domain-unique workflow execution identifier * */
     public Workflow withWorkflowId(String workflowId) {
         this.workflowId = workflowId;
         return this;
     }
 
-    public String getWorkflowId() {
-        return workflowId;
-    }
+    /** Domain-unique workflow execution identifier * */
+    public String getWorkflowId() { return workflowId; }
 
+    /** SWF generated unique run id for a specific workflow execution. */
     public Workflow withRunId(String runId) {
         this.runId = runId;
         return this;
     }
 
-    public String getRunId() {
-        return runId;
-    }
+    /** SWF generated unique run id for a specific workflow execution. */
+    public String getRunId() { return runId; }
 
+    /** SWF task list this workflow is/will be executed under */
     public Workflow withTaskList(String taskList) {
         this.taskList = taskList;
         return this;
     }
 
+    /** SWF task list this workflow is/will be executed under */
     public String getTaskList() { return taskList; }
 
 
+    /** Optional tags submitted with workflow */
     public Workflow withTags(String... tags) {
-        if (tags.length > 5) {
-            throw new AssertionError("Expecting a maximum number of 5 workflow tags");
-        }
-        Collections.addAll(this.tagList, tags);
+        Collections.addAll(this.tags, tags);
         return this;
     }
 
+    /** Optional description to register with workflow */
     public Workflow withDescription(String description) {
         this.description = description;
         return this;
@@ -141,44 +187,25 @@ public abstract class Workflow {
 
     /**
      * The total duration for this workflow execution.
+     * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
      * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
      */
     public Workflow withExecutionStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.executionStartToCloseTimeout = Long.toString(unit.toSeconds(duration));
-        return this;
-    }
-
-    /**
-     * Set no limit on total duration for this workflow execution.
-     *
-     * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
-     */
-    public Workflow withExecutionStartToCloseTimeoutNone() {
-        executionStartToCloseTimeout = "NONE";
+        executionStartToCloseTimeout = calcTimeoutString(unit, duration);
         return this;
     }
 
     /**
      * Specifies the maximum duration of decision tasks for this workflow execution.
+     * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
      * @see StartWorkflowExecutionRequest#taskStartToCloseTimeout
      */
     public Workflow withTaskStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.taskStartToCloseTimeout = Long.toString(unit.toSeconds(duration));
+        this.taskStartToCloseTimeout = calcTimeoutString(unit, duration);
         return this;
     }
-
-    /**
-     * Set no limit on total duration of decision tasks for this workflow execution.
-     *
-     * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
-     */
-    public Workflow withTaskStartToCloseTimeoutNone() {
-        taskStartToCloseTimeout = "NONE";
-        return this;
-    }
-
 
     /**
      * @see StartWorkflowExecutionRequest#childPolicy
@@ -187,6 +214,7 @@ public abstract class Workflow {
         this.childPolicy = childPolicy == null ? null : childPolicy.name();
         return this;
     }
+
 
     public StartWorkflowExecutionRequest createWorkflowExecutionRequest(String workflowId, String input) {
         return new StartWorkflowExecutionRequest()
@@ -198,7 +226,7 @@ public abstract class Workflow {
                 .withName(name)
                 .withVersion(version))
             .withInput(input)
-            .withTagList(tagList)
+            .withTagList(tags)
             .withExecutionStartToCloseTimeout(executionStartToCloseTimeout)
             .withTaskStartToCloseTimeout(taskStartToCloseTimeout)
             .withChildPolicy(childPolicy);
@@ -217,15 +245,40 @@ public abstract class Workflow {
             ;
     }
 
-
-    public final WorkflowType getWorkflowType() {
-        return new WorkflowType().withName(name).withVersion(version);
+    public static Decision createCompleteWorkflowExecutionDecision(String result) {
+        return new Decision()
+            .withDecisionType(DecisionType.CompleteWorkflowExecution)
+            .withCompleteWorkflowExecutionDecisionAttributes(
+                new CompleteWorkflowExecutionDecisionAttributes()
+                    .withResult(result)
+            );
     }
 
+    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
+        return new Decision()
+            .withDecisionType(DecisionType.FailWorkflowExecution)
+            .withFailWorkflowExecutionDecisionAttributes(
+                new FailWorkflowExecutionDecisionAttributes()
+                    .withReason(reason)
+                    .withDetails(details)
+            );
+    }
+
+    public static Decision createRecordMarkerDecision(String name, String details) {
+        return new Decision()
+            .withDecisionType(DecisionType.RecordMarker)
+            .withRecordMarkerDecisionAttributes(new RecordMarkerDecisionAttributes()
+                    .withMarkerName(name)
+                    .withDetails(details)
+            );
+    }
+
+    /**
+     * Two workflows are considered equal if they have the same name and version.
+     */
     @Override
     public boolean equals(Object o) {
         return this == o || !(o == null || getClass() != o.getClass()) && key.equals(((Workflow) o).key);
-
     }
 
     @Override
@@ -237,5 +290,4 @@ public abstract class Workflow {
     public String toString() {
         return format("Workflow '%s' ", key);
     }
-
 }
