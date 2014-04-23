@@ -108,7 +108,7 @@ public class SwfStartChildWorkflow extends SwfAction {
     }
 
     @Override
-    protected Decision createDecision() {
+    public Decision createDecision() {
         return new Decision()
             .withDecisionType(DecisionType.StartChildWorkflowExecution)
             .withStartChildWorkflowExecutionDecisionAttributes(new StartChildWorkflowExecutionDecisionAttributes()

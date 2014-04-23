@@ -36,12 +36,6 @@ public class StartChildWorkflow extends Workflow {
     }
 
     @Override
-    public void init(String domain, String taskList) {
-        super.init(domain, taskList);
-
-    }
-
-    @Override
     public List<SwfAction> getActions() {
         // We don't have any workflow-field actions
         return Collections.emptyList();

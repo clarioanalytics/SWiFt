@@ -42,6 +42,7 @@ public class SwfHistory {
             if (ScheduleActivityTaskFailed == eventType
                 || WorkflowExecutionCancelRequested == eventType
                 || StartChildWorkflowExecutionFailed == eventType
+                || SignalExternalWorkflowExecutionFailed == eventType
                 ) {
                 workflowStateErrors.add(event);
             }

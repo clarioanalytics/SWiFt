@@ -50,7 +50,7 @@ public class DecisionPoller extends BasePoller {
      */
     public void addWorkflows(Workflow... workflows) {
         for (Workflow workflow : workflows) {
-            log.info(format("Register workflow %s", workflow.getWorkflowKey()));
+            log.info(format("add workflow '%s'", workflow.getWorkflowKey()));
             this.workflows.put(workflow.getWorkflowKey(), workflow);
         }
     }
@@ -71,8 +71,12 @@ public class DecisionPoller extends BasePoller {
                 }
             } else {
                 if (workflow == null) {
-                    workflow = lookupWorkflow(decisionTask);
-                    workflow.init(domain, taskList);
+                    workflow = lookupWorkflow(decisionTask)
+                        .withDomain(domain)
+                        .withTaskList(taskList)
+                        .withWorkflowId(decisionTask.getWorkflowExecution().getWorkflowId())
+                        .withRunId(decisionTask.getWorkflowExecution().getRunId());
+                    workflow.init();
                 }
                 workflow.addHistoryEvents(decisionTask.getEvents());
                 if (workflow.isMoreHistoryRequired()) {

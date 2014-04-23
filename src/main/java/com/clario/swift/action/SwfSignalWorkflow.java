@@ -40,7 +40,7 @@ public class SwfSignalWorkflow extends SwfAction {
     }
 
     @Override
-    protected Decision createDecision() {
+    public Decision createDecision() {
         return new Decision()
             .withDecisionType(DecisionType.SignalExternalWorkflowExecution)
             .withSignalExternalWorkflowExecutionDecisionAttributes(new SignalExternalWorkflowExecutionDecisionAttributes()

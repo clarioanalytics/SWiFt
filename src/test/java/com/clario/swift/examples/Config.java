@@ -32,7 +32,7 @@ public class Config {
             String key = p.getProperty("amazon.aws.key");
             poolSize = Integer.parseInt(p.getProperty("poolSize"));
             amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key),
-                new ClientConfiguration().withConnectionTimeout(5 * 1000)
+                new ClientConfiguration().withConnectionTimeout(10 * 1000)
             );
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);

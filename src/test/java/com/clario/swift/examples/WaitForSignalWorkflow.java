@@ -14,9 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.SwiftUtil.join;
-import static com.clario.swift.SwiftUtil.joinEntries;
-import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -24,7 +21,6 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  */
 public class WaitForSignalWorkflow extends Workflow {
     public static final Logger log = LoggerFactory.getLogger(WaitForSignalWorkflow.class);
-
 
     public static void main(String[] args) {
         Workflow workflow = new WaitForSignalWorkflow()
@@ -55,10 +51,9 @@ public class WaitForSignalWorkflow extends Workflow {
         if (signals.isEmpty()) {
             log.info("No signal received yet");
         } else {
-            log.info(format("Signals received: %s", join(joinEntries(signals, "->"), ", ")));
-
             String signalValue = new ArrayList<>(signals.values()).get(0);
             if (step1.withInput(signalValue).decide(decisions)) {
+                log.info("Signal received and step1 finished");
                 decisions.add(SwiftUtil.createCompleteWorkflowExecutionDecision(step1.getOutput()));
             }
         }

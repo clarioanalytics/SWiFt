@@ -146,7 +146,7 @@ public class SwfHistoryEvent {
         return ActivityTaskScheduled == eventType
             || TimerStarted == eventType
             || StartChildWorkflowExecutionInitiated == eventType
-            || WorkflowExecutionSignaled == eventType;
+            || SignalExternalWorkflowExecutionInitiated == eventType;
     }
 
     static SwfAction.ActionState findActionState(EventType eventType) {
@@ -183,8 +183,12 @@ public class SwfHistoryEvent {
                 return finish_error;
 
             // Signals
-            case WorkflowExecutionSignaled:
+            case SignalExternalWorkflowExecutionInitiated:
+                return started;
+            case ExternalWorkflowExecutionSignaled:
                 return finish_ok;
+            case SignalExternalWorkflowExecutionFailed:
+                return finish_error;
             default:
                 return null;
         }
@@ -230,9 +234,13 @@ public class SwfHistoryEvent {
             case ChildWorkflowExecutionTimedOut:
                 return historyEvent.getChildWorkflowExecutionTimedOutEventAttributes().getInitiatedEventId();
 
-            // Signals
-            case WorkflowExecutionSignaled:
+            // Signal External Workflow
+            case SignalExternalWorkflowExecutionInitiated:
                 return historyEvent.getEventId();
+            case ExternalWorkflowExecutionSignaled:
+                return historyEvent.getExternalWorkflowExecutionSignaledEventAttributes().getInitiatedEventId();
+            case SignalExternalWorkflowExecutionFailed:
+                return historyEvent.getSignalExternalWorkflowExecutionFailedEventAttributes().getInitiatedEventId();
             default:
                 return null;
         }
@@ -246,8 +254,8 @@ public class SwfHistoryEvent {
                 return historyEvent.getTimerStartedEventAttributes().getTimerId();
             case StartChildWorkflowExecutionInitiated:
                 return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes().getWorkflowId();
-            case WorkflowExecutionSignaled:
-                return String.valueOf(historyEvent.getWorkflowExecutionSignaledEventAttributes().getExternalInitiatedEventId());
+            case SignalExternalWorkflowExecutionInitiated:
+                return historyEvent.getSignalExternalWorkflowExecutionInitiatedEventAttributes().getSignalName();
             default:
                 return null;
         }

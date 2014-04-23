@@ -36,7 +36,7 @@ public class SwfTimer extends SwfAction {
     }
 
     @Override
-    protected Decision createDecision() {
+    public Decision createDecision() {
         return new Decision()
             .withDecisionType(DecisionType.StartTimer)
             .withStartTimerDecisionAttributes(new StartTimerDecisionAttributes()

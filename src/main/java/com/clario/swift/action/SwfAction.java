@@ -79,6 +79,8 @@ public abstract class SwfAction {
         }
     }
 
+    public String getId() { return id; }
+
     public boolean isFinished() {
         return finish_ok == getState() || finish_error == getState();
     }
@@ -101,7 +103,7 @@ public abstract class SwfAction {
         return workflow.getSwfHistory().actionEvents(id);
     }
 
-    protected abstract Decision createDecision();
+    public abstract Decision createDecision();
 
 
     protected static void assertTrue(boolean b, String msg) {

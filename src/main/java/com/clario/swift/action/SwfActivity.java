@@ -99,7 +99,7 @@ public class SwfActivity extends SwfAction {
         return getCurrentActionHistoryEvent().getResult();
     }
 
-    protected Decision createDecision() {
+    public Decision createDecision() {
         return new Decision()
             .withDecisionType(DecisionType.ScheduleActivityTask)
             .withScheduleActivityTaskDecisionAttributes(new ScheduleActivityTaskDecisionAttributes()

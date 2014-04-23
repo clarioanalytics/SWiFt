@@ -68,7 +68,7 @@ public class ActivityPoller extends BasePoller {
                 if (method != null && method.isAnnotationPresent(ActivityMethod.class)) {
                     ActivityMethod activityMethod = method.getAnnotation(ActivityMethod.class);
                     String key = makeKey(activityMethod.name(), activityMethod.version());
-                    log.info("Added activity " + key);
+                    log.info(format("add activity '%s'", key));
                     activityMap.put(key, new ActivityInvoker(this, method, object));
                 }
             }

@@ -21,12 +21,16 @@ public abstract class Workflow {
     private final List<String> tagList = new ArrayList<>();
 
     // Optional fields used for submitting workflow.
-    private String domain;
-    private String taskList;
     private String description;
     private String executionStartToCloseTimeout;
     private String taskStartToCloseTimeout;
     private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
+
+    // Set by poller
+    private String domain;
+    private String taskList;
+    private String workflowId;
+    private String runId;
 
     public Workflow(String name, String version) {
         this.version = version;
@@ -76,9 +80,7 @@ public abstract class Workflow {
     /**
      * Called by {@link DecisionPoller} to initialize workflow for current polling.
      */
-    public void init(String domain, String taskList) {
-        this.domain = domain;
-        this.taskList = taskList;
+    public void init() {
         for (SwfAction action : getActions()) {
             action.setWorkflow(this);
         }
@@ -98,12 +100,31 @@ public abstract class Workflow {
         return domain;
     }
 
+    public Workflow withWorkflowId(String workflowId) {
+        this.workflowId = workflowId;
+        return this;
+    }
+
+    public String getWorkflowId() {
+        return workflowId;
+    }
+
+    public Workflow withRunId(String runId) {
+        this.runId = runId;
+        return this;
+    }
+
+    public String getRunId() {
+        return runId;
+    }
+
     public Workflow withTaskList(String taskList) {
         this.taskList = taskList;
         return this;
     }
 
     public String getTaskList() { return taskList; }
+
 
     public Workflow withTags(String... tags) {
         if (tags.length > 5) {
