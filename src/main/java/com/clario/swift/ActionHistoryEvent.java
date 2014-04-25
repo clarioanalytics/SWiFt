@@ -3,11 +3,11 @@ package com.clario.swift;
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
-import com.clario.swift.action.Action;
 
 import java.util.Date;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
+import static com.clario.swift.action.Action.State;
 import static com.clario.swift.action.Action.State.*;
 
 /**
@@ -18,14 +18,11 @@ import static com.clario.swift.action.Action.State.*;
  * @author George Coller
  * @see WorkflowHistory
  */
-public class ActionHistoryEvent {
+public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
 
+    private final HistoryEvent historyEvent;
     private final EventType eventType;
-    private final Date eventTimestamp;
-    private final long eventId;
     private final Long initialEventId;
-    private final String actionId;
-    private final String result;
     private final boolean isInitialEvent;
 
     /**
@@ -38,12 +35,9 @@ public class ActionHistoryEvent {
      */
     public ActionHistoryEvent(HistoryEvent historyEvent) {
         if (isActionHistoryEvent(historyEvent)) {
+            this.historyEvent = historyEvent;
             this.eventType = EventType.valueOf(historyEvent.getEventType());
-            this.eventTimestamp = historyEvent.getEventTimestamp();
-            this.eventId = historyEvent.getEventId();
             this.isInitialEvent = isInitialEventType(eventType);
-            this.actionId = findActionId(historyEvent);
-            this.result = findResult(historyEvent);
             this.initialEventId = findInitialEventId(historyEvent);
         } else {
             throw new IllegalArgumentException("HistoryEvent type is not allowable: " + historyEvent);
@@ -51,23 +45,14 @@ public class ActionHistoryEvent {
     }
 
     /**
-     * Construct directly with values for unit testing.
-     */
-    ActionHistoryEvent(EventType eventType, Date eventTimestamp, long eventId, boolean isInitialEvent, String actionId, String result, long initialEventId) {
-        this.eventType = eventType;
-        this.eventTimestamp = eventTimestamp;
-        this.eventId = eventId;
-        this.isInitialEvent = isInitialEvent;
-        this.actionId = actionId;
-        this.result = result;
-        this.initialEventId = initialEventId;
-    }
-
-    /**
      * Determine if a {@link HistoryEvent} has an SWF {@link EventType} that can be constructed as a <code>ActionEvent</code>.
      */
     public static boolean isActionHistoryEvent(HistoryEvent historyEvent) {
-        return findActionState(EventType.valueOf(historyEvent.getEventType())) != null;
+        return findActionState(historyEvent) != null;
+    }
+
+    public HistoryEvent getHistoryEvent() {
+        return historyEvent;
     }
 
     /**
@@ -88,7 +73,7 @@ public class ActionHistoryEvent {
      */
     public String getActionId() {
         if (isInitialEvent) {
-            return actionId;
+            return findActionId(historyEvent);
         } else {
             throw new UnsupportedOperationException("Cannot get action id on non-initial action event: " + this);
         }
@@ -98,21 +83,28 @@ public class ActionHistoryEvent {
      * @return {@link HistoryEvent#eventType} cast as {@link EventType} enumeration
      */
     public EventType getType() {
-        return eventType;
+        return EventType.valueOf(historyEvent.getEventType());
+    }
+
+    /**
+     * Find the {@link State} mapping for this history event.
+     */
+    public State getActionState() {
+        return findActionState(historyEvent);
     }
 
     /**
      * @return {@link HistoryEvent#eventId}
      */
     public Long getEventId() {
-        return eventId;
+        return historyEvent.getEventId();
     }
 
     /**
      * @return {@link HistoryEvent#eventTimestamp}
      */
     public Date getEventTimestamp() {
-        return eventTimestamp;
+        return historyEvent.getEventTimestamp();
     }
 
     /**
@@ -130,15 +122,21 @@ public class ActionHistoryEvent {
      * @throws java.lang.UnsupportedOperationException if event type does not return a result
      */
     public String getResult() {
+        String result = findResult(historyEvent);
         if (result == null) {
             throw new UnsupportedOptionException("Result not available for action: " + this);
         }
         return result;
     }
 
-    public Action.State getActionState() {
-        return findActionState(eventType);
+    public String getErrorReason() {
+        String reason = findErrorReason(historyEvent);
+        if (reason == null) {
+            throw new UnsupportedOptionException("Error reason not available for action: " + this);
+        }
+        return reason;
     }
+
 
     //
     // Methods used to convert Amazon objects to Swift.
@@ -157,8 +155,8 @@ public class ActionHistoryEvent {
     /**
      * @return map an EventType to an action state.
      */
-    static Action.State findActionState(EventType eventType) {
-        switch (eventType) {
+    static State findActionState(HistoryEvent historyEvent) {
+        switch (EventType.valueOf(historyEvent.getEventType())) {
             // Activity Tasks
             case ActivityTaskScheduled:
             case ActivityTaskStarted:
@@ -174,7 +172,9 @@ public class ActionHistoryEvent {
             case TimerStarted:
                 return active;
             case TimerFired:
+                // NOTE: This could be a 'retry' event but we don't have the control field handy yet.
                 return success;
+            case StartTimerFailed:
             case TimerCanceled:
                 return error;
 
@@ -195,8 +195,6 @@ public class ActionHistoryEvent {
                 return active;
             case ExternalWorkflowExecutionSignaled:
                 return success;
-            case SignalExternalWorkflowExecutionFailed:
-                return error;
             default:
                 return null;
         }
@@ -247,8 +245,6 @@ public class ActionHistoryEvent {
                 return historyEvent.getEventId();
             case ExternalWorkflowExecutionSignaled:
                 return historyEvent.getExternalWorkflowExecutionSignaledEventAttributes().getInitiatedEventId();
-            case SignalExternalWorkflowExecutionFailed:
-                return historyEvent.getSignalExternalWorkflowExecutionFailedEventAttributes().getInitiatedEventId();
             default:
                 return null;
         }
@@ -271,34 +267,70 @@ public class ActionHistoryEvent {
 
     static String findResult(HistoryEvent historyEvent) {
         EventType type = EventType.valueOf(historyEvent.getEventType());
-        if (ActivityTaskCompleted == type) {
-            return historyEvent.getActivityTaskCompletedEventAttributes().getResult();
-        } else if (ChildWorkflowExecutionStarted == type) {
-            return historyEvent.getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getRunId();
-        } else if (ChildWorkflowExecutionCompleted == type) {
-            return historyEvent.getChildWorkflowExecutionCompletedEventAttributes().getResult();
+        switch (type) {
+            case ActivityTaskCompleted:
+                return historyEvent.getActivityTaskCompletedEventAttributes().getResult();
+            case ChildWorkflowExecutionStarted:
+                return historyEvent.getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getRunId();
+            case ChildWorkflowExecutionCompleted:
+                return historyEvent.getChildWorkflowExecutionCompletedEventAttributes().getResult();
         }
         return null;
     }
 
+    private String findErrorReason(HistoryEvent historyEvent) {
+        EventType type = EventType.valueOf(historyEvent.getEventType());
+        switch (type) {
+            case ActivityTaskCanceled:
+                return historyEvent.getActivityTaskCanceledEventAttributes().getDetails();
+            case ActivityTaskFailed:
+                return historyEvent.getActivityTaskFailedEventAttributes().getReason() + " | " +
+                    historyEvent.getActivityTaskFailedEventAttributes().getDetails();
+            case ActivityTaskTimedOut:
+                return historyEvent.getActivityTaskTimedOutEventAttributes().getTimeoutType() + " | " +
+                    historyEvent.getActivityTaskTimedOutEventAttributes().getDetails();
+
+            case StartTimerFailed:
+                return historyEvent.getStartTimerFailedEventAttributes().getCause();
+            case TimerCanceled:
+                return "timer canceled";
+
+            case ChildWorkflowExecutionCanceled:
+                return historyEvent.getChildWorkflowExecutionCanceledEventAttributes().getDetails();
+            case ChildWorkflowExecutionTerminated:
+                return "child workflow terminated";
+            case ChildWorkflowExecutionTimedOut:
+                return historyEvent.getChildWorkflowExecutionTimedOutEventAttributes().getTimeoutType();
+            case ChildWorkflowExecutionFailed:
+                return historyEvent.getChildWorkflowExecutionFailedEventAttributes().getReason() + " | " +
+                    historyEvent.getChildWorkflowExecutionFailedEventAttributes().getDetails();
+        }
+        return null;
+    }
 
     /**
-     * Two events are consider equal if they share the same {@link #eventId}.
+     * Two events are consider equal if they share the same {@link #getEventId()}.
      */
     public boolean equals(Object o) {
-        return this == o || o instanceof ActionHistoryEvent && eventId == ((ActionHistoryEvent) o).eventId;
+        return this == o || o instanceof ActionHistoryEvent && getEventId().equals(((ActionHistoryEvent) o).getEventId());
     }
 
     public int hashCode() {
-        return Long.valueOf(eventId).hashCode();
+        return getEventId().hashCode();
     }
 
     @Override
     public String toString() {
-        return SwiftUtil.DATE_TIME_FORMATTER.print(eventTimestamp.getTime())
-            + ' ' + eventType
-            + ' ' + eventId
+        return SwiftUtil.DATE_TIME_FORMATTER.print(getEventTimestamp().getTime())
+            + ' ' + getType()
+            + ' ' + getEventId()
             + (isInitialEvent ? ' ' : " -> ")
-            + (isInitialEvent ? actionId : initialEventId);
+            + (isInitialEvent ? getActionId() : initialEventId);
+    }
+
+    @Override
+    public int compareTo(ActionHistoryEvent event) {
+        return -getEventId().compareTo(event.getEventId());
+
     }
 }

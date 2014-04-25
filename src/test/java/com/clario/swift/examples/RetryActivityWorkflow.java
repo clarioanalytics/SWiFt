@@ -1,0 +1,62 @@
+package com.clario.swift.examples;
+
+import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryPolicy;
+import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.clario.swift.Workflow;
+import com.clario.swift.action.ActivityAction;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+
+import static java.util.concurrent.TimeUnit.MINUTES;
+
+/**
+ * @author George Coller
+ */
+public class RetryActivityWorkflow extends Workflow {
+    private static final Logger log = LoggerFactory.getLogger(RetryActivityWorkflow.class);
+
+    public static void main(String[] args) {
+        Workflow workflow = new RetryActivityWorkflow()
+            .withDomain("dev-clario")
+            .withTaskList("default")
+            .withTaskStartToCloseTimeout(MINUTES, 1)
+            .withExecutionStartToCloseTimeout(MINUTES, 5);
+        Config.submit(workflow, "30");
+    }
+
+    private final ActivityAction step1 = new ActivityAction("step1", "Activity Fail Until", "1.0")
+        .withScheduleToCloseTimeout(MINUTES, 1)
+        .withStartToCloseTimeout(MINUTES, 1)
+        .withScheduleToStartTimeout(MINUTES, 1)
+        .withHeartBeatTimeoutTimeout(MINUTES, 1)
+        .withExponentialRetry(new ExponentialRetryPolicy(5)
+                .withMaximumAttempts(20)
+        );
+
+
+    public RetryActivityWorkflow() {
+        super("Retry Activity Workflow", "1.0");
+        addActions(step1);
+    }
+
+    @Override
+    public void decide(List<Decision> decisions) {
+
+        // Only calculate failUntilTime once
+        String failUntilTime = workflowHistory.getMarkers().get("failUntilTime");
+        if (failUntilTime == null) {
+            int seconds = Integer.parseInt(getWorkflowInput());
+            failUntilTime = String.valueOf(new DateTime().plusSeconds(seconds).getMillis());
+            decisions.add(createRecordMarkerDecision("failUntilTime", failUntilTime));
+        }
+
+        if (step1.withInput(failUntilTime).decide(decisions).isSuccess()) {
+            long times = step1.getRetryTimerStartedEvents().size();
+            log.info("Activity succeeded after " + times + " times.");
+            decisions.add(createCompleteWorkflowExecutionDecision("finished ok!"));
+        }
+    }
+}

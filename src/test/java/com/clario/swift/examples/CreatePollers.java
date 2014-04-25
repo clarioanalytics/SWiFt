@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -49,9 +50,12 @@ public class CreatePollers {
 
             DecisionPoller poller = new DecisionPoller(pollerId, "dev-clario", "default", executionContext);
             poller.setSwf(swf);
-            poller.addWorkflows(new PollingCheckpointWorkflow(), new SimpleWorkflow());
-            poller.addWorkflows(new TimerWorkflow(), new WaitForSignalWorkflow(), new SignalWaitForSignalWorkflow());
-            poller.addWorkflows(new StartChildWorkflow(), new WaitForSignalWorkflow());
+            poller.addWorkflows(new SimpleWorkflow());
+            poller.addWorkflows(new TimerWorkflow());
+            poller.addWorkflows(new PollingCheckpointWorkflow());
+            poller.addWorkflows(new StartChildWorkflow());
+            poller.addWorkflows(new WaitForSignalWorkflow());
+            poller.addWorkflows(new RetryActivityWorkflow());
             if (registerWorkflows && it == 1) {
                 poller.registerSwfWorkflows();
             }
@@ -72,6 +76,17 @@ public class CreatePollers {
         }
     }
 
+
+    @ActivityMethod(name = "Activity Fail Until", version = "1.0",
+        description = "input a time in UTC and this activity will fail if called before it"
+    )
+    public void failUntilTime(ActivityContext context) {
+        long failIfBeforeThisTime = Long.parseLong(context.getInput());
+        long currentTime = System.currentTimeMillis();
+        if (currentTime < failIfBeforeThisTime) {
+            throw new IllegalStateException("Still too early: " + TimeUnit.MILLISECONDS.toSeconds(failIfBeforeThisTime - currentTime) + " seconds left");
+        }
+    }
 
     @ActivityMethod(name = "Activity X", version = "1.0")
     public Integer activityX(ActivityContext context) {

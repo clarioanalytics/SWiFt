@@ -25,7 +25,6 @@ public class WaitForSignalWorkflow extends Workflow {
             .withTaskList("default")
             .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
             .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30);
-//        Config.register(workflow);
         Config.submit(workflow, "100");
     }
 

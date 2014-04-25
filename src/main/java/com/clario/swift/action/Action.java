@@ -1,18 +1,24 @@
 package com.clario.swift.action;
 
+import com.amazonaws.services.simpleworkflow.flow.common.FlowConstants;
+import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
+import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.FailWorkflowExecutionDecisionAttributes;
 import com.clario.swift.ActionHistoryEvent;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.Workflow;
 import com.clario.swift.WorkflowHistory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.action.Action.State.initial;
-import static com.clario.swift.action.Action.State.success;
+import static com.amazonaws.services.simpleworkflow.model.EventType.TimerFired;
+import static com.clario.swift.action.Action.State.*;
 import static java.lang.String.format;
 
 /**
@@ -22,7 +28,12 @@ import static java.lang.String.format;
  *
  * @author George Coller
  */
-public abstract class Action {
+public abstract class Action<T extends Action> {
+
+    /** String used as control value on start timer events to mark them as 'retry' timers. */
+    public static final String RETRY_CONTROL_VALUE = "--  SWiFt Retry Control Value --";
+    public final Logger log = LoggerFactory.getLogger(getClass());
+    private ExponentialRetryPolicy retryPolicy;
 
     public Workflow getWorkflow() {
         return workflow;
@@ -45,6 +56,9 @@ public abstract class Action {
 
         /** Action has been decided and submitted to SWF and is not yet finished. */
         active,
+
+        /** Action will be retried */
+        retry,
 
         /** Action finished successfully on SWF. */
         success,
@@ -73,9 +87,18 @@ public abstract class Action {
      * Calling this method deactivates that decision for use cases where a workflow can
      * continue even if this action fails.
      */
-    public Action withDeactivateFailWorkflowExecution() {
+    public T withDeactivateFailWorkflowExecution() {
         failWorkflowExecution = false;
-        return this;
+        return (T) this;
+    }
+
+
+    public T withExponentialRetry(ExponentialRetryPolicy retryPolicy) {
+        this.retryPolicy = retryPolicy;
+        if (retryPolicy != null) {
+            retryPolicy.validate();
+        }
+        return (T) this;
     }
 
     /**
@@ -101,15 +124,57 @@ public abstract class Action {
                 break;
             case success:
                 break;
+            case retry:
+                log.info(format("%s decide retry", this));
+                decisions.add(createInitiateActivityDecision());
+                break;
+
             case error:
-                if (failWorkflowExecution) {
-                    decisions.add(createFailWorkflowExecutionDecision(format("%s '%s' error", getClass().getSimpleName(), actionId), null));
+                if (retryPolicy != null) {
+                    long nextDelayInSeconds = calcNextDelayInSeconds();
+                    String reason = getCurrentHistoryEvent().getErrorReason();
+                    if (FlowConstants.NONE == nextDelayInSeconds) {
+                        log.info(format("%s error, retry policy has no more attempts. reason:%s", this, reason));
+                    } else {
+                        TimerAction timer = new TimerAction(getActionId())
+                            .withStartToFireTimeout(TimeUnit.SECONDS, nextDelayInSeconds)
+                            .withControl(RETRY_CONTROL_VALUE);
+                        log.info(format("%s error, will retry after %d seconds. reason:%s", this, nextDelayInSeconds, reason));
+                        decisions.add(timer.createInitiateActivityDecision());
+                        break;
+                    }
                 }
+                if (failWorkflowExecution) {
+                    decisions.add(createFailWorkflowExecutionDecision(format("%s error, decide fail workflow", this), null));
+                }
+
                 break;
             default:
-                throw new IllegalStateException("Unknown action state:" + getState());
+                throw new IllegalStateException(format("%s unknown action state:%s", this, getState()));
         }
         return this;
+    }
+
+    /**
+     * @see ExponentialRetryPolicy#nextRetryDelaySeconds(java.util.Date, java.util.Date, int)
+     */
+    protected long calcNextDelayInSeconds() {
+        List<ActionHistoryEvent> retries = getRetryTimerStartedEvents();
+        if (retries.isEmpty()) {
+            return retryPolicy.getInitialRetryIntervalSeconds();
+        } else {
+            int numberOfTries = retries.size() + 1;
+            Date firstAttempt = retries.get(retries.size() - 1).getEventTimestamp();
+            Date recordedFailure = getCurrentHistoryEvent().getEventTimestamp();
+            return retryPolicy.nextRetryDelaySeconds(firstAttempt, recordedFailure, numberOfTries);
+        }
+    }
+
+    /**
+     * Return {@link EventType#TimerStarted} events that were used for retries.
+     */
+    public List<ActionHistoryEvent> getRetryTimerStartedEvents() {
+        return workflow.getWorkflowHistory().filterRetryTimerStartedEvents(getActionId());
     }
 
     /**
@@ -130,7 +195,17 @@ public abstract class Action {
      */
     public State getState() {
         ActionHistoryEvent swfHistoryEvent = getCurrentHistoryEvent();
-        return swfHistoryEvent == null ? initial : swfHistoryEvent.getActionState();
+        if (swfHistoryEvent == null) {
+            return initial;
+        } else if (TimerFired == swfHistoryEvent.getType()) {
+            Long eventId = swfHistoryEvent.getInitialEventId();
+            for (ActionHistoryEvent event : getRetryTimerStartedEvents()) {
+                if (eventId.equals(event.getEventId())) {
+                    return retry;
+                }
+            }
+        }
+        return swfHistoryEvent.getActionState();
     }
 
     /**
@@ -153,7 +228,7 @@ public abstract class Action {
     /**
      * Return the list of available history events polled for this action.
      * <p/>
-     * The list is sorted by {@link ActionHistoryEvent#eventTimestamp} in descending order (most recent events first).
+     * The list is sorted by {@link ActionHistoryEvent#getEventTimestamp()} in descending order (most recent events first).
      *
      * @return list of events or empty list.
      * @see WorkflowHistory#filterEvents
@@ -195,6 +270,6 @@ public abstract class Action {
 
     @Override
     public String toString() {
-        return actionId;
+        return format("%s %s", getClass().getSimpleName(), getActionId());
     }
 }

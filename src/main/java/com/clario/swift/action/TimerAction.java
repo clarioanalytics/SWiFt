@@ -7,13 +7,14 @@ import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
 import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.SwiftUtil.calcTimeoutString;
+import static java.lang.String.format;
 
 /**
  * Represents an SWF Timer.
  *
  * @author George Coller
  */
-public class TimerAction extends Action {
+public class TimerAction extends Action<TimerAction> {
     private String startToFireTimeout;
     private String control;
 
@@ -53,5 +54,10 @@ public class TimerAction extends Action {
                 .withTimerId(getActionId())
                 .withStartToFireTimeout(startToFireTimeout)
                 .withControl(control));
+    }
+
+    @Override
+    public String toString() {
+        return format("%s %s", getClass().getSimpleName(), startToFireTimeout);
     }
 }

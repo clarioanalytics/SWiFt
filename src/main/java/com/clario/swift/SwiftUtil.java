@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -154,7 +152,7 @@ public class SwiftUtil {
      * In SWF registered workflows and activities are identified by the combination of name and version.
      */
     public static String makeKey(String name, String version) {
-        return name + " - " + version;
+        return format("'%s'-'%s'", name, version);
     }
 
     /**

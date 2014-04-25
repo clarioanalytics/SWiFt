@@ -20,7 +20,6 @@ public class SimpleWorkflow extends Workflow {
             .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 1)
             .withTaskStartToCloseTimeout(TimeUnit.SECONDS, 20)
             .withChildPolicy(ChildPolicy.TERMINATE);
-//        Config.register(workflow);
         Config.submit(workflow, "100");
     }
 

@@ -288,6 +288,6 @@ public abstract class Workflow {
 
     @Override
     public String toString() {
-        return format("Workflow '%s' ", key);
+        return format("Workflow %s ", key);
     }
 }

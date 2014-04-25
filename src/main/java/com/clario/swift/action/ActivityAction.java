@@ -14,7 +14,7 @@ import static java.lang.String.format;
  *
  * @author George Coller
  */
-public class ActivityAction extends Action {
+public class ActivityAction extends Action<ActivityAction> {
     private String name;
     private String version;
     private String input;
@@ -71,7 +71,7 @@ public class ActivityAction extends Action {
     /**
      * @see ScheduleActivityTaskDecisionAttributes#control
      */
-    public Action withControl(String control) {
+    public ActivityAction withControl(String control) {
         this.control = control;
         return this;
     }
@@ -82,7 +82,7 @@ public class ActivityAction extends Action {
      *
      * @see ScheduleActivityTaskDecisionAttributes#heartbeatTimeout
      */
-    public Action withHeartBeatTimeoutTimeout(TimeUnit unit, long duration) {
+    public ActivityAction withHeartBeatTimeoutTimeout(TimeUnit unit, long duration) {
         this.heartBeatTimeoutTimeout = calcTimeoutString(unit, duration);
         return this;
     }
@@ -97,7 +97,7 @@ public class ActivityAction extends Action {
      *
      * @see ScheduleActivityTaskDecisionAttributes#scheduleToCloseTimeout
      */
-    public Action withScheduleToCloseTimeout(TimeUnit unit, long duration) {
+    public ActivityAction withScheduleToCloseTimeout(TimeUnit unit, long duration) {
         this.scheduleToCloseTimeout = calcTimeoutString(unit, duration);
         return this;
     }
@@ -112,7 +112,7 @@ public class ActivityAction extends Action {
      *
      * @see ScheduleActivityTaskDecisionAttributes#scheduleToStartTimeout
      */
-    public Action withScheduleToStartTimeout(TimeUnit unit, long duration) {
+    public ActivityAction withScheduleToStartTimeout(TimeUnit unit, long duration) {
         this.scheduleToStartTimeout = calcTimeoutString(unit, duration);
         return this;
     }
@@ -168,9 +168,8 @@ public class ActivityAction extends Action {
                 .withStartToCloseTimeout(startToCloseTimeout));
     }
 
-
     @Override
     public String toString() {
-        return format("%s %s", getActionId(), makeKey(name, version));
+        return format("%s %s %s", getClass().getSimpleName(), getActionId(), makeKey(name, version));
     }
 }

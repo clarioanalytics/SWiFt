@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.SwiftUtil.calcTimeoutString;
+import static com.clario.swift.SwiftUtil.makeKey;
 import static java.lang.String.format;
 
 /**
@@ -18,7 +19,7 @@ import static java.lang.String.format;
  * @author George Coller
  * @see StartChildWorkflowExecutionDecisionAttributes
  */
-public class StartChildWorkflowAction extends Action {
+public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
     private String name;
     private String version;
     private String taskList;
@@ -132,7 +133,7 @@ public class StartChildWorkflowAction extends Action {
     public String getChildRunId() {
         for (ActionHistoryEvent event : getHistoryEvents()) {
             if (event.getType() == EventType.ChildWorkflowExecutionStarted) {
-                return event.getResult();
+                return event.getHistoryEvent().getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getRunId();
             }
         }
         throw new UnsupportedOptionException(format("RunId not available %s %s", this, getState()));
@@ -150,5 +151,10 @@ public class StartChildWorkflowAction extends Action {
             throw new UnsupportedOptionException(format("Result not available %s %s", this, getState()));
         }
         return getCurrentHistoryEvent().getResult();
+    }
+
+    @Override
+    public String toString() {
+        return format("%s %s %s", getClass().getSimpleName(), getActionId(), makeKey(name, version));
     }
 }

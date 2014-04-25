@@ -7,11 +7,16 @@ import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionSignaledEven
 
 import java.util.*;
 
+import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
+import static com.clario.swift.action.Action.RETRY_CONTROL_VALUE;
+
 /**
- * Container class of {@link ActionHistoryEvent}.
+ * Container class of {@link HistoryEvent}s for the current decision task.
  * <p/>
- * Most of the heavy lifting comes from converting each SWF {@link HistoryEvent} into a {@link ActionHistoryEvent} to
- * unify the event API across various SWF tasks like Activities, Timers, Markers, Signals, ChildWorkflows.
+ * Most of the heavy lifting comes from converting SWF {@link HistoryEvent} into a {@link ActionHistoryEvent} to
+ * unify working with various SWF tasks like activities,timers, signals, starting child workflows.
+ * <p/>
+ * This class will also parse out any received signals, markers, and workflow-level errors.
  * <p/>
  * This class is not thread-safe and is meant to be used by a single {@link Workflow} instance.
  *
@@ -43,8 +48,10 @@ public class WorkflowHistory {
                 case WorkflowExecutionStarted:
                     workflowExecutionStarted = event;
                     break;
-                case ScheduleActivityTaskFailed:
+
+                // Events that can't be recovered from, config or state problems, etc.
                 case WorkflowExecutionCancelRequested:
+                case ScheduleActivityTaskFailed:
                 case StartChildWorkflowExecutionFailed:
                 case SignalExternalWorkflowExecutionFailed:
                     errorEvents.add(event);
@@ -90,6 +97,20 @@ public class WorkflowHistory {
         Collections.reverse(list);
         return list;
     }
+
+    public List<ActionHistoryEvent> filterRetryTimerStartedEvents(String actionId) {
+        List<ActionHistoryEvent> actionHistoryEvents = filterEvents(actionId);
+        List<ActionHistoryEvent> list = new ArrayList<>();
+
+        for (ActionHistoryEvent event : actionHistoryEvents) {
+            if (TimerStarted == event.getType()
+                && RETRY_CONTROL_VALUE.equals(event.getHistoryEvent().getTimerStartedEventAttributes().getControl())) {
+                list.add(event);
+            }
+        }
+        return list;
+    }
+
 
     /**
      * @return events with type {@link EventType#MarkerRecorded} converted to a map of marker name, details entries.

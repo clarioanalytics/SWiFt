@@ -17,7 +17,6 @@ public class PollingCheckpointWorkflow extends Workflow {
         Workflow workflow = new PollingCheckpointWorkflow()
             .withDomain("dev-clario")
             .withTaskList("default");
-//        Config.register(workflow);
         Config.submit(workflow, "100");
     }
 

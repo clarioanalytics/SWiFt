@@ -4,6 +4,8 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.SignalExternalWorkflowExecutionDecisionAttributes;
 
+import static java.lang.String.format;
+
 /**
  * Send a SWF signal to a running workflow (or the current workflow).
  * <p/>
@@ -11,7 +13,7 @@ import com.amazonaws.services.simpleworkflow.model.SignalExternalWorkflowExecuti
  *
  * @author George Coller
  */
-public class SignalWorkflowAction extends Action {
+public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
     private String workflowId;
     private String runId;
     private String input;
@@ -75,5 +77,10 @@ public class SignalWorkflowAction extends Action {
                     .withControl(control)
                     .withInput(input)
             );
+    }
+
+    @Override
+    public String toString() {
+        return format("%s %s %s", getClass().getSimpleName(), getActionId(), workflowId);
     }
 }

@@ -38,9 +38,9 @@ public class DecisionPoller extends BasePoller {
         for (Workflow workflow : workflows.values()) {
             try {
                 swf.registerWorkflowType(workflow.createRegisterWorkflowTypeRequest());
-                log.info(format("Register workflow succeeded '%s'", workflow.getKey()));
+                log.info(format("Register workflow succeeded %s", workflow));
             } catch (TypeAlreadyExistsException e) {
-                log.info(format("Workflow already registered '%s'", workflow.getKey()));
+                log.info(format("Workflow already registered %s", workflow));
             }
         }
     }
@@ -50,7 +50,8 @@ public class DecisionPoller extends BasePoller {
      */
     public void addWorkflows(Workflow... workflows) {
         for (Workflow workflow : workflows) {
-            log.info(format("add workflow '%s'", workflow.getKey()));
+            log.info(format("add workflow %s", workflow));
+            workflow.withDomain(domain).withTaskList(taskList);
             this.workflows.put(workflow.getKey(), workflow);
         }
     }
@@ -84,26 +85,25 @@ public class DecisionPoller extends BasePoller {
                 }
             }
         }
-
         String workflowId = decisionTask.getWorkflowExecution().getWorkflowId();
+        String runId = decisionTask.getWorkflowExecution().getRunId();
+        log.info(format("decide workflowId=%s,runId=%s", workflowId, runId));
+
         List<Decision> decisions = new ArrayList<>();
         List<HistoryEvent> errors = workflow.getErrorEvents();
         if (!errors.isEmpty()) {
-            String errorMessage = format("Workflow %s %s schedule activity errors:\n%s", workflowId, workflow.getKey(), join(errors, "\n"));
+            String errorMessage = format("decide workflowId=%s,runId=%s schedule activity errors:\n%s", workflowId, runId, join(errors, "\n"));
             log.error(errorMessage);
             decisions.add(createFailWorkflowExecutionDecision("One or more activities failed during scheduling", errorMessage));
         } else {
-            if (log.isInfoEnabled()) {
-                log.info(format("decide %s %s", workflowId, workflow.getKey()));
-            }
             workflow.decide(decisions);
 
             if (decisions.isEmpty()) {
-                log.info("poll no decisions");
+                log.info(format("decide workflowId=%s no decisions", workflowId));
             } else {
                 for (Decision decision : decisions) {
                     // TODO: Convert to debug
-                    log.info(format("poll decision: %s", decision));
+                    log.info(format("decide workflowId=%s : %s", workflowId, decision));
                 }
             }
         }
@@ -111,7 +111,7 @@ public class DecisionPoller extends BasePoller {
         try {
             swf.respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
         } catch (Exception e) {
-            log.error(format("decide %s %s", workflowId, workflow.getKey()), e);
+            log.error(format("decide %s %s", workflowId, workflow), e);
         }
     }
 
