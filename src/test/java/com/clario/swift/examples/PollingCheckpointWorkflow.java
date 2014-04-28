@@ -7,6 +7,7 @@ import com.clario.swift.action.ActivityAction;
 import java.util.List;
 
 import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
  * @author George Coller
@@ -16,7 +17,9 @@ public class PollingCheckpointWorkflow extends Workflow {
     public static void main(String[] args) {
         Workflow workflow = new PollingCheckpointWorkflow()
             .withDomain("dev-clario")
-            .withTaskList("default");
+            .withTaskList("default")
+            .withExecutionStartToCloseTimeout(MINUTES, 5)
+            .withTaskStartToCloseTimeout(MINUTES, 1);
         Config.submit(workflow, "100");
     }
 

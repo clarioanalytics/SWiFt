@@ -99,6 +99,10 @@ public abstract class Workflow {
     }
 
 
+    public String getName() { return name; }
+
+    public String getVersion() { return version; }
+
     /**
      * Workflow name and version glued together to make a key.
      *
@@ -290,4 +294,5 @@ public abstract class Workflow {
     public String toString() {
         return format("Workflow %s ", key);
     }
+
 }

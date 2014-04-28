@@ -55,6 +55,7 @@ public class CreatePollers {
             poller.addWorkflows(new PollingCheckpointWorkflow());
             poller.addWorkflows(new StartChildWorkflow());
             poller.addWorkflows(new WaitForSignalWorkflow());
+            poller.addWorkflows(new SignalWaitForSignalWorkflow());
             poller.addWorkflows(new RetryActivityWorkflow());
             if (registerWorkflows && it == 1) {
                 poller.registerSwfWorkflows();

@@ -1,0 +1,110 @@
+{
+    "events": [
+        {
+            "eventId": 9,
+            "eventType": "WorkflowExecutionFailed",
+            "eventTimestamp": 1398122288.066,
+            "workflowExecutionFailedEventAttributes": {
+                "reason": "One or more activities failed during scheduling",
+                "details": "Workflow Demo Workflow run: Mon Apr 21 23:16:33 UTC 2014 Demo Workflow-1.0 schedule activity errors: Activity 'step1' Act 1-1.0 ",
+                "decisionTaskCompletedEventId": 8
+            }
+        },
+        {
+            "eventId": 8,
+            "eventType": "DecisionTaskCompleted",
+            "decisionTaskCompletedEventAttributes": {
+                "startedEventId": 7,
+                "executionContext": "georgecoller",
+                "scheduledEventId": 6
+            },
+            "eventTimestamp": 1398122288.066
+        },
+        {
+            "eventId": 7,
+            "decisionTaskStartedEventAttributes": {
+                "scheduledEventId": 6,
+                "identity": "decision poller 2"
+            },
+            "eventTimestamp": 1398122280.968,
+            "eventType": "DecisionTaskStarted"
+        },
+        {
+            "eventId": 6,
+            "eventType": "DecisionTaskScheduled",
+            "decisionTaskScheduledEventAttributes": {
+                "startToCloseTimeout": "60",
+                "taskList": {
+                    "name": "default"
+                }
+            },
+            "eventTimestamp": 1398122280.856
+        },
+        {
+            "eventId": 5,
+            "eventType": "ScheduleActivityTaskFailed",
+            "scheduleActivityTaskFailedEventAttributes": {
+                "activityId": "step1",
+                "activityType": {
+                    "version": "1.0",
+                    "name": "Act 1"
+                },
+                "cause": "ACTIVITY_TYPE_DOES_NOT_EXIST",
+                "decisionTaskCompletedEventId": 4
+            },
+            "eventTimestamp": 1398122280.856
+        },
+        {
+            "eventId": 4,
+            "eventType": "DecisionTaskCompleted",
+            "decisionTaskCompletedEventAttributes": {
+                "startedEventId": 3,
+                "executionContext": "georgecoller",
+                "scheduledEventId": 2
+            },
+            "eventTimestamp": 1398122280.856
+        },
+        {
+            "eventId": 3,
+            "decisionTaskStartedEventAttributes": {
+                "scheduledEventId": 2,
+                "identity": "decision poller 2"
+            },
+            "eventTimestamp": 1398122270.617,
+            "eventType": "DecisionTaskStarted"
+        },
+        {
+            "eventId": 2,
+            "eventType": "DecisionTaskScheduled",
+            "decisionTaskScheduledEventAttributes": {
+                "startToCloseTimeout": "60",
+                "taskList": {
+                    "name": "default"
+                }
+            },
+            "eventTimestamp": 1398122245.015
+        },
+        {
+            "eventId": 1,
+            "eventType": "WorkflowExecutionStarted",
+            "workflowExecutionStartedEventAttributes": {
+                "taskList": {
+                    "name": "default"
+                },
+                "parentInitiatedEventId": 0,
+                "taskStartToCloseTimeout": "60",
+                "childPolicy": "TERMINATE",
+                "executionStartToCloseTimeout": "180",
+                "input": "100",
+                "workflowType": {
+                    "version": "1.0",
+                    "name": "Demo Workflow"
+                },
+                "tagList": [
+                    "Demo"
+                ]
+            },
+            "eventTimestamp": 1398122245.015
+        }
+    ]
+}

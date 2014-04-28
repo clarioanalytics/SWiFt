@@ -37,7 +37,7 @@ public class StartChildWorkflow extends Workflow {
         String input = getWorkflowInput();
 
         // Since instances of StartChildWorkflow could be used across multiple calls we need to create a
-        // specifically-named childWorkflowId for the particular start child workflow call.
+        // specifically-named childWorkflowId for this workflow run's start child workflow call.
         // Markers come in handy for this since they are persisted in the workflow state.
         // A signal could also be used but then we'd have to wait until the next poll cycle to start the child workflow
 

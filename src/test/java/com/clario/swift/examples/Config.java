@@ -53,7 +53,7 @@ public class Config {
     }
 
     public static void submit(Workflow workflow, String input) {
-        String workflowId = format("%s %s", workflow.getKey(), timestamp());
+        String workflowId = format("%s %s", workflow.getName(), timestamp());
         log.info(format("submit workflow: %s", workflowId));
 
         StartWorkflowExecutionRequest request = workflow.createWorkflowExecutionRequest(workflowId, input);
