@@ -23,8 +23,8 @@ public abstract class Workflow {
 
     // Optional fields used for submitting workflow.
     private String description;
-    private String executionStartToCloseTimeout;
-    private String taskStartToCloseTimeout;
+    private String executionStartToCloseTimeout = "NONE";
+    private String taskStartToCloseTimeout = "NONE";
     private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
 
     // Set by poller
@@ -192,6 +192,7 @@ public abstract class Workflow {
     /**
      * The total duration for this workflow execution.
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
+     * defaults to NONE.
      *
      * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
      */
@@ -203,6 +204,7 @@ public abstract class Workflow {
     /**
      * Specifies the maximum duration of decision tasks for this workflow execution.
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
+     * defaults to NONE.
      *
      * @see StartWorkflowExecutionRequest#taskStartToCloseTimeout
      */
@@ -212,6 +214,8 @@ public abstract class Workflow {
     }
 
     /**
+     * defaults to TERMINATE
+     *
      * @see StartWorkflowExecutionRequest#childPolicy
      */
     public Workflow withChildPolicy(ChildPolicy childPolicy) {

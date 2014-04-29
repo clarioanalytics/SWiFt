@@ -33,10 +33,14 @@ public class DecisionPoller extends BasePoller {
 
     /**
      * Register workflows added to this poller on Amazon SWF, {@link TypeAlreadyExistsException} are ignored.
+     * <p/>
+     * Use this poller's domain and taskList.
      */
     public void registerSwfWorkflows() {
         for (Workflow workflow : workflows.values()) {
             try {
+                workflow.withDomain(domain);
+                workflow.withTaskList(taskList);
                 swf.registerWorkflowType(workflow.createRegisterWorkflowTypeRequest());
                 log.info(format("Register workflow succeeded %s", workflow));
             } catch (TypeAlreadyExistsException e) {
