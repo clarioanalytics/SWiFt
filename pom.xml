@@ -2,7 +2,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <name>Clario SWiFt</name>
-    <groupId>com.dii.clario</groupId>
+    <groupId>com.clario</groupId>
     <artifactId>services-swift</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.7.5</version>
+            <version>1.7.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -77,6 +77,11 @@
             <type>jar</type>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.3</version>
+        </dependency>
 
         <!-- Logging -->
         <dependency>
@@ -89,13 +94,6 @@
             <artifactId>jcl-over-slf4j</artifactId>
             <version>1.7.5</version>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.5</version>
-            <scope>test</scope>
-        </dependency>
-
 
         <!-- TEST -->
         <dependency>
@@ -110,18 +108,14 @@
             <scope>test</scope>
             <version>1.3</version>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>dii.snapshot</id>
-            <url>http://maven.onv.dii.local/nexus/content/repositories/dii.snapshot/</url>
-        </snapshotRepository>
-        <repository>
-            <id>${repo}</id>
-            <url>http://maven.onv.dii.local/nexus/content/repositories/${repo}/</url>
-        </repository>
-    </distributionManagement>
     <properties>
         <jackson.version>2.2.1</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
