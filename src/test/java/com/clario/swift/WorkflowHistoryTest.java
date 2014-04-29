@@ -9,9 +9,10 @@ import com.fasterxml.jackson.core.JsonParser;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static com.clario.swift.SwiftUtil.join;
-import static java.nio.file.FileSystems.getDefault;
 import static java.nio.file.Files.readAllLines;
 import static org.junit.Assert.assertEquals;
 
@@ -64,8 +65,8 @@ public class WorkflowHistoryTest {
 
     public static WorkflowHistory loadWorkflow(String name) {
         try {
-            String p = WorkflowHistory.class.getResource(name).getPath();
-            String json = join(readAllLines(getDefault().getPath(p), Charset.defaultCharset()), "\n");
+            Path p = Paths.get(WorkflowHistory.class.getResource(name).getPath());
+            String json = join(readAllLines(p, Charset.defaultCharset()), "\n");
             WorkflowHistory history = new WorkflowHistory();
             history.addHistoryEvents(unmarshalDecisionTask(json).getEvents());
             return history;

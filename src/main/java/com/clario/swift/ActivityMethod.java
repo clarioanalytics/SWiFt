@@ -50,49 +50,62 @@ public @interface ActivityMethod {
 
     /**
      * Description of activity.
+     * Used when registering or submitting this activity.
      *
      * @see RegisterActivityTypeRequest#description
      */
     String description() default "";
 
     /**
-     * Override activity's default schedule to close timeout.
+     * Task list.
+     * Used when registering or submitting this activity.
+     *
+     * @return defaults to 'default'
+     */
+    String taskList() default "default";
+
+    /**
+     * Schedule to close timeout.
      * <pre>
      * schedule ---> start ---> close
      * |_____________________________|
      * </pre>
+     * Used when registering or submitting this activity.
      *
      * @see RegisterActivityTypeRequest#defaultTaskScheduleToCloseTimeout
      */
-    String scheduleToCloseTimeout() default "";
+    String scheduleToCloseTimeout() default "NONE";
 
     /**
-     * Override activity's default schedule to close timeout.
+     * Schedule to close timeout.
      * <pre>
      * schedule ---> start ---> close
      * |_________________|
      * </pre>
+     * Used when registering or submitting this activity.
      *
      * @see RegisterActivityTypeRequest#defaultTaskScheduleToStartTimeout
      */
-    String scheduleToStartTimeout() default "";
+    String scheduleToStartTimeout() default "NONE";
 
     /**
-     * Override activity's default schedule to close timeout.
+     * Schedule to close timeout.
      * <pre>
      * schedule ---> start ---> close
      *              |_______________|
      * </pre>
+     * Used when registering or submitting this activity.
      *
      * @see RegisterActivityTypeRequest#defaultTaskStartToCloseTimeout
      */
-    String startToCloseTimeout() default "";
+    String startToCloseTimeout() default "NONE";
 
 
     /**
-     * Override the activity's default heartbeat timeout.
+     * Heartbeat timeout.
+     * Used when registering or submitting this activity.
      *
      * @see RegisterActivityTypeRequest#defaultTaskHeartbeatTimeout
      */
-    String heartbeatTimeout() default "";
+    String heartbeatTimeout() default "NONE";
 }

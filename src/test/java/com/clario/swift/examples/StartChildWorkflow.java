@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.examples.Config.*;
+import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
+import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -21,11 +24,11 @@ public class StartChildWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new StartChildWorkflow()
-            .withDomain("dev-clario")
-            .withTaskList("default")
-            .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30);
-        Config.submit(workflow, "100");
+            .withDomain(SWIFT_DOMAIN)
+            .withTaskList(SWIFT_TASK_LIST)
+            .withExecutionStartToCloseTimeout(MINUTES, 30)
+            .withTaskStartToCloseTimeout(MINUTES, 30);
+        submit(workflow, "100");
     }
 
     public StartChildWorkflow() {
@@ -65,7 +68,7 @@ public class StartChildWorkflow extends Workflow {
 
     private StartChildWorkflowAction createChildWorkflow(String childWorkflowId) {
         return new StartChildWorkflowAction(childWorkflowId)
-            .withNameVersion("Simple Workflow", "2.0")
+            .withNameVersion("Simple Workflow", "1.0")
             .withExecutionStartToCloseTimeout(MINUTES, 10)
             .withTaskStartToCloseTimeout(null, -1);
     }

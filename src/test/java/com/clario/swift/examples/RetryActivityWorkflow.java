@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static com.clario.swift.examples.Config.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -20,11 +21,11 @@ public class RetryActivityWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new RetryActivityWorkflow()
-            .withDomain("dev-clario")
-            .withTaskList("default")
+            .withDomain(SWIFT_DOMAIN)
+            .withTaskList(SWIFT_TASK_LIST)
             .withTaskStartToCloseTimeout(MINUTES, 1)
             .withExecutionStartToCloseTimeout(MINUTES, 5);
-        Config.submit(workflow, "30");
+        submit(workflow, "30");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity Fail Until", "1.0")

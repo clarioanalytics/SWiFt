@@ -9,8 +9,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.examples.Config.*;
+import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
+import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -21,11 +23,11 @@ public class WaitForSignalWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new WaitForSignalWorkflow()
-            .withDomain("dev-clario")
-            .withTaskList("default")
-            .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30);
-        Config.submit(workflow, "100");
+            .withDomain(SWIFT_DOMAIN)
+            .withTaskList(SWIFT_TASK_LIST)
+            .withExecutionStartToCloseTimeout(MINUTES, 30)
+            .withTaskStartToCloseTimeout(MINUTES, 30);
+        submit(workflow, "100");
     }
 
     private final ActivityAction step1 = new ActivityAction("childStep1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);

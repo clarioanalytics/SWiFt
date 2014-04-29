@@ -9,6 +9,10 @@ import com.clario.swift.action.TimerAction;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
+import static com.clario.swift.examples.Config.*;
+import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
+import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -19,12 +23,13 @@ public class TimerWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new TimerWorkflow()
-            .withDomain("dev-clario")
-            .withTaskList("default")
-            .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withChildPolicy(ChildPolicy.TERMINATE);
-        Config.submit(workflow, "100");
+            .withDomain(SWIFT_DOMAIN)
+            .withDomain(SWIFT_DOMAIN)
+            .withTaskList(SWIFT_TASK_LIST)
+            .withExecutionStartToCloseTimeout(MINUTES, 30)
+            .withTaskStartToCloseTimeout(MINUTES, 30)
+            .withChildPolicy(TERMINATE);
+        submit(workflow, "100");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);

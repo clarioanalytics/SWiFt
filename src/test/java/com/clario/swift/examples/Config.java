@@ -19,6 +19,8 @@ import static java.lang.String.format;
  * @author George Coller
  */
 public class Config {
+    public static final String SWIFT_DOMAIN = "dev-clario-swift";
+    public static final String SWIFT_TASK_LIST = "default";
     public static final Logger log = LoggerFactory.getLogger(Config.class);
 
     private static final Config config = new Config();

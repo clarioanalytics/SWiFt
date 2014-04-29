@@ -14,6 +14,8 @@ import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.action.Action.State.active;
 import static com.clario.swift.action.Action.State.initial;
+import static com.clario.swift.examples.Config.*;
+import static java.util.concurrent.TimeUnit.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -25,15 +27,15 @@ public class SignalWaitForSignalWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new SignalWaitForSignalWorkflow()
-            .withDomain("dev-clario")
-            .withTaskList("default")
-            .withExecutionStartToCloseTimeout(TimeUnit.MINUTES, 30)
-            .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30);
-        Config.submit(workflow, "666");
+            .withDomain(SWIFT_DOMAIN)
+            .withTaskList(SWIFT_TASK_LIST)
+            .withExecutionStartToCloseTimeout(MINUTES, 30)
+            .withTaskStartToCloseTimeout(MINUTES, 30);
+        submit(workflow, "666");
     }
 
     private final SignalWorkflowAction signal = new SignalWorkflowAction("signal");
-    private final TimerAction timer = new TimerAction("timer").withStartToFireTimeout(TimeUnit.SECONDS, 15);
+    private final TimerAction timer = new TimerAction("timer").withStartToFireTimeout(SECONDS, 15);
 
     public SignalWaitForSignalWorkflow() {
         super("Signal Wait For Signal Workflow", "1.0");

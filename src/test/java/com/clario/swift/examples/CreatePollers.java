@@ -15,7 +15,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.examples.Config.*;
 import static java.lang.String.valueOf;
+import static java.util.concurrent.TimeUnit.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
@@ -26,12 +28,12 @@ public class CreatePollers {
     private static final Logger log = LoggerFactory.getLogger(ActivityWorker.class);
 
     public static void main(String[] args) throws IOException {
-        final Config config = Config.getConfig();
+        final Config config = getConfig();
         final AmazonSimpleWorkflow swf = config.getAmazonSimpleWorkflow();
         final ExecutorService service = Executors.newFixedThreadPool(config.getPoolSize());
         int threads = config.getPoolSize() / 2;
-        startDecisionPoller(service, swf, threads, false);
-        startActivityPoller(service, swf, threads, false);
+        startDecisionPoller(service, swf, threads, true);
+        startActivityPoller(service, swf, threads, true);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -48,7 +50,7 @@ public class CreatePollers {
             String executionContext = System.getProperty("user.name");
             String pollerId = String.format("decision poller %d", it);
 
-            DecisionPoller poller = new DecisionPoller(pollerId, "dev-clario", "default", executionContext);
+            DecisionPoller poller = new DecisionPoller(pollerId, SWIFT_DOMAIN, SWIFT_TASK_LIST, executionContext);
             poller.setSwf(swf);
             poller.addWorkflows(new SimpleWorkflow());
             poller.addWorkflows(new TimerWorkflow());
@@ -66,7 +68,7 @@ public class CreatePollers {
 
     protected static void startActivityPoller(ExecutorService pool, AmazonSimpleWorkflow swf, int threads, boolean registerActivities) {
         for (int it = 1; it <= threads; it++) {
-            ActivityPoller poller = new ActivityPoller(String.format("activity poller %s", it), "dev-clario", "default");
+            ActivityPoller poller = new ActivityPoller(String.format("activity poller %s", it), SWIFT_DOMAIN, SWIFT_TASK_LIST);
             poller.setSwf(swf);
             poller.addActivities(new CreatePollers());
             if (registerActivities && it == 1) {
@@ -85,7 +87,7 @@ public class CreatePollers {
         long failIfBeforeThisTime = Long.parseLong(context.getInput());
         long currentTime = System.currentTimeMillis();
         if (currentTime < failIfBeforeThisTime) {
-            throw new IllegalStateException("Still too early: " + TimeUnit.MILLISECONDS.toSeconds(failIfBeforeThisTime - currentTime) + " seconds left");
+            throw new IllegalStateException("Still too early: " + MILLISECONDS.toSeconds(failIfBeforeThisTime - currentTime) + " seconds left");
         }
     }
 
