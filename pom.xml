@@ -121,5 +121,16 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>dii.snapshot</id>
+            <url>http://maven.onv.dii.local/nexus/content/repositories/dii.snapshot/</url>
+        </snapshotRepository>
+        <repository>
+            <id>${repo}</id>
+            <url>http://maven.onv.dii.local/nexus/content/repositories/${repo}/</url>
+        </repository>
+    </distributionManagement>
 </project>
 
