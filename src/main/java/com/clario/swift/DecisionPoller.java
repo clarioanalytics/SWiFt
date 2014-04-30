@@ -7,7 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.clario.swift.SwiftUtil.join;
+import static com.clario.swift.SwiftUtil.*;
+import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static java.lang.String.format;
 
 /**
@@ -94,25 +95,29 @@ public class DecisionPoller extends BasePoller {
         }
         String workflowId = decisionTask.getWorkflowExecution().getWorkflowId();
         String runId = decisionTask.getWorkflowExecution().getRunId();
-        log.info(format("decide workflowId=%s,runId=%s", workflowId, runId));
 
         List<Decision> decisions = new ArrayList<>();
-        List<HistoryEvent> errors = workflow.getErrorEvents();
-        if (!errors.isEmpty()) {
-            String errorMessage = format("decide workflowId=%s,runId=%s schedule activity errors:\n%s", workflowId, runId, join(errors, "\n"));
+        List<HistoryEvent> workflowErrors = workflow.getErrorEvents();
+
+        if (workflowErrors.isEmpty()) {
+            try {
+                if (log.isInfoEnabled()) {
+                    log.info(format("decide workflowId=%s,runId=%s", workflowId, runId));
+                }
+                workflow.decide(decisions);
+                if (log.isInfoEnabled()) {
+                    for (Decision decision : decisions) {
+                        log.info(format("decide %s : %s", workflowId, decision));
+                    }
+                }
+            } catch (Throwable t) {
+                log.error(format("decide workflowId=%s,runId=%s", workflowId, runId), t);
+                decisions.add(createFailWorkflowExecutionDecision("decide() threw an unhandled exception", printStackTrace(t)));
+            }
+        } else {
+            String errorMessage = format("decide workflowId=%s,runId=%s schedule activity errors:\n%s", workflowId, runId, join(workflowErrors, "\n"));
             log.error(errorMessage);
             decisions.add(createFailWorkflowExecutionDecision("One or more activities failed during scheduling", errorMessage));
-        } else {
-            workflow.decide(decisions);
-
-            if (decisions.isEmpty()) {
-                log.info(format("decide workflowId=%s no decisions", workflowId));
-            } else {
-                for (Decision decision : decisions) {
-                    // TODO: Convert to debug
-                    log.info(format("decide workflowId=%s : %s", workflowId, decision));
-                }
-            }
         }
 
         try {
@@ -122,26 +127,15 @@ public class DecisionPoller extends BasePoller {
         }
     }
 
-
     private Workflow lookupWorkflow(DecisionTask decisionTask) {
         String name = decisionTask.getWorkflowType().getName();
         String version = decisionTask.getWorkflowType().getVersion();
-        String key = SwiftUtil.makeKey(name, version);
+        String key = makeKey(name, version);
         Workflow workflow = workflows.get(key);
         if (workflow == null) {
             throw new IllegalStateException(format("Received decision task for unregistered workflow %s", key));
         }
         return workflow;
-    }
-
-    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
-        return new Decision()
-            .withDecisionType(DecisionType.FailWorkflowExecution)
-            .withFailWorkflowExecutionDecisionAttributes(
-                new FailWorkflowExecutionDecisionAttributes()
-                    .withReason(reason)
-                    .withDetails(details)
-            );
     }
 
     public RespondDecisionTaskCompletedRequest createRespondDecisionTaskCompletedRequest(String taskToken, List<Decision> decisions) {

@@ -6,7 +6,7 @@ import com.clario.swift.action.Action;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.SwiftUtil.calcTimeoutString;
+import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
@@ -15,6 +15,9 @@ import static java.lang.String.format;
  * @author George Coller
  */
 public abstract class Workflow {
+    private static final int DETAILS_MAX_LENGTH = 32768;
+    private static final int REASON_MAX_LENGTH = 256;
+    private static final int MARKER_NAME_MAX_LENGTH = 256;
     protected final String name;
     protected final String version;
     protected final String key;
@@ -25,7 +28,7 @@ public abstract class Workflow {
     private String description;
     private String executionStartToCloseTimeout = null;
     private String taskStartToCloseTimeout = "NONE";
-    private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
+    private ChildPolicy childPolicy = ChildPolicy.TERMINATE; // sensible default
 
     // Set by poller
     private String domain;
@@ -38,7 +41,7 @@ public abstract class Workflow {
     public Workflow(String name, String version) {
         this.version = version;
         this.name = name;
-        this.key = SwiftUtil.makeKey(name, version);
+        this.key = makeKey(name, version);
         workflowHistory = new WorkflowHistory();
     }
 
@@ -199,7 +202,7 @@ public abstract class Workflow {
      */
     public Workflow withExecutionStartToCloseTimeout(TimeUnit unit, long duration) {
         String timeoutString = calcTimeoutString(unit, duration);
-        executionStartToCloseTimeout = SwiftUtil.TIMEOUT_NONE.equals(timeoutString) ? null : timeoutString;
+        executionStartToCloseTimeout = TIMEOUT_NONE.equals(timeoutString) ? null : timeoutString;
         return this;
     }
 
@@ -221,7 +224,7 @@ public abstract class Workflow {
      * @see StartWorkflowExecutionRequest#childPolicy
      */
     public Workflow withChildPolicy(ChildPolicy childPolicy) {
-        this.childPolicy = childPolicy == null ? null : childPolicy.name();
+        this.childPolicy = childPolicy;
         return this;
     }
 
@@ -239,7 +242,7 @@ public abstract class Workflow {
             .withTagList(tags)
             .withExecutionStartToCloseTimeout(executionStartToCloseTimeout)
             .withTaskStartToCloseTimeout(taskStartToCloseTimeout)
-            .withChildPolicy(childPolicy);
+            .withChildPolicy(childPolicy == null ? null : childPolicy.name());
     }
 
     public RegisterWorkflowTypeRequest createRegisterWorkflowTypeRequest() {
@@ -250,7 +253,7 @@ public abstract class Workflow {
             .withVersion(version)
             .withDefaultExecutionStartToCloseTimeout(executionStartToCloseTimeout)
             .withDefaultTaskStartToCloseTimeout(taskStartToCloseTimeout)
-            .withDefaultChildPolicy(childPolicy)
+            .withDefaultChildPolicy(childPolicy == null ? null : childPolicy.name())
             .withDescription(description)
             ;
     }
@@ -260,7 +263,7 @@ public abstract class Workflow {
             .withDecisionType(DecisionType.CompleteWorkflowExecution)
             .withCompleteWorkflowExecutionDecisionAttributes(
                 new CompleteWorkflowExecutionDecisionAttributes()
-                    .withResult(result)
+                    .withResult(trimToMaxLength(result, DETAILS_MAX_LENGTH))
             );
     }
 
@@ -269,8 +272,8 @@ public abstract class Workflow {
             .withDecisionType(DecisionType.FailWorkflowExecution)
             .withFailWorkflowExecutionDecisionAttributes(
                 new FailWorkflowExecutionDecisionAttributes()
-                    .withReason(reason)
-                    .withDetails(details)
+                    .withReason(trimToMaxLength(reason, REASON_MAX_LENGTH))
+                    .withDetails(trimToMaxLength(details, DETAILS_MAX_LENGTH))
             );
     }
 
@@ -278,8 +281,8 @@ public abstract class Workflow {
         return new Decision()
             .withDecisionType(DecisionType.RecordMarker)
             .withRecordMarkerDecisionAttributes(new RecordMarkerDecisionAttributes()
-                    .withMarkerName(name)
-                    .withDetails(details)
+                    .withMarkerName(trimToMaxLength(name, MARKER_NAME_MAX_LENGTH))
+                    .withDetails(trimToMaxLength(details, DETAILS_MAX_LENGTH))
             );
     }
 
