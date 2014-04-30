@@ -1,18 +1,14 @@
 package com.clario.swift.examples;
 
-import com.amazonaws.services.simpleworkflow.model.ChildPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 import com.clario.swift.action.TimerAction;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
 import static com.clario.swift.examples.Config.*;
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -33,7 +29,9 @@ public class TimerWorkflow extends Workflow {
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0").withStartToCloseTimeout(MINUTES, 2);
+    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0")
+        .withStartToCloseTimeout(MINUTES, 2)
+        .withCompleteWorkflowOnSuccess();
     private final TimerAction timerStep1 = new TimerAction("timer1").withStartToFireTimeout(SECONDS, 30);
 
 
@@ -51,10 +49,8 @@ public class TimerWorkflow extends Workflow {
 
             // Timer makes workflow sleep for 30 seconds
             if (timerStep1.decide(decisions).isSuccess()) {
-                if (step2.withInput(output).decide(decisions).isSuccess()) {
-                    output = step2.getOutput();
-                    decisions.add(createCompleteWorkflowExecutionDecision(output));
-                }
+                // step2 is as a final step since withCompleteWorkflowOnSuccess was called
+                step2.withInput(output).decide(decisions);
             }
         }
     }

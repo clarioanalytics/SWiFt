@@ -118,15 +118,13 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
     }
 
     /**
-     * @return result if this instance is an activity action completed event
-     * @throws java.lang.UnsupportedOperationException if event type does not return a result
+     * Return the result for actions that have a result-producing {@link HistoryEvent}.
+     *
+     * @return result or null if not available
+     * @see ActionHistoryEvent#findResult
      */
     public String getResult() {
-        String result = findResult(historyEvent);
-        if (result == null) {
-            throw new UnsupportedOptionException("Result not available for action: " + this);
-        }
-        return result;
+        return findResult(historyEvent);
     }
 
     public String getErrorReason() {
@@ -265,6 +263,13 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
         }
     }
 
+    /**
+     * Unify result-producing {@link HistoryEvent}s by returning their output or null.
+     *
+     * @see EventType#ActivityTaskCompleted output of activity
+     * @see EventType#ChildWorkflowExecutionCompleted output of child workflow
+     * @see EventType#ChildWorkflowExecutionStarted runId of started child workflow
+     */
     static String findResult(HistoryEvent historyEvent) {
         EventType type = EventType.valueOf(historyEvent.getEventType());
         switch (type) {

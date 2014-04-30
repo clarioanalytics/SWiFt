@@ -19,7 +19,6 @@ public abstract class BasePoller implements Runnable {
     protected final String taskList;
     protected final String domain;
     protected AmazonSimpleWorkflow swf;
-    private boolean isRunning = true;
 
     /**
      * @param id unique id for poller, used for logging and recording in SWF
@@ -36,33 +35,19 @@ public abstract class BasePoller implements Runnable {
     public String getId() {return id;}
 
     /**
-     * Call to gracefully stop the poller after it is finished with the current polling.
-     */
-    public void stop() {
-        isRunning = false;
-    }
-
-    /**
-     * Start polling in an endless loop until this thread is interrupted or stop is called.
-     * Exceptions thrown during loop will be logged.
+     * {@link Runnable#run} implementation calls {@link #poll()} once,
+     * allows for scheduling multiple poller instances in an external thread pool.
      *
-     * @see #stop() method to stop the run
      * @see #poll() actual polling method called within this loop
      */
     public void run() {
-        log.info("Start " + this);
-        while (isRunning) {
-            try {
-                poll();
-            } catch (Throwable e) {
-                log.warn(this.toString(), e);
-            }
-        }
+        poll();
     }
 
     /**
-     * Called in a loop while {@link #isRunning} is true.
-     * Any exception thrown will be logged as a warning and <code>poll</code> will be called again.
+     * Subclass implements to perform the SWF polling work.
+     *
+     * @see #run for scheduling this poller in a thread pool
      */
     protected abstract void poll();
 

@@ -5,7 +5,6 @@ import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryP
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.EventType;
-import com.amazonaws.services.simpleworkflow.model.FailWorkflowExecutionDecisionAttributes;
 import com.clario.swift.ActionHistoryEvent;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.Workflow;
@@ -33,15 +32,6 @@ public abstract class Action<T extends Action> {
     /** String used as control value on start timer events to mark them as 'retry' timers. */
     public static final String RETRY_CONTROL_VALUE = "--  SWiFt Retry Control Value --";
     public final Logger log = LoggerFactory.getLogger(getClass());
-    private ExponentialRetryPolicy retryPolicy;
-
-    public Workflow getWorkflow() {
-        return workflow;
-    }
-
-    public boolean isFailWorkflowExecution() {
-        return failWorkflowExecution;
-    }
 
     /**
      * Enumeration of Swift run states for an action.
@@ -68,8 +58,10 @@ public abstract class Action<T extends Action> {
     }
 
     private final String actionId;
-    private boolean failWorkflowExecution = true;
     private Workflow workflow;
+    private ExponentialRetryPolicy retryPolicy;
+    private boolean failWorkflowOnError = true;
+    private boolean completeWorkflowOnSuccess = false;
 
     /**
      * Each action requires a workflow-unique identifier.
@@ -81,17 +73,61 @@ public abstract class Action<T extends Action> {
     }
 
     /**
+     * @return the workflow-unique identifier given at construction
+     */
+    public String getActionId() { return actionId; }
+
+    /**
+     * Called by {@link DecisionPoller} to set the current state for a workflow run.
+     */
+    public void setWorkflow(Workflow workflow) { this.workflow = workflow; }
+
+    /**
+     * @return current state of a workflow run.
+     * @see #setWorkflow
+     */
+    public Workflow getWorkflow() { return workflow; }
+
+    /**
+     * @return true, if should decide fail workflow if this action errors.
+     * @see #withFailWorkflowOnError()
+     */
+    public boolean isFailWorkflowOnError() {
+        return failWorkflowOnError;
+    }
+
+    /**
      * By default {@link #decide} adds a @link DecisionType#FailWorkflowExecution} decision
      * if this action finishes in an {@link State#error} state.
      * <p/>
      * Calling this method deactivates that decision for use cases where a workflow can
      * continue even if this action fails.
      */
-    public T withDeactivateFailWorkflowExecution() {
-        failWorkflowExecution = false;
+    public T withFailWorkflowOnError() {
+        failWorkflowOnError = false;
         return (T) this;
     }
 
+    /**
+     * @return true, if should decide complete workflow if this action succeeds.
+     * @see #withCompleteWorkflowOnSuccess()
+     */
+    public boolean isCompleteWorkflowOnSuccess() {
+        return completeWorkflowOnSuccess;
+    }
+
+    /**
+     * Calling this will activate a {@link DecisionType#CompleteWorkflowExecution} decision
+     * if this action finishes in an {@link State#success} state.
+     * <p/>
+     * By default this behavior is deactivated but is useful to create final actions in a workflow.
+     *
+     * @see #completeWorkflowOnSuccess
+     */
+    public T withCompleteWorkflowOnSuccess() {
+        completeWorkflowOnSuccess = true;
+        return (T) this;
+    }
 
     // TODO: Figure out how they do exception filtering
     public T withExponentialRetry(ExponentialRetryPolicy retryPolicy) {
@@ -103,18 +139,37 @@ public abstract class Action<T extends Action> {
     }
 
     /**
+     * Return output of action.
+     *
+     * @return result of action, null if action produces no output
+     * @throws IllegalStateException if {@link #isSuccess()} is false.
+     */
+    public String getOutput() {
+        if (isSuccess()) {
+            String result = getCurrentHistoryEvent().getResult();
+            return result;
+        } else {
+            throw new IllegalStateException("method not available when action state is " + getState());
+        }
+    }
+
+    /**
      * Make a decision based on the current {@link State} of an action.
      * <p/>
      * Default implementation if {@link State} is:
      * <ul>
-     * <li>{@link State#initial} add decision returned by {@link #createInitiateActivityDecision()}</li>
-     * <li>{@link State#error} add decision returned by {@link #createFailWorkflowExecutionDecision}
-     * unless {@link #withDeactivateFailWorkflowExecution} has previously been called on the activity</li>
+     * <li>{@link State#initial}: add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link State#retry}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link State#active}: no decisions are added for in-progress actions</li>
+     * <li>{@link State#success}: if {@link #withFailWorkflowOnError()} has previously been called
+     * add decision returned by {@link Workflow#createCompleteWorkflowExecutionDecision}</li>
+     * <li>{@link State#error}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
+     * unless {@link #withFailWorkflowOnError} has previously been called on the activity</li>
      * </ul>
      *
      * @param decisions decide adds zero or more decisions to this list
      *
-     * @see #withDeactivateFailWorkflowExecution
+     * @see #withFailWorkflowOnError
      */
     public Action decide(List<Decision> decisions) {
         switch (getState()) {
@@ -124,6 +179,10 @@ public abstract class Action<T extends Action> {
             case active:
                 break;
             case success:
+                log.info(format("%s completed", this));
+                if (completeWorkflowOnSuccess) {
+                    decisions.add(Workflow.createCompleteWorkflowExecutionDecision(getOutput()));
+                }
                 break;
             case retry:
                 log.info(format("%s decide retry", this));
@@ -145,8 +204,8 @@ public abstract class Action<T extends Action> {
                         break;
                     }
                 }
-                if (failWorkflowExecution) {
-                    decisions.add(createFailWorkflowExecutionDecision(format("%s error, decide fail workflow", this), null));
+                if (failWorkflowOnError) {
+                    decisions.add(Workflow.createFailWorkflowExecutionDecision(format("%s error, decide fail workflow", this), null));
                 }
 
                 break;
@@ -176,18 +235,6 @@ public abstract class Action<T extends Action> {
      */
     public List<ActionHistoryEvent> getRetryTimerStartedEvents() {
         return workflow.getWorkflowHistory().filterRetryTimerStartedEvents(getActionId());
-    }
-
-    /**
-     * @return the workflow-unique identifier given at construction
-     */
-    public String getActionId() { return actionId; }
-
-    /**
-     * Called by {@link DecisionPoller} to set the current state for a workflow run.
-     */
-    public void setWorkflow(Workflow workflow) {
-        this.workflow = workflow;
     }
 
     /**
@@ -243,20 +290,6 @@ public abstract class Action<T extends Action> {
      */
     public abstract Decision createInitiateActivityDecision();
 
-    /**
-     * Create a {@link DecisionType#FailWorkflowExecution} decision.
-     *
-     * @see FailWorkflowExecutionDecisionAttributes for info and field restrictions
-     */
-    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
-        return new Decision()
-            .withDecisionType(DecisionType.FailWorkflowExecution)
-            .withFailWorkflowExecutionDecisionAttributes(
-                new FailWorkflowExecutionDecisionAttributes()
-                    .withReason(reason)
-                    .withDetails(details)
-            );
-    }
 
     /** Two actions are considered equal if their id is equal. */
     @Override

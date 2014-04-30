@@ -11,13 +11,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.examples.Config.*;
 import static java.lang.String.valueOf;
-import static java.util.concurrent.TimeUnit.*;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
@@ -30,10 +30,10 @@ public class CreatePollers {
     public static void main(String[] args) throws IOException {
         final Config config = getConfig();
         final AmazonSimpleWorkflow swf = config.getAmazonSimpleWorkflow();
-        final ExecutorService service = Executors.newFixedThreadPool(config.getPoolSize());
-        int threads = config.getPoolSize() / 2;
-        startDecisionPoller(service, swf, threads, true);
-        startActivityPoller(service, swf, threads, true);
+        int poolSize = config.getPoolSize();
+        final ScheduledExecutorService service = newScheduledThreadPool(poolSize);
+        startDecisionPoller(service, swf, poolSize / 2, true);
+        startActivityPoller(service, swf, poolSize / 2, true);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -45,7 +45,7 @@ public class CreatePollers {
         });
     }
 
-    protected static void startDecisionPoller(ExecutorService pool, AmazonSimpleWorkflow swf, int threads, boolean registerWorkflows) {
+    protected static void startDecisionPoller(ScheduledExecutorService pool, AmazonSimpleWorkflow swf, int threads, boolean registerWorkflows) {
         for (int it = 1; it <= threads; it++) {
             String executionContext = System.getProperty("user.name");
             String pollerId = String.format("decision poller %d", it);
@@ -62,11 +62,11 @@ public class CreatePollers {
             if (registerWorkflows && it == 1) {
                 poller.registerSwfWorkflows();
             }
-            pool.submit(poller);
+            pool.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.MILLISECONDS);
         }
     }
 
-    protected static void startActivityPoller(ExecutorService pool, AmazonSimpleWorkflow swf, int threads, boolean registerActivities) {
+    protected static void startActivityPoller(ScheduledExecutorService pool, AmazonSimpleWorkflow swf, int threads, boolean registerActivities) {
         for (int it = 1; it <= threads; it++) {
             ActivityPoller poller = new ActivityPoller(String.format("activity poller %s", it), SWIFT_DOMAIN, SWIFT_TASK_LIST);
             poller.setSwf(swf);
@@ -75,7 +75,7 @@ public class CreatePollers {
                 poller.registerSwfActivities();
             }
             log.info("start: " + poller.getId());
-            pool.submit(poller);
+            pool.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.MILLISECONDS);
         }
     }
 

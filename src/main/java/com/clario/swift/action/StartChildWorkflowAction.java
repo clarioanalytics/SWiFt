@@ -139,20 +139,6 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
         throw new UnsupportedOptionException(format("RunId not available %s %s", this, getState()));
     }
 
-    /**
-     * Get the output of the child workflow.
-     * Clients should ensure that the child workflow has finished successfully before calling this method.
-     *
-     * @throws UnsupportedOperationException if child output is not available
-     * @see #getState()
-     */
-    public String getOutput() {
-        if (!isSuccess()) {
-            throw new UnsupportedOptionException(format("Result not available %s %s", this, getState()));
-        }
-        return getCurrentHistoryEvent().getResult();
-    }
-
     @Override
     public String toString() {
         return format("%s %s %s", getClass().getSimpleName(), getActionId(), makeKey(name, version));

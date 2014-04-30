@@ -1,6 +1,5 @@
 package com.clario.swift.action;
 
-import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.*;
 
 import java.util.concurrent.TimeUnit;
@@ -23,7 +22,6 @@ public class ActivityAction extends Action<ActivityAction> {
     private String scheduleToCloseTimeout;
     private String scheduleToStartTimeout;
     private String startToCloseTimeout;
-
 
     /**
      * Useful for creating an instance in a workflow but deferring which
@@ -130,20 +128,6 @@ public class ActivityAction extends Action<ActivityAction> {
     public ActivityAction withStartToCloseTimeout(TimeUnit unit, long duration) {
         this.startToCloseTimeout = calcTimeoutString(unit, duration);
         return this;
-    }
-
-    /**
-     * Get the output of the child workflow.
-     * Clients should ensure that the child workflow has finished successfully before calling this method.
-     *
-     * @throws UnsupportedOperationException if child output is not available
-     * @see #getState()
-     */
-    public String getOutput() {
-        if (!isSuccess()) {
-            throw new UnsupportedOptionException(format("Result not available for activity %s with state %s", this, getState()));
-        }
-        return getCurrentHistoryEvent().getResult();
     }
 
     /**

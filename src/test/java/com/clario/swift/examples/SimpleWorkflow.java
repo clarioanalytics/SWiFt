@@ -1,17 +1,13 @@
 package com.clario.swift.examples;
 
-import com.amazonaws.services.simpleworkflow.model.ChildPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
-import static com.clario.swift.examples.Config.submit;
+import static com.clario.swift.examples.Config.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -32,7 +28,7 @@ public class SimpleWorkflow extends Workflow {
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0");
     private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0");
-    private final ActivityAction step3 = new ActivityAction("step3", "Activity Z", "1.0");
+    private final ActivityAction step3 = new ActivityAction("step3", "Activity Z", "1.0").withCompleteWorkflowOnSuccess();
 
 
     public SimpleWorkflow() {
@@ -45,9 +41,8 @@ public class SimpleWorkflow extends Workflow {
         String input = getWorkflowInput();
         if (step1.withInput(input).decide(decisions).isSuccess()) {
             if (step2.withInput(step1.getOutput()).decide(decisions).isSuccess()) {
-                if (step3.withInput(step2.getOutput()).decide(decisions).isSuccess()) {
-                    decisions.add(createCompleteWorkflowExecutionDecision(step3.getOutput()));
-                }
+                // step3 will add a complete or fail workflow decision depending on its final state
+                step3.withInput(step2.getOutput()).decide(decisions);
             }
         }
     }
