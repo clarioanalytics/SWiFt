@@ -39,8 +39,8 @@ public abstract class Workflow {
     private final Set<String> checkpoints = new LinkedHashSet<>();
 
     public Workflow(String name, String version) {
-        this.version = version;
-        this.name = name;
+        this.name = assertSwfValue(assertMaxLength(name, MAX_NAME_LENGTH));
+        this.version = assertSwfValue(assertMaxLength(version, MAX_VERSION_LENGTH));
         this.key = makeKey(name, version);
         workflowHistory = new WorkflowHistory();
     }
@@ -155,13 +155,13 @@ public abstract class Workflow {
 
     /** SWF domain */
     public Workflow withDomain(String domain) {
-        this.domain = assertMaxLength(domain, MAX_NAME_LENGTH);
+        this.domain = assertSwfValue(assertMaxLength(domain, MAX_NAME_LENGTH));
         return this;
     }
 
     /** Domain-unique workflow execution identifier * */
     public Workflow withWorkflowId(String workflowId) {
-        this.workflowId = assertMaxLength(workflowId, MAX_ID_LENGTH);
+        this.workflowId = assertSwfValue(assertMaxLength(workflowId, MAX_ID_LENGTH));
         return this;
     }
 
@@ -179,7 +179,7 @@ public abstract class Workflow {
 
     /** SWF task list this workflow is/will be executed under */
     public Workflow withTaskList(String taskList) {
-        this.taskList = assertMaxLength(taskList, MAX_NAME_LENGTH);
+        this.taskList = assertSwfValue(assertMaxLength(taskList, MAX_NAME_LENGTH));
         return this;
     }
 

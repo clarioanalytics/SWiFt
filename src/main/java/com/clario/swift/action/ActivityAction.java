@@ -52,8 +52,8 @@ public class ActivityAction extends Action<ActivityAction> {
      * so both are required.
      */
     public ActivityAction withNameVersion(String name, String version) {
-        this.name = assertMaxLength(name, MAX_NAME_LENGTH);
-        this.version = assertMaxLength(version, MAX_VERSION_LENGTH);
+        this.name = assertSwfValue(assertMaxLength(name, MAX_NAME_LENGTH));
+        this.version = assertSwfValue(assertMaxLength(version, MAX_VERSION_LENGTH));
         return this;
     }
 

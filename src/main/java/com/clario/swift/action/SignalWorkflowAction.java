@@ -30,7 +30,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
      * @see SignalExternalWorkflowExecutionDecisionAttributes#workflowId
      */
     public SignalWorkflowAction withWorkflowId(String workflowId) {
-        this.workflowId = assertMaxLength(workflowId, MAX_ID_LENGTH);
+        this.workflowId = assertSwfValue(assertMaxLength(workflowId, MAX_ID_LENGTH));
         return this;
     }
 

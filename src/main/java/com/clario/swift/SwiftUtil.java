@@ -1,5 +1,6 @@
 package com.clario.swift;
 
+import com.amazonaws.services.simpleworkflow.model.RegisterWorkflowTypeRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.format.DateTimeFormatter;
@@ -75,12 +76,37 @@ public class SwiftUtil {
     }
 
     /**
+     * Assert the value passes the constraints for SWF fields like name, version, domain, taskList, identifiers.
+     *
+     * @param value to assert
+     *
+     * @return the parameter for method chaining
+     * @see RegisterWorkflowTypeRequest#getName() for details on valid naming rules in SWF
+     */
+    public static String assertSwfValue(String value) {
+        if (value != null) {
+            if (value.length() == 0) {
+                throw new AssertionError("Empty value not allowed");
+            }
+            boolean isInvalid = false;
+            isInvalid |= value.length() == 0;
+            isInvalid |= value.matches("\\s.*|.*\\s");
+            isInvalid |= value.matches(".*[:/|\\u0000-\\u001f\\u007f-\\u009f].*");
+            isInvalid |= value.contains("arn");
+            if (isInvalid) {
+                throw new AssertionError("Value contains one or more bad characters: '" + value + "'");
+            }
+        }
+        return value;
+    }
+
+    /**
      * Assert that a string is less than or equal a maximum length.
      *
      * @param s string, null allowed
      * @param maxLength maximum length allowed
      *
-     * @return s parameter for chaining
+     * @return s parameter for method chaining
      */
     public static String assertMaxLength(String s, int maxLength) {
         if (s != null && s.length() > maxLength) {
@@ -99,7 +125,7 @@ public class SwiftUtil {
      */
     public static String trimToMaxLength(String s, int maxLength) {
         if (s != null && s.length() > maxLength) {
-            return s.substring(0, maxLength - 1);
+            return s.substring(0, maxLength);
         } else {
             return s;
         }
@@ -210,7 +236,7 @@ public class SwiftUtil {
      * @param duration duration converted to seconds
      */
     public static String calcTimeoutString(TimeUnit unit, long duration) {
-        return duration <= 0 ? TIMEOUT_NONE : valueOf(unit.toSeconds(duration));
+        return unit == null || duration < 1 ? TIMEOUT_NONE : valueOf(unit.toSeconds(duration));
     }
 
 }

@@ -36,8 +36,8 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * so both are required.
      */
     public StartChildWorkflowAction withNameVersion(String name, String version) {
-        this.name = assertMaxLength(name, MAX_NAME_LENGTH);
-        this.version = assertMaxLength(version, MAX_VERSION_LENGTH);
+        this.name = assertSwfValue(assertMaxLength(name, MAX_NAME_LENGTH));
+        this.version = assertSwfValue(assertMaxLength(version, MAX_VERSION_LENGTH));
         return this;
     }
 
@@ -49,7 +49,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see StartChildWorkflowExecutionDecisionAttributes#taskList
      */
     public StartChildWorkflowAction withTaskList(String taskList) {
-        this.taskList = assertMaxLength(taskList, MAX_NAME_LENGTH);
+        this.taskList = assertSwfValue(assertMaxLength(taskList, MAX_NAME_LENGTH));
         return this;
     }
 

@@ -17,8 +17,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerFired;
-import static com.clario.swift.SwiftUtil.MAX_ID_LENGTH;
-import static com.clario.swift.SwiftUtil.assertMaxLength;
+import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static com.clario.swift.action.Action.State.*;
@@ -73,7 +72,7 @@ public abstract class Action<T extends Action> {
      * @param actionId workflow-unique identifier.
      */
     public Action(String actionId) {
-        this.actionId = assertMaxLength(actionId, MAX_ID_LENGTH);
+        this.actionId = assertSwfValue(assertMaxLength(actionId, MAX_ID_LENGTH));
     }
 
     /**

@@ -17,6 +17,7 @@ import static java.lang.String.format;
 public class ActivityPoller extends BasePoller {
     private final Map<String, ActivityInvoker> activityMap = new LinkedHashMap<>();
 
+
     public ActivityPoller(String id, String domain, String taskList) {
         super(id, domain, taskList);
     }
@@ -64,7 +65,7 @@ public class ActivityPoller extends BasePoller {
     @Override
     protected void poll() {
         ActivityTask task = swf.pollForActivityTask(createPollForActivityTask(domain, taskList, getId()));
-        if (task.getTaskToken() == null) {
+        if (task.getTaskToken() == null && isLogTimeout()) {
             log.info("poll timeout");
             return;
         }
@@ -83,7 +84,7 @@ public class ActivityPoller extends BasePoller {
                 }
                 swf.respondActivityTaskCompleted(createRespondActivityCompleted(task, result));
             } else {
-                String format = format("Activity '%s' not registered on poller %s", task.getActivityId(), getId());
+                String format = format("Activity '%s' not registered on poller %s", task, getId());
                 log.error(format);
                 swf.respondActivityTaskFailed(
                     createRespondActivityTaskFailed(task.getTaskToken(), format, null)
@@ -95,7 +96,6 @@ public class ActivityPoller extends BasePoller {
                 createRespondActivityTaskFailed(task.getTaskToken(), e.getMessage(), printStackTrace(e))
             );
         }
-
     }
 
     /**
@@ -177,7 +177,15 @@ public class ActivityPoller extends BasePoller {
                 this.task = task;
                 this.input = input;
                 Object result = method.invoke(instance, this);
-                return result == null ? "" : result.toString();
+                if (result == null) {
+                    return null;
+                } else {
+                    String resultString = result.toString();
+                    if (resultString.length() > MAX_RESULT_LENGTH) {
+                        poller.log.warn(format("Activity %s returned result string longer than allowed %d characters, was trimmed\nresult was \"%s\"", task, MAX_RESULT_LENGTH, resultString));
+                    }
+                    return trimToMaxLength(resultString, MAX_RESULT_LENGTH);
+                }
             } catch (Throwable e) {
                 throw new IllegalStateException(format("Failed to invoke with: %s: %s", task.getActivityId(), input), e);
             }

@@ -19,6 +19,8 @@ public abstract class BasePoller implements Runnable {
     protected final String taskList;
     protected final String domain;
     protected AmazonSimpleWorkflow swf;
+    private int logPollAtCount = 10; // log every Xth timeout
+    private int pollCount;
 
     /**
      * @param id unique id for poller, used for logging and recording in SWF
@@ -50,6 +52,13 @@ public abstract class BasePoller implements Runnable {
      * @see #run for scheduling this poller in a thread pool
      */
     protected abstract void poll();
+
+    protected boolean isLogTimeout() {
+        if (pollCount++ > logPollAtCount) {
+            pollCount = 0;
+        }
+        return pollCount == 0;
+    }
 
     @Override
     public String toString() {
