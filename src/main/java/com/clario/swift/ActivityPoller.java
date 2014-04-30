@@ -35,6 +35,9 @@ public class ActivityPoller extends BasePoller {
                 log.info(format("Register activity succeeded '%s' '%s'", method.name(), method.version()));
             } catch (TypeAlreadyExistsException e) {
                 log.warn(format("Activity already registered '%s' '%s'", method.name(), method.version()));
+            } catch (Throwable t) {
+                log.error(format("Register activity failed '%s' '%s'", method.name(), method.version()), t);
+                throw t;
             }
         }
     }

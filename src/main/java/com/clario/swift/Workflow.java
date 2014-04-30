@@ -23,7 +23,7 @@ public abstract class Workflow {
 
     // Optional fields used for submitting workflow.
     private String description;
-    private String executionStartToCloseTimeout = "NONE";
+    private String executionStartToCloseTimeout = null;
     private String taskStartToCloseTimeout = "NONE";
     private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
 
@@ -191,13 +191,15 @@ public abstract class Workflow {
 
     /**
      * The total duration for this workflow execution.
-     * Pass null unit or duration &lt;= 0 for a timeout of NONE.
-     * defaults to NONE.
+     * Pass null unit or duration &lt;= 0 for default timeout period.
+     * <p/>
+     * Note: Unlike other timeouts a value of NONE is not allowed.
      *
      * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
      */
     public Workflow withExecutionStartToCloseTimeout(TimeUnit unit, long duration) {
-        executionStartToCloseTimeout = calcTimeoutString(unit, duration);
+        String timeoutString = calcTimeoutString(unit, duration);
+        executionStartToCloseTimeout = SwiftUtil.TIMEOUT_NONE.equals(timeoutString) ? null : timeoutString;
         return this;
     }
 

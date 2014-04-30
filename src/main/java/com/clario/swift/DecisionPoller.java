@@ -45,6 +45,9 @@ public class DecisionPoller extends BasePoller {
                 log.info(format("Register workflow succeeded %s", workflow));
             } catch (TypeAlreadyExistsException e) {
                 log.info(format("Workflow already registered %s", workflow));
+            } catch (Throwable e) {
+                log.error(format("Register workflow failed %s", workflow));
+                throw e;
             }
         }
     }
