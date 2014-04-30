@@ -58,8 +58,15 @@ public abstract class Workflow {
     /**
      * Subclasses add zero or more decisions to the parameter during a decision task.
      * A final {@link DecisionType#CompleteWorkflowExecution} or  {@link DecisionType#FailWorkflowExecution}
-     * should be returned to indicate the workflow is complete.
+     * should be returned to indicate the workflow is complete. These decisions can be added by
+     * {@link Action} instances automatically given their final state.
+     * <p/>
+     * An {@link DecisionType#FailWorkflowExecution} decision will be decided by the {@link DecisionPoller} if an unhandled exception is thrown
+     * by this method.
      *
+     * @see Action#decide
+     * @see Action#withCompleteWorkflowOnSuccess()
+     * @see Action#withFailWorkflowOnError()
      * @see #createWorkflowExecutionRequest
      * @see #createFailWorkflowExecutionDecision
      */
@@ -148,13 +155,13 @@ public abstract class Workflow {
 
     /** SWF domain */
     public Workflow withDomain(String domain) {
-        this.domain = domain;
+        this.domain = assertMaxLength(domain, MAX_NAME_LENGTH);
         return this;
     }
 
     /** Domain-unique workflow execution identifier * */
     public Workflow withWorkflowId(String workflowId) {
-        this.workflowId = workflowId;
+        this.workflowId = assertMaxLength(workflowId, MAX_ID_LENGTH);
         return this;
     }
 
@@ -163,7 +170,7 @@ public abstract class Workflow {
 
     /** SWF generated unique run id for a specific workflow execution. */
     public Workflow withRunId(String runId) {
-        this.runId = runId;
+        this.runId = assertMaxLength(runId, MAX_RUN_ID_LENGTH);
         return this;
     }
 
@@ -172,7 +179,7 @@ public abstract class Workflow {
 
     /** SWF task list this workflow is/will be executed under */
     public Workflow withTaskList(String taskList) {
-        this.taskList = taskList;
+        this.taskList = assertMaxLength(taskList, MAX_NAME_LENGTH);
         return this;
     }
 
@@ -182,13 +189,18 @@ public abstract class Workflow {
 
     /** Optional tags submitted with workflow */
     public Workflow withTags(String... tags) {
-        Collections.addAll(this.tags, tags);
+        for (String tag : tags) {
+            this.tags.add(assertMaxLength(tag, MAX_NAME_LENGTH));
+        }
+        if (this.tags.size() > MAX_NUMBER_TAGS) {
+            throw new AssertionError(String.format("More than %d tags not allowed, received: %s", MAX_NUMBER_TAGS, join(this.tags, ",")));
+        }
         return this;
     }
 
     /** Optional description to register with workflow */
     public Workflow withDescription(String description) {
-        this.description = description;
+        this.description = assertMaxLength(description, MAX_DESCRIPTION_LENGTH);
         return this;
     }
 

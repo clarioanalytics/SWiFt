@@ -26,7 +26,15 @@ public class SwiftUtil {
     public static final DateTimeFormatter DATE_TIME_FORMATTER = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC();
     public static final DateTimeFormatter DATE_TIME_MILLIS_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
     public static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
+    public static final int MAX_NUMBER_TAGS = 5;
+    public static final int MAX_RUN_ID_LENGTH = 64;
+    public static final int MAX_NAME_LENGTH = 256;
+    public static final int MAX_DESCRIPTION_LENGTH = 1024;
+    public static final int MAX_VERSION_LENGTH = 64;
+    public static final int MAX_ID_LENGTH = 256;
     public static final int MAX_REASON_LENGTH = 256;
+    public static final int MAX_INPUT_LENGTH = 32768;
+    public static final int MAX_CONTROL_LENGTH = 32768;
     public static final int MAX_DETAILS_LENGTH = 32768;
     public static final int MAX_RESULT_LENGTH = 32768;
 
@@ -64,6 +72,21 @@ public class SwiftUtil {
         } catch (IOException e) {
             throw new IllegalStateException(format("Failed to unmarshal JSON: \"%s\"", json), e);
         }
+    }
+
+    /**
+     * Assert that a string is less than or equal a maximum length.
+     *
+     * @param s string, null allowed
+     * @param maxLength maximum length allowed
+     *
+     * @return s parameter for chaining
+     */
+    public static String assertMaxLength(String s, int maxLength) {
+        if (s != null && s.length() > maxLength) {
+            throw new AssertionError(format("String length %d > max length %d", s.length(), maxLength));
+        }
+        return s;
     }
 
     /**

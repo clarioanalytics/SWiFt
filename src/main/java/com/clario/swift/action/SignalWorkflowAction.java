@@ -4,6 +4,7 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.SignalExternalWorkflowExecutionDecisionAttributes;
 
+import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
@@ -29,7 +30,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
      * @see SignalExternalWorkflowExecutionDecisionAttributes#workflowId
      */
     public SignalWorkflowAction withWorkflowId(String workflowId) {
-        this.workflowId = workflowId;
+        this.workflowId = assertMaxLength(workflowId, MAX_ID_LENGTH);
         return this;
     }
 
@@ -39,7 +40,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
      * @see SignalExternalWorkflowExecutionDecisionAttributes#runId
      */
     public SignalWorkflowAction withRunId(String runId) {
-        this.runId = runId;
+        this.runId = assertMaxLength(workflowId, MAX_RUN_ID_LENGTH);
         return this;
     }
 
@@ -49,7 +50,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
      * @see SignalExternalWorkflowExecutionDecisionAttributes#input
      */
     public SignalWorkflowAction withInput(String input) {
-        this.input = input;
+        this.input = assertMaxLength(input, MAX_INPUT_LENGTH);
         return this;
     }
 
@@ -59,7 +60,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
      * @see SignalExternalWorkflowExecutionDecisionAttributes#control
      */
     public SignalWorkflowAction withControl(String control) {
-        this.control = control;
+        this.control = assertMaxLength(control, MAX_CONTROL_LENGTH);
         return this;
     }
 
@@ -74,8 +75,8 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
                     .withSignalName(getActionId())
                     .withWorkflowId(workflowId)
                     .withRunId(runId)
-                    .withControl(control)
-                    .withInput(input)
+                    .withControl(trimToMaxLength(control, MAX_CONTROL_LENGTH))
+                    .withInput(trimToMaxLength(input, MAX_INPUT_LENGTH))
             );
     }
 

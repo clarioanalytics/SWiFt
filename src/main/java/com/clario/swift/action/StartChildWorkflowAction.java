@@ -5,12 +5,10 @@ import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.ActionHistoryEvent;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.SwiftUtil.calcTimeoutString;
-import static com.clario.swift.SwiftUtil.makeKey;
+import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
@@ -27,7 +25,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
     private String executionStartToCloseTimeout;
     private String taskStartToCloseTimeout;
     private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
-    private final List<String> tagList = new ArrayList<>();
+    private final List<String> tags = new ArrayList<>();
 
     public StartChildWorkflowAction(String actionId) {
         super(actionId);
@@ -38,8 +36,8 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * so both are required.
      */
     public StartChildWorkflowAction withNameVersion(String name, String version) {
-        this.name = name;
-        this.version = version;
+        this.name = assertMaxLength(name, MAX_NAME_LENGTH);
+        this.version = assertMaxLength(version, MAX_VERSION_LENGTH);
         return this;
     }
 
@@ -51,7 +49,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see StartChildWorkflowExecutionDecisionAttributes#taskList
      */
     public StartChildWorkflowAction withTaskList(String taskList) {
-        this.taskList = taskList;
+        this.taskList = assertMaxLength(taskList, MAX_NAME_LENGTH);
         return this;
     }
 
@@ -59,7 +57,12 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see StartChildWorkflowExecutionDecisionAttributes#tagList
      */
     public StartChildWorkflowAction withTags(String... tags) {
-        Collections.addAll(this.tagList, tags);
+        for (String tag : tags) {
+            this.tags.add(assertMaxLength(tag, MAX_NAME_LENGTH));
+        }
+        if (this.tags.size() > MAX_NUMBER_TAGS) {
+            throw new AssertionError(String.format("More than %d tags not allowed, received: %s", MAX_NUMBER_TAGS, join(this.tags, ",")));
+        }
         return this;
     }
 
@@ -67,7 +70,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see StartChildWorkflowExecutionDecisionAttributes#input
      */
     public StartChildWorkflowAction withInput(String input) {
-        this.input = input;
+        this.input = assertMaxLength(input, MAX_INPUT_LENGTH);
         return this;
     }
 
@@ -115,11 +118,11 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
                     .withWorkflowId(getActionId())
                     .withWorkflowType(new WorkflowType().withName(name).withVersion((version)))
                     .withTaskList(new TaskList().withName(taskList == null ? getWorkflow().getTaskList() : taskList))
-                    .withInput(input)
+                    .withInput(trimToMaxLength(input, MAX_INPUT_LENGTH))
                     .withExecutionStartToCloseTimeout(executionStartToCloseTimeout)
                     .withTaskStartToCloseTimeout(taskStartToCloseTimeout)
                     .withChildPolicy(childPolicy)
-                    .withTagList(tagList)
+                    .withTagList(tags)
             );
     }
 

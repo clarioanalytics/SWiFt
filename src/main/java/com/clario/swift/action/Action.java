@@ -17,6 +17,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerFired;
+import static com.clario.swift.SwiftUtil.MAX_ID_LENGTH;
+import static com.clario.swift.SwiftUtil.assertMaxLength;
+import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
+import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static com.clario.swift.action.Action.State.*;
 import static java.lang.String.format;
 
@@ -69,7 +73,7 @@ public abstract class Action<T extends Action> {
      * @param actionId workflow-unique identifier.
      */
     public Action(String actionId) {
-        this.actionId = actionId;
+        this.actionId = assertMaxLength(actionId, MAX_ID_LENGTH);
     }
 
     /**
@@ -181,7 +185,7 @@ public abstract class Action<T extends Action> {
             case success:
                 log.info(format("%s completed", this));
                 if (completeWorkflowOnSuccess) {
-                    decisions.add(Workflow.createCompleteWorkflowExecutionDecision(getOutput()));
+                    decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
                 }
                 break;
             case retry:
@@ -205,7 +209,7 @@ public abstract class Action<T extends Action> {
                     }
                 }
                 if (failWorkflowOnError) {
-                    decisions.add(Workflow.createFailWorkflowExecutionDecision(format("%s error, decide fail workflow", this), null));
+                    decisions.add(createFailWorkflowExecutionDecision(format("%s error, decide fail workflow", this), null));
                 }
 
                 break;

@@ -6,7 +6,7 @@ import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.SwiftUtil.calcTimeoutString;
+import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
@@ -39,7 +39,7 @@ public class TimerAction extends Action<TimerAction> {
      * @see StartTimerDecisionAttributes#control
      */
     public TimerAction withControl(String control) {
-        this.control = control;
+        this.control = assertMaxLength(control, MAX_CONTROL_LENGTH);
         return this;
     }
 
@@ -53,7 +53,7 @@ public class TimerAction extends Action<TimerAction> {
             .withStartTimerDecisionAttributes(new StartTimerDecisionAttributes()
                 .withTimerId(getActionId())
                 .withStartToFireTimeout(startToFireTimeout)
-                .withControl(control));
+                .withControl(trimToMaxLength(control, MAX_CONTROL_LENGTH)));
     }
 
     @Override

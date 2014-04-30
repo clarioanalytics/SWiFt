@@ -4,8 +4,7 @@ import com.amazonaws.services.simpleworkflow.model.*;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.SwiftUtil.calcTimeoutString;
-import static com.clario.swift.SwiftUtil.makeKey;
+import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
@@ -53,8 +52,8 @@ public class ActivityAction extends Action<ActivityAction> {
      * so both are required.
      */
     public ActivityAction withNameVersion(String name, String version) {
-        this.name = name;
-        this.version = version;
+        this.name = assertMaxLength(name, MAX_NAME_LENGTH);
+        this.version = assertMaxLength(version, MAX_VERSION_LENGTH);
         return this;
     }
 
@@ -62,7 +61,7 @@ public class ActivityAction extends Action<ActivityAction> {
      * @see ScheduleActivityTaskDecisionAttributes#input
      */
     public ActivityAction withInput(String input) {
-        this.input = input;
+        this.input = assertMaxLength(version, MAX_INPUT_LENGTH);
         return this;
     }
 
@@ -70,7 +69,7 @@ public class ActivityAction extends Action<ActivityAction> {
      * @see ScheduleActivityTaskDecisionAttributes#control
      */
     public ActivityAction withControl(String control) {
-        this.control = control;
+        this.control = assertMaxLength(version, MAX_CONTROL_LENGTH);
         return this;
     }
 
