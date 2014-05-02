@@ -2,8 +2,9 @@ package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
-import com.clario.swift.action.ActionRetryPolicy;
+import com.clario.swift.action.RetryPolicy;
 import com.clario.swift.action.ActivityAction;
+import com.clario.swift.action.RetryPolicy;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ public class RetryActivityWorkflow extends Workflow {
         .withStartToCloseTimeout(MINUTES, 1)
         .withScheduleToStartTimeout(MINUTES, 1)
         .withHeartBeatTimeoutTimeout(MINUTES, 1)
-        .withRetryPolicy(new ActionRetryPolicy()
+        .withRetryPolicy(new RetryPolicy()
                 .withInitialRetryInterval(TimeUnit.SECONDS, 5)
                 .withMaximumRetryInterval(TimeUnit.MINUTES, 1)
                 .withRetryExpirationInterval(TimeUnit.HOURS, 1)

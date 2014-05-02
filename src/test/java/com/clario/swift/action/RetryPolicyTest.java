@@ -10,22 +10,22 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.clario.swift.action.ActionRetryPolicy.DEFAULT_INITIAL_RETRY_INTERVAL;
+import static com.clario.swift.action.RetryPolicy.DEFAULT_INITIAL_RETRY_INTERVAL;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 
-public class ActionRetryPolicyTest {
+public class RetryPolicyTest {
 
     @Test(expected = IllegalStateException.class)
     public void testValidateMaxRetryExpirationIntervalLTInitial() {
-        new ActionRetryPolicy().withRetryExpirationInterval(SECONDS, 4).validate();
+        new RetryPolicy().withRetryExpirationInterval(SECONDS, 4).validate();
     }
 
     @Test(expected = IllegalStateException.class)
     public void testValidateMaxRetryIntervalLTInitial() {
-        new ActionRetryPolicy().withMaximumRetryInterval(SECONDS, 4).validate();
+        new RetryPolicy().withMaximumRetryInterval(SECONDS, 4).validate();
     }
 
     @Test
@@ -118,7 +118,7 @@ public class ActionRetryPolicyTest {
         return retry;
     }
 
-    static class MockRetry extends ActionRetryPolicy {
+    static class MockRetry extends RetryPolicy {
         List<ActionHistoryEvent> events = new ArrayList<>();
         ActionHistoryEvent currentHistoryEvent;
 

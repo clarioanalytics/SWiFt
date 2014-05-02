@@ -22,7 +22,7 @@ import static org.joda.time.Seconds.secondsBetween;
  *
  * @author George Coller
  */
-public class ActionRetryPolicy {
+public class RetryPolicy {
     public static final int DEFAULT_INITIAL_RETRY_INTERVAL = 5;
     private Action<?> action;
     protected double backoffCoefficient = 2.0;
@@ -38,7 +38,7 @@ public class ActionRetryPolicy {
      *
      * @param duration must be greater than zero, defaults to five seconds
      */
-    public ActionRetryPolicy withInitialRetryInterval(TimeUnit unit, long duration) {
+    public RetryPolicy withInitialRetryInterval(TimeUnit unit, long duration) {
         initialRetryInterval = calcSeconds(unit, duration);
         return this;
     }
@@ -49,7 +49,7 @@ public class ActionRetryPolicy {
      *
      * @param duration negative value sets no limit.  Default is no limit.
      */
-    public ActionRetryPolicy withRetryExpirationInterval(TimeUnit unit, long duration) {
+    public RetryPolicy withRetryExpirationInterval(TimeUnit unit, long duration) {
         this.retryExpirationInterval = calcSeconds(unit, duration);
         return this;
     }
@@ -59,7 +59,7 @@ public class ActionRetryPolicy {
      *
      * @param duration negative value sets no limit.  Default is no limit.
      */
-    public ActionRetryPolicy withMaximumRetryInterval(TimeUnit unit, long duration) {
+    public RetryPolicy withMaximumRetryInterval(TimeUnit unit, long duration) {
         this.maximumRetryInterval = calcSeconds(unit, duration);
         return this;
     }
@@ -69,7 +69,7 @@ public class ActionRetryPolicy {
      *
      * @param maximumAttempts default is no maximum
      */
-    public ActionRetryPolicy withMaximumAttempts(int maximumAttempts) {
+    public RetryPolicy withMaximumAttempts(int maximumAttempts) {
         this.maximumAttempts = maximumAttempts > 0 ? maximumAttempts : MAX_VALUE;
         return this;
     }

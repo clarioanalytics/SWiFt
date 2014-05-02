@@ -34,7 +34,7 @@ public abstract class Action<T extends Action> {
     private final String actionId;
 
     private Workflow workflow;
-    private ActionRetryPolicy retryPolicy;
+    private RetryPolicy retryPolicy;
     private boolean failWorkflowOnError = true;
     private boolean completeWorkflowOnSuccess = false;
     private long retryCount;
@@ -96,20 +96,20 @@ public abstract class Action<T extends Action> {
     }
 
     /**
-     * Adding a {@link ActionRetryPolicy} marks this instance to be retried if the action errors.
+     * Adding a {@link RetryPolicy} marks this instance to be retried if the action errors.
      * <p/>
-     * {@link ActionRetryPolicy#setAction} will be called with this instance and then
-     * {@link ActionRetryPolicy#validate}.
+     * {@link RetryPolicy#setAction} will be called with this instance and then
+     * {@link RetryPolicy#validate}.
      *
-     * @param actionRetryPolicy policy, by default there is no retry policy
+     * @param retryPolicy policy, by default there is no retry policy
      *
      * @throws IllegalStateException if policy is not valid
      */
-    public T withRetryPolicy(ActionRetryPolicy actionRetryPolicy) {
-        this.retryPolicy = actionRetryPolicy;
-        if (actionRetryPolicy != null) {
-            retryPolicy.setAction(this);
-            retryPolicy.validate();
+    public T withRetryPolicy(RetryPolicy retryPolicy) {
+        this.retryPolicy = retryPolicy;
+        if (retryPolicy != null) {
+            this.retryPolicy.setAction(this);
+            this.retryPolicy.validate();
         }
         return thisObject();
     }
