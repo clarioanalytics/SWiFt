@@ -77,7 +77,7 @@ public abstract class Action<T extends Action> {
      * Calling this method deactivates that decision for use cases where a workflow can
      * continue even if this action fails.
      */
-    public T withFailWorkflowOnError() {
+    public T withNoFailWorkflowOnError() {
         failWorkflowOnError = false;
         return thisObject();
     }
@@ -140,15 +140,15 @@ public abstract class Action<T extends Action> {
      * <li>{@link ActionState#initial}: add decision returned by {@link #createInitiateActivityDecision()}</li>
      * <li>{@link ActionState#retry}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
      * <li>{@link ActionState#active}: no decisions are added for in-progress actions</li>
-     * <li>{@link ActionState#success}: if {@link #withFailWorkflowOnError()} has previously been called
+     * <li>{@link ActionState#success}: if {@link #withNoFailWorkflowOnError()} has previously been called
      * add decision returned by {@link Workflow#createCompleteWorkflowExecutionDecision}</li>
      * <li>{@link ActionState#error}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
-     * unless {@link #withFailWorkflowOnError} has previously been called on the activity</li>
+     * unless {@link #withNoFailWorkflowOnError} has previously been called on the activity</li>
      * </ul>
      *
      * @param decisions decide adds zero or more decisions to this list
      *
-     * @see #withFailWorkflowOnError
+     * @see #withNoFailWorkflowOnError
      */
     public Action decide(List<Decision> decisions) {
         switch (getState()) {

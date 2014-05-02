@@ -66,7 +66,7 @@ public abstract class Workflow {
      *
      * @see Action#decide
      * @see Action#withCompleteWorkflowOnSuccess()
-     * @see Action#withFailWorkflowOnError()
+     * @see Action#withNoFailWorkflowOnError()
      * @see #createWorkflowExecutionRequest
      * @see #createFailWorkflowExecutionDecision
      */

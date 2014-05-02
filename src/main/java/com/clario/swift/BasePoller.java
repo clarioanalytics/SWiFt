@@ -43,7 +43,7 @@ public abstract class BasePoller implements Runnable {
      * @see #poll() actual polling method called within this loop
      */
     public void run() {
-        log.info("run");
+        log.debug("run");
         try {
             poll();
         } catch (Throwable t) {

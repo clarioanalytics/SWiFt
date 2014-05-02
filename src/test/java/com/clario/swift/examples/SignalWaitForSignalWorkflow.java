@@ -33,8 +33,9 @@ public class SignalWaitForSignalWorkflow extends Workflow {
     }
 
     private final SignalWorkflowAction signal = new SignalWorkflowAction("signal")
-        .withFailWorkflowOnError();
-    private final TimerAction timer = new TimerAction("timer").withStartToFireTimeout(SECONDS, 15);
+        .withInput("999");
+    private final TimerAction timer = new TimerAction("timer")
+        .withStartToFireTimeout(SECONDS, 2);
 
     public SignalWaitForSignalWorkflow() {
         super("Signal Wait For Signal Workflow", "1.0");
@@ -43,38 +44,47 @@ public class SignalWaitForSignalWorkflow extends Workflow {
 
     @Override
     public void decide(List<Decision> decisions) {
-        String input = getWorkflowInput();
+        log.info("decide");
 
-        StartChildWorkflowAction childWorkflow = createChildWorkflow(decisions);
+        // Use markers to do things only once per workflow run
+        String childWorkflowId = markChildWorkflowId(decisions);
 
-        // Can't use typical "decide" approach because we want to start it and not block.
+        StartChildWorkflowAction childWorkflow = new StartChildWorkflowAction(childWorkflowId)
+            .withNameVersion("Wait For Signal Workflow", "1.0")
+            .withExecutionStartToCloseTimeout(MINUTES, 10)
+            .withTaskStartToCloseTimeout(MINUTES, -1)
+            .withInput(getWorkflowInput())
+            .withTaskList(getTaskList())
+            .withCompleteWorkflowOnSuccess();
+
+
+        childWorkflow.setWorkflow(this); // do not forget this step!
+
+        // Checking state because we don't want childWorkflow to block here
         if (childWorkflow.getState() == initial) {
-            decisions.add(childWorkflow.withInput(input).withTaskList(getTaskList()).createInitiateActivityDecision());
+            log.info("Start child workflow");
+            childWorkflow.decide(decisions);
         }
+
         // Give the child workflow some time to start
         if (timer.decide(decisions).isSuccess()) {
-            log.info("Timer finished");
-            signal.withWorkflowId(childWorkflow.getActionId())
-                .withInput("999")
-                .decide(decisions);
-            log.info("External workflow signaled, complete");
+            if (signal.getState() == initial) {
+                log.info("Timer finished, send signal"); // log only once
+            }
+            if (signal.withWorkflowId(childWorkflow.getActionId()).decide(decisions).isSuccess()) {
+                // wait until child workflow finishes
+                childWorkflow.decide(decisions);
+            }
         }
     }
 
-    private StartChildWorkflowAction createChildWorkflow(List<Decision> decisions) {
+    protected String markChildWorkflowId(List<Decision> decisions) {
         String childWorkflowId = workflowHistory.getMarkers().get("childWorkflowId");
         if (childWorkflowId == null) {
             childWorkflowId = createUniqueWorkflowId("Child Workflow");
             decisions.add(createRecordMarkerDecision("childWorkflowId", childWorkflowId));
         }
-
-        StartChildWorkflowAction startChildWorkflow = new StartChildWorkflowAction(childWorkflowId)
-            .withNameVersion("Wait For Signal Workflow", "1.0")
-            .withExecutionStartToCloseTimeout(MINUTES, 10)
-            .withTaskStartToCloseTimeout(null, -1);
-        startChildWorkflow.setWorkflow(this);
-        return startChildWorkflow;
+        return childWorkflowId;
     }
-
 
 }

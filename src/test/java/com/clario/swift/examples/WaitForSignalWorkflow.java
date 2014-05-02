@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.clario.swift.examples.Config.*;
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -30,7 +28,10 @@ public class WaitForSignalWorkflow extends Workflow {
         submit(workflow, "100");
     }
 
-    private final ActivityAction step1 = new ActivityAction("childStep1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
+    private final ActivityAction step1 = new ActivityAction("childStep1", "Activity X", "1.0")
+        .withScheduleToCloseTimeout(MINUTES, 60)
+        .withStartToCloseTimeout(MINUTES, -1)
+        .withStartToCloseTimeout(MINUTES, -1);
 
     public WaitForSignalWorkflow() {
         super("Wait For Signal Workflow", "1.0");
@@ -46,7 +47,9 @@ public class WaitForSignalWorkflow extends Workflow {
             log.info("No signal received yet");
         } else {
             String signalValue = new ArrayList<>(signals.values()).get(0);
-            if (step1.withInput(signalValue).decide(decisions).isSuccess()) {
+            if (step1
+                .withInput(signalValue)
+                .decide(decisions).isSuccess()) {
                 log.info("Signal received and step1 finished");
                 decisions.add(createCompleteWorkflowExecutionDecision(step1.getOutput()));
             }
