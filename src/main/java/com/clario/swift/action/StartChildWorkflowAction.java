@@ -143,6 +143,9 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
     }
 
     @Override
+    protected StartChildWorkflowAction thisObject() { return this; }
+
+    @Override
     public String toString() {
         return format("%s %s %s", getClass().getSimpleName(), getActionId(), makeKey(name, version));
     }

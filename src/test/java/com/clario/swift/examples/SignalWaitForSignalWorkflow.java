@@ -1,7 +1,6 @@
 package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.clario.swift.SwiftUtil;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.SignalWorkflowAction;
 import com.clario.swift.action.StartChildWorkflowAction;
@@ -10,13 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.action.Action.State.active;
-import static com.clario.swift.action.Action.State.initial;
+import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
+import static com.clario.swift.action.ActionState.initial;
 import static com.clario.swift.examples.Config.*;
-import static java.util.concurrent.TimeUnit.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * @author George Coller
@@ -34,7 +32,8 @@ public class SignalWaitForSignalWorkflow extends Workflow {
         submit(workflow, "666");
     }
 
-    private final SignalWorkflowAction signal = new SignalWorkflowAction("signal");
+    private final SignalWorkflowAction signal = new SignalWorkflowAction("signal")
+        .withFailWorkflowOnError();
     private final TimerAction timer = new TimerAction("timer").withStartToFireTimeout(SECONDS, 15);
 
     public SignalWaitForSignalWorkflow() {
@@ -55,29 +54,17 @@ public class SignalWaitForSignalWorkflow extends Workflow {
         // Give the child workflow some time to start
         if (timer.decide(decisions).isSuccess()) {
             log.info("Timer finished");
-            if (signal
-                .withWorkflowId(childWorkflow.getActionId())
+            signal.withWorkflowId(childWorkflow.getActionId())
                 .withInput("999")
-                .decide(decisions).isSuccess()) {
-                log.info("External workflow signaled");
-
-                if (childWorkflow.getState() == active) {
-                    return;
-                } else if (childWorkflow.isSuccess()) {
-                    String data = childWorkflow.getOutput();
-                    decisions.add(createCompleteWorkflowExecutionDecision(data));
-                } else {
-                    decisions.add(createFailWorkflowExecutionDecision(String.format("%s '%s' error", getClass().getSimpleName(), getWorkflowId()), null));
-                }
-
-            }
+                .decide(decisions);
+            log.info("External workflow signaled, complete");
         }
     }
 
     private StartChildWorkflowAction createChildWorkflow(List<Decision> decisions) {
         String childWorkflowId = workflowHistory.getMarkers().get("childWorkflowId");
         if (childWorkflowId == null) {
-            childWorkflowId = "Child Workflow " + SwiftUtil.timestamp();
+            childWorkflowId = createUniqueWorkflowId("Child Workflow");
             decisions.add(createRecordMarkerDecision("childWorkflowId", childWorkflowId));
         }
 

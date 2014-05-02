@@ -73,11 +73,9 @@ public class DecisionPoller extends BasePoller {
 
         while (decisionTask == null || decisionTask.getNextPageToken() != null) {
             decisionTask = swf.pollForDecisionTask(request);
-            if (decisionTask.getTaskToken() == null && isLogTimeout()) {
-                log.info("poll timeout");
-                if (workflow == null) {
-                    return;
-                }
+            if (decisionTask.getTaskToken() == null) {
+                if (isLogTimeout()) { log.info("poll timeout"); }
+                if (workflow == null) { return; }
             } else {
                 if (workflow == null) {
                     workflow = lookupWorkflow(decisionTask)

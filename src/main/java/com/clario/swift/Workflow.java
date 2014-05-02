@@ -303,7 +303,7 @@ public abstract class Workflow {
      */
     @Override
     public boolean equals(Object o) {
-        return this == o || !(o == null || getClass() != o.getClass()) && key.equals(((Workflow) o).key);
+        return o == this || (o != null && o instanceof Workflow && key.equals(((Workflow) o).key));
     }
 
     @Override

@@ -14,12 +14,12 @@ import static com.clario.swift.SwiftUtil.toJson;
  * @author George Coller
  */
 public abstract class BasePoller implements Runnable {
+    private static final int LOG_POLL_EVERY_COUNT = 10;
     protected final Logger log;
     private final String id;
     protected final String taskList;
     protected final String domain;
     protected AmazonSimpleWorkflow swf;
-    private int logPollAtCount = 10; // log every Xth timeout
     private int pollCount;
 
     /**
@@ -43,7 +43,12 @@ public abstract class BasePoller implements Runnable {
      * @see #poll() actual polling method called within this loop
      */
     public void run() {
-        poll();
+        log.info("run");
+        try {
+            poll();
+        } catch (Throwable t) {
+            log.error(this.toString(), t);
+        }
     }
 
     /**
@@ -54,10 +59,18 @@ public abstract class BasePoller implements Runnable {
     protected abstract void poll();
 
     protected boolean isLogTimeout() {
-        if (pollCount++ > logPollAtCount) {
-            pollCount = 0;
-        }
-        return pollCount == 0;
+        pollCount++;
+        return LOG_POLL_EVERY_COUNT % pollCount == 0;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o == this || (o != null && o instanceof BasePoller && id.equals(((BasePoller) o).id));
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
     }
 
     @Override

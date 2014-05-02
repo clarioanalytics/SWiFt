@@ -61,7 +61,7 @@ public class ActivityAction extends Action<ActivityAction> {
      * @see ScheduleActivityTaskDecisionAttributes#input
      */
     public ActivityAction withInput(String input) {
-        this.input = assertMaxLength(version, MAX_INPUT_LENGTH);
+        this.input = assertMaxLength(input, MAX_INPUT_LENGTH);
         return this;
     }
 
@@ -69,7 +69,7 @@ public class ActivityAction extends Action<ActivityAction> {
      * @see ScheduleActivityTaskDecisionAttributes#control
      */
     public ActivityAction withControl(String control) {
-        this.control = assertMaxLength(version, MAX_CONTROL_LENGTH);
+        this.control = assertMaxLength(control, MAX_CONTROL_LENGTH);
         return this;
     }
 
@@ -128,6 +128,10 @@ public class ActivityAction extends Action<ActivityAction> {
         this.startToCloseTimeout = calcTimeoutString(unit, duration);
         return this;
     }
+
+
+    @Override
+    protected ActivityAction thisObject() { return this; }
 
     /**
      * @return decision of type {@link DecisionType#ScheduleActivityTask}

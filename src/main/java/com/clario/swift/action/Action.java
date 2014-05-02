@@ -1,10 +1,7 @@
 package com.clario.swift.action;
 
-import com.amazonaws.services.simpleworkflow.flow.common.FlowConstants;
-import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
-import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.clario.swift.ActionHistoryEvent;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.Workflow;
@@ -12,15 +9,13 @@ import com.clario.swift.WorkflowHistory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.amazonaws.services.simpleworkflow.model.EventType.TimerFired;
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
-import static com.clario.swift.action.Action.State.*;
+import static com.clario.swift.action.ActionState.*;
 import static java.lang.String.format;
 
 /**
@@ -34,37 +29,15 @@ public abstract class Action<T extends Action> {
 
     /** String used as control value on start timer events to mark them as 'retry' timers. */
     public static final String RETRY_CONTROL_VALUE = "--  SWiFt Retry Control Value --";
-    public final Logger log = LoggerFactory.getLogger(getClass());
-
-    /**
-     * Enumeration of Swift run states for an action.
-     * <p/>
-     * State is calculated using the most-recent {@link ActionHistoryEvent} related to this action.
-     *
-     * @see ActionHistoryEvent
-     */
-    public static enum State {
-        /** Action has not yet been initiated by a workflow, default state of all Actions */
-        initial,
-
-        /** Action has been decided and submitted to SWF and is not yet finished. */
-        active,
-
-        /** Action will be retried */
-        retry,
-
-        /** Action finished successfully on SWF. */
-        success,
-
-        /** Action finished in an error state on SWF */
-        error
-    }
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     private final String actionId;
+
     private Workflow workflow;
-    private ExponentialRetryPolicy retryPolicy;
+    private ActionRetryPolicy retryPolicy;
     private boolean failWorkflowOnError = true;
     private boolean completeWorkflowOnSuccess = false;
+    private long retryCount;
 
     /**
      * Each action requires a workflow-unique identifier.
@@ -74,6 +47,12 @@ public abstract class Action<T extends Action> {
     public Action(String actionId) {
         this.actionId = assertSwfValue(assertMaxLength(actionId, MAX_ID_LENGTH));
     }
+
+    /**
+     * Subclass overrides to provide "this" which allows super class to do method chaining
+     * without compiler warnings.  Generics, what can you do?
+     */
+    protected abstract T thisObject();
 
     /**
      * @return the workflow-unique identifier given at construction
@@ -92,36 +71,20 @@ public abstract class Action<T extends Action> {
     public Workflow getWorkflow() { return workflow; }
 
     /**
-     * @return true, if should decide fail workflow if this action errors.
-     * @see #withFailWorkflowOnError()
-     */
-    public boolean isFailWorkflowOnError() {
-        return failWorkflowOnError;
-    }
-
-    /**
      * By default {@link #decide} adds a @link DecisionType#FailWorkflowExecution} decision
-     * if this action finishes in an {@link State#error} state.
+     * if this action finishes in an {@link ActionState#error} state.
      * <p/>
      * Calling this method deactivates that decision for use cases where a workflow can
      * continue even if this action fails.
      */
     public T withFailWorkflowOnError() {
         failWorkflowOnError = false;
-        return (T) this;
-    }
-
-    /**
-     * @return true, if should decide complete workflow if this action succeeds.
-     * @see #withCompleteWorkflowOnSuccess()
-     */
-    public boolean isCompleteWorkflowOnSuccess() {
-        return completeWorkflowOnSuccess;
+        return thisObject();
     }
 
     /**
      * Calling this will activate a {@link DecisionType#CompleteWorkflowExecution} decision
-     * if this action finishes in an {@link State#success} state.
+     * if this action finishes in an {@link ActionState#success} state.
      * <p/>
      * By default this behavior is deactivated but is useful to create final actions in a workflow.
      *
@@ -129,16 +92,30 @@ public abstract class Action<T extends Action> {
      */
     public T withCompleteWorkflowOnSuccess() {
         completeWorkflowOnSuccess = true;
-        return (T) this;
+        return thisObject();
     }
 
-    // TODO: Figure out how they do exception filtering
-    public T withExponentialRetry(ExponentialRetryPolicy retryPolicy) {
-        this.retryPolicy = retryPolicy;
-        if (retryPolicy != null) {
+    /**
+     * Adding a {@link ActionRetryPolicy} marks this instance to be retried if the action errors.
+     * <p/>
+     * {@link ActionRetryPolicy#setAction} will be called with this instance and then
+     * {@link ActionRetryPolicy#validate}.
+     *
+     * @param actionRetryPolicy policy, by default there is no retry policy
+     *
+     * @throws IllegalStateException if policy is not valid
+     */
+    public T withRetryPolicy(ActionRetryPolicy actionRetryPolicy) {
+        this.retryPolicy = actionRetryPolicy;
+        if (actionRetryPolicy != null) {
+            retryPolicy.setAction(this);
             retryPolicy.validate();
         }
-        return (T) this;
+        return thisObject();
+    }
+
+    public int getRetryCount() {
+        return retryPolicy == null ? 0 : retryPolicy.getRetryCount();
     }
 
     /**
@@ -149,24 +126,23 @@ public abstract class Action<T extends Action> {
      */
     public String getOutput() {
         if (isSuccess()) {
-            String result = getCurrentHistoryEvent().getResult();
-            return result;
+            return getCurrentHistoryEvent().getResult();
         } else {
             throw new IllegalStateException("method not available when action state is " + getState());
         }
     }
 
     /**
-     * Make a decision based on the current {@link State} of an action.
+     * Make a decision based on the current {@link ActionState} of an action.
      * <p/>
-     * Default implementation if {@link State} is:
+     * Default implementation if {@link ActionState} is:
      * <ul>
-     * <li>{@link State#initial}: add decision returned by {@link #createInitiateActivityDecision()}</li>
-     * <li>{@link State#retry}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
-     * <li>{@link State#active}: no decisions are added for in-progress actions</li>
-     * <li>{@link State#success}: if {@link #withFailWorkflowOnError()} has previously been called
+     * <li>{@link ActionState#initial}: add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link ActionState#retry}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link ActionState#active}: no decisions are added for in-progress actions</li>
+     * <li>{@link ActionState#success}: if {@link #withFailWorkflowOnError()} has previously been called
      * add decision returned by {@link Workflow#createCompleteWorkflowExecutionDecision}</li>
-     * <li>{@link State#error}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
+     * <li>{@link ActionState#error}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
      * unless {@link #withFailWorkflowOnError} has previously been called on the activity</li>
      * </ul>
      *
@@ -194,17 +170,17 @@ public abstract class Action<T extends Action> {
 
             case error:
                 if (retryPolicy != null) {
-                    long nextDelayInSeconds = calcNextDelayInSeconds();
                     String reason = getCurrentHistoryEvent().getErrorReason();
-                    if (FlowConstants.NONE == nextDelayInSeconds) {
-                        log.info(format("%s error, retry policy has no more attempts. reason:%s", this, reason));
-                    } else {
+                    int delaySeconds = retryPolicy.nextRetryDelaySeconds();
+                    if (delaySeconds >= 0) {
                         TimerAction timer = new TimerAction(getActionId())
-                            .withStartToFireTimeout(TimeUnit.SECONDS, nextDelayInSeconds)
+                            .withStartToFireTimeout(TimeUnit.SECONDS, delaySeconds)
                             .withControl(RETRY_CONTROL_VALUE);
-                        log.info(format("%s error, will retry after %d seconds. reason:%s", this, nextDelayInSeconds, reason));
+                        log.info(format("%s error, will retry after %d seconds. reason:%s", this, delaySeconds, reason));
                         decisions.add(timer.createInitiateActivityDecision());
                         break;
+                    } else {
+                        log.info(format("%s error, retry policy has no more attempts. reason:%s", this, reason));
                     }
                 }
                 if (failWorkflowOnError) {
@@ -218,49 +194,24 @@ public abstract class Action<T extends Action> {
         return this;
     }
 
-    /**
-     * @see ExponentialRetryPolicy#nextRetryDelaySeconds(java.util.Date, java.util.Date, int)
-     */
-    protected long calcNextDelayInSeconds() {
-        List<ActionHistoryEvent> retries = getRetryTimerStartedEvents();
-        if (retries.isEmpty()) {
-            return retryPolicy.getInitialRetryIntervalSeconds();
-        } else {
-            int numberOfTries = retries.size() + 1;
-            Date firstAttempt = retries.get(retries.size() - 1).getEventTimestamp();
-            Date recordedFailure = getCurrentHistoryEvent().getEventTimestamp();
-            return retryPolicy.nextRetryDelaySeconds(firstAttempt, recordedFailure, numberOfTries);
-        }
-    }
-
-    /**
-     * Return {@link EventType#TimerStarted} events that were used for retries.
-     */
-    public List<ActionHistoryEvent> getRetryTimerStartedEvents() {
-        return workflow.getWorkflowHistory().filterRetryTimerStartedEvents(getActionId());
-    }
 
     /**
      * @return current state for this action.
-     * @see State for details on how state is calculated
+     * @see ActionState for details on how state is calculated
      */
-    public State getState() {
-        ActionHistoryEvent swfHistoryEvent = getCurrentHistoryEvent();
-        if (swfHistoryEvent == null) {
+    public ActionState getState() {
+        ActionHistoryEvent currentEvent = getCurrentHistoryEvent();
+        if (currentEvent == null) {
             return initial;
-        } else if (TimerFired == swfHistoryEvent.getType()) {
-            Long eventId = swfHistoryEvent.getInitialEventId();
-            for (ActionHistoryEvent event : getRetryTimerStartedEvents()) {
-                if (eventId.equals(event.getEventId())) {
-                    return retry;
-                }
-            }
+        } else if (retryPolicy != null && retryPolicy.isRetryTimerEvent(currentEvent)) {
+            return retry;
+        } else {
+            return currentEvent.getActionState();
         }
-        return swfHistoryEvent.getActionState();
     }
 
     /**
-     * Return if action completed with state {@link State#success}.
+     * Return if action completed with state {@link ActionState#success}.
      * Can be used in workflows to simply flow logic.  See Swift example workflows.
      */
     public boolean isSuccess() { return success == getState(); }
@@ -297,7 +248,7 @@ public abstract class Action<T extends Action> {
     /** Two actions are considered equal if their id is equal. */
     @Override
     public boolean equals(Object o) {
-        return this == o || !(o == null || o instanceof Action) && actionId.equals(((Action) o).actionId);
+        return o == this || (o != null && o instanceof Action && actionId.equals(((Action) o).actionId));
     }
 
     @Override
@@ -309,4 +260,5 @@ public abstract class Action<T extends Action> {
     public String toString() {
         return format("%s %s", getClass().getSimpleName(), getActionId());
     }
+
 }

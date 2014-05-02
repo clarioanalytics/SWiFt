@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
-import static com.clario.swift.SwiftUtil.timestamp;
+import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
 import static java.lang.String.format;
 
 /**
@@ -55,9 +55,10 @@ public class Config {
     }
 
     public static void submit(Workflow workflow, String input) {
-        String workflowId = format("%s %s", workflow.getName(), timestamp());
+        String workflowId = createUniqueWorkflowId(workflow.getName());
         log.info(format("submit workflow: %s", workflowId));
 
+        workflow.withTags("Swift");
         StartWorkflowExecutionRequest request = workflow.createWorkflowExecutionRequest(workflowId, input);
 
         log.info(format("Start workflow execution: %s", workflowId));

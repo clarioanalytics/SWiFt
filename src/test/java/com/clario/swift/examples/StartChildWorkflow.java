@@ -1,7 +1,6 @@
 package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.clario.swift.SwiftUtil;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.StartChildWorkflowAction;
 import org.junit.Assert;
@@ -9,11 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
 import static com.clario.swift.examples.Config.*;
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -46,7 +43,7 @@ public class StartChildWorkflow extends Workflow {
 
         String childWorkflowId = workflowHistory.getMarkers().get("childWorkflowId");
         if (childWorkflowId == null) {
-            childWorkflowId = "Child Workflow " + SwiftUtil.timestamp();
+            childWorkflowId = createUniqueWorkflowId("Child Workflow");
             decisions.add(createRecordMarkerDecision("childWorkflowId", childWorkflowId));
         }
 

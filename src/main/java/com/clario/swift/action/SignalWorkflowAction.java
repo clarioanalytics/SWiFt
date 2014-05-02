@@ -40,7 +40,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
      * @see SignalExternalWorkflowExecutionDecisionAttributes#runId
      */
     public SignalWorkflowAction withRunId(String runId) {
-        this.runId = assertMaxLength(workflowId, MAX_RUN_ID_LENGTH);
+        this.runId = assertMaxLength(runId, MAX_RUN_ID_LENGTH);
         return this;
     }
 
@@ -79,6 +79,9 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
                     .withInput(trimToMaxLength(input, MAX_INPUT_LENGTH))
             );
     }
+
+    @Override
+    protected SignalWorkflowAction thisObject() { return this; }
 
     @Override
     public String toString() {

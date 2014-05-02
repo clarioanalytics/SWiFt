@@ -29,11 +29,11 @@ public class SwiftUtil {
     public static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
     public static final int MAX_NUMBER_TAGS = 5;
     public static final int MAX_RUN_ID_LENGTH = 64;
-    public static final int MAX_NAME_LENGTH = 256;
-    public static final int MAX_DESCRIPTION_LENGTH = 1024;
     public static final int MAX_VERSION_LENGTH = 64;
+    public static final int MAX_NAME_LENGTH = 256;
     public static final int MAX_ID_LENGTH = 256;
     public static final int MAX_REASON_LENGTH = 256;
+    public static final int MAX_DESCRIPTION_LENGTH = 1024;
     public static final int MAX_INPUT_LENGTH = 32768;
     public static final int MAX_CONTROL_LENGTH = 32768;
     public static final int MAX_DETAILS_LENGTH = 32768;
@@ -48,7 +48,7 @@ public class SwiftUtil {
      * @param o object to convert
      *
      * @return JSON string.
-     * @see com.fasterxml.jackson.databind.ObjectMapper for details on what can be converted.
+     * @see ObjectMapper for details on what can be converted.
      */
     public static String toJson(Object o) {
         try {
@@ -64,7 +64,7 @@ public class SwiftUtil {
      * @param json string to convert
      *
      * @return converted structure
-     * @see com.fasterxml.jackson.databind.ObjectMapper for details on what can be converted.
+     * @see ObjectMapper for details on what can be converted.
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> fromJson(String json) {
@@ -88,12 +88,10 @@ public class SwiftUtil {
             if (value.length() == 0) {
                 throw new AssertionError("Empty value not allowed");
             }
-            boolean isInvalid = false;
-            isInvalid |= value.length() == 0;
-            isInvalid |= value.matches("\\s.*|.*\\s");
-            isInvalid |= value.matches(".*[:/|\\u0000-\\u001f\\u007f-\\u009f].*");
-            isInvalid |= value.contains("arn");
-            if (isInvalid) {
+            if (value.length() == 0
+                || value.matches("\\s.*|.*\\s")
+                || value.matches(".*[:/|\\u0000-\\u001f\\u007f-\\u009f].*")
+                || value.contains("arn")) {
                 throw new AssertionError("Value contains one or more bad characters: '" + value + "'");
             }
         }
@@ -124,10 +122,14 @@ public class SwiftUtil {
      * @return trimmed string if it exceeded maximum length, otherwise string parameter
      */
     public static String trimToMaxLength(String s, int maxLength) {
-        if (s != null && s.length() > maxLength) {
-            return s.substring(0, maxLength);
-        } else {
-            return s;
+        try {
+            if (s != null && s.length() > maxLength) {
+                return s.substring(0, maxLength);
+            } else {
+                return s;
+            }
+        } catch (StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException(format("trimToMaxLength(%s, %d)", s, maxLength));
         }
     }
 
@@ -213,17 +215,12 @@ public class SwiftUtil {
         return sw.toString();
     }
 
-
     /**
-     * Create a millisecond-accurate timestamp using current time;
+     * Create a millisecond-accurate ISO timestamp using current time;
      */
     public static String timestamp() {
         return DATE_TIME_MILLIS_FORMATTER.print(System.currentTimeMillis());
     }
-
-    //
-    // Amazon SWF request helpers
-    //
 
     /** SWF value for timeouts to indicate no-timeout value */
     public static final String TIMEOUT_NONE = "NONE";
@@ -239,4 +236,20 @@ public class SwiftUtil {
         return unit == null || duration < 1 ? TIMEOUT_NONE : valueOf(unit.toSeconds(duration));
     }
 
+    /**
+     * Make a unique and valid workflowId.
+     * Replaces bad characters and whitespace, which also makes it easy for amazon cli use.
+     *
+     * @param workflowName name of workflow.
+     *
+     * @return unique workflowId
+     */
+    public static String createUniqueWorkflowId(String workflowName) {
+        String name = workflowName.trim()
+            .replaceAll("\\s|[:/|\\u0000-\\u001f\\u007f-\\u009f]", "_")
+            .replaceAll("arn", "Arn");
+        String timestamp = "." + timestamp().replaceAll(":", ".");
+        name = trimToMaxLength(name, MAX_ID_LENGTH - timestamp.length());
+        return assertSwfValue(name + timestamp);
+    }
 }

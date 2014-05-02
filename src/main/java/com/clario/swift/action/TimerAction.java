@@ -57,6 +57,9 @@ public class TimerAction extends Action<TimerAction> {
     }
 
     @Override
+    protected TimerAction thisObject() { return this; }
+
+    @Override
     public String toString() {
         return format("%s %s", getClass().getSimpleName(), startToFireTimeout);
     }

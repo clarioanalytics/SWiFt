@@ -1,7 +1,6 @@
 package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
-import com.amazonaws.services.simpleworkflow.flow.ActivityWorker;
 import com.clario.swift.ActivityContext;
 import com.clario.swift.ActivityMethod;
 import com.clario.swift.ActivityPoller;
@@ -11,12 +10,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.examples.Config.*;
 import static java.lang.String.valueOf;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -25,15 +24,15 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * @author George Coller
  */
 public class CreatePollers {
-    private static final Logger log = LoggerFactory.getLogger(ActivityWorker.class);
+    private static final Logger log = LoggerFactory.getLogger(CreatePollers.class);
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         final Config config = getConfig();
         final AmazonSimpleWorkflow swf = config.getAmazonSimpleWorkflow();
-        int poolSize = config.getPoolSize();
-        final ScheduledExecutorService service = newScheduledThreadPool(poolSize);
-        startDecisionPoller(service, swf, poolSize / 2, true);
-        startActivityPoller(service, swf, poolSize / 2, true);
+        int poolSize = config.getPoolSize() + 1;
+        final ScheduledExecutorService service = Executors.newScheduledThreadPool(poolSize);
+        startDecisionPoller(service, swf, poolSize / 2, false);
+        startActivityPoller(service, swf, poolSize / 2, false);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -62,7 +61,8 @@ public class CreatePollers {
             if (registerWorkflows && it == 1) {
                 poller.registerSwfWorkflows();
             }
-            pool.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.MILLISECONDS);
+            log.info(String.format("start: %s domain=%s taskList=%s", poller.getId(), SWIFT_DOMAIN, SWIFT_TASK_LIST));
+            pool.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.SECONDS);
         }
     }
 
@@ -74,8 +74,8 @@ public class CreatePollers {
             if (registerActivities && it == 1) {
                 poller.registerSwfActivities();
             }
-            log.info("start: " + poller.getId());
-            pool.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.MILLISECONDS);
+            log.info(String.format("start: %s domain=%s taskList=%s", poller.getId(), SWIFT_DOMAIN, SWIFT_TASK_LIST));
+            pool.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.SECONDS);
         }
     }
 

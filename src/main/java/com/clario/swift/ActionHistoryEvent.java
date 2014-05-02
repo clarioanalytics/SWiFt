@@ -3,12 +3,11 @@ package com.clario.swift;
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
-
-import java.util.Date;
+import com.clario.swift.action.ActionState;
+import org.joda.time.DateTime;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.action.Action.State;
-import static com.clario.swift.action.Action.State.*;
+import static com.clario.swift.action.ActionState.*;
 
 /**
  * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, or External Signal activities.
@@ -82,30 +81,22 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
     /**
      * @return {@link HistoryEvent#eventType} cast as {@link EventType} enumeration
      */
-    public EventType getType() {
-        return EventType.valueOf(historyEvent.getEventType());
-    }
+    public EventType getType() { return eventType; }
 
     /**
-     * Find the {@link State} mapping for this history event.
+     * Find the {@link com.clario.swift.action.ActionState} mapping for this history event.
      */
-    public State getActionState() {
-        return findActionState(historyEvent);
-    }
+    public ActionState getActionState() { return findActionState(historyEvent); }
 
     /**
      * @return {@link HistoryEvent#eventId}
      */
-    public Long getEventId() {
-        return historyEvent.getEventId();
-    }
+    public Long getEventId() { return historyEvent.getEventId(); }
 
     /**
      * @return {@link HistoryEvent#eventTimestamp}
      */
-    public Date getEventTimestamp() {
-        return historyEvent.getEventTimestamp();
-    }
+    public DateTime getEventTimestamp() { return new DateTime(historyEvent.getEventTimestamp()); }
 
     /**
      * Return the initial event id of the wrapped {@link HistoryEvent}.
@@ -113,9 +104,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
      * If this event is an initial event, return its event id
      * otherwise return it's pointer to the initial history event id
      */
-    public Long getInitialEventId() {
-        return initialEventId;
-    }
+    public Long getInitialEventId() { return initialEventId; }
 
     /**
      * Return the result for actions that have a result-producing {@link HistoryEvent}.
@@ -123,9 +112,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
      * @return result or null if not available
      * @see ActionHistoryEvent#findResult
      */
-    public String getResult() {
-        return findResult(historyEvent);
-    }
+    public String getResult() { return findResult(historyEvent); }
 
     public String getErrorReason() {
         String reason = findErrorReason(historyEvent);
@@ -134,7 +121,6 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
         }
         return reason;
     }
-
 
     //
     // Methods used to convert Amazon objects to Swift.
@@ -153,7 +139,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
     /**
      * @return map an EventType to an action state.
      */
-    static State findActionState(HistoryEvent historyEvent) {
+    static ActionState findActionState(HistoryEvent historyEvent) {
         switch (EventType.valueOf(historyEvent.getEventType())) {
             // Activity Tasks
             case ActivityTaskScheduled:
@@ -326,7 +312,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
 
     @Override
     public String toString() {
-        return SwiftUtil.DATE_TIME_FORMATTER.print(getEventTimestamp().getTime())
+        return SwiftUtil.DATE_TIME_FORMATTER.print(getEventTimestamp())
             + ' ' + getType()
             + ' ' + getEventId()
             + (isInitialEvent ? ' ' : " -> ")

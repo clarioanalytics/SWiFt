@@ -1,14 +1,15 @@
 package com.clario.swift.examples;
 
-import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
+import com.clario.swift.action.ActionRetryPolicy;
 import com.clario.swift.action.ActivityAction;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.examples.Config.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -33,7 +34,10 @@ public class RetryActivityWorkflow extends Workflow {
         .withStartToCloseTimeout(MINUTES, 1)
         .withScheduleToStartTimeout(MINUTES, 1)
         .withHeartBeatTimeoutTimeout(MINUTES, 1)
-        .withExponentialRetry(new ExponentialRetryPolicy(5)
+        .withRetryPolicy(new ActionRetryPolicy()
+                .withInitialRetryInterval(TimeUnit.SECONDS, 5)
+                .withMaximumRetryInterval(TimeUnit.MINUTES, 1)
+                .withRetryExpirationInterval(TimeUnit.HOURS, 1)
                 .withMaximumAttempts(20)
         );
 
@@ -55,7 +59,7 @@ public class RetryActivityWorkflow extends Workflow {
         }
 
         if (step1.withInput(failUntilTime).decide(decisions).isSuccess()) {
-            long times = step1.getRetryTimerStartedEvents().size();
+            int times = step1.getRetryCount();
             log.info("Activity succeeded after " + times + " times.");
             decisions.add(createCompleteWorkflowExecutionDecision("finished ok!"));
         }

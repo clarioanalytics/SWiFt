@@ -1,5 +1,6 @@
 package com.clario.swift;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.*;
@@ -151,5 +152,27 @@ public class SwiftUtilTest {
         assertEquals(String.valueOf(1), calcTimeoutString(TimeUnit.SECONDS, 1));
         assertEquals(String.valueOf(60), calcTimeoutString(TimeUnit.MINUTES, 1));
         assertEquals(String.valueOf(60 * 60), calcTimeoutString(TimeUnit.HOURS, 1));
+    }
+
+    @Test
+    public void testCalcWorkflowId() throws Exception {
+        assertWorkflowId("", "");
+        assertWorkflowId("A B C", "A_B_C");
+        assertWorkflowId("A  B  C", "A__B__C");
+        assertWorkflowId(" A  B  C ", "A__B__C");
+        String name = "";
+        for (char i = 0; i < MAX_ID_LENGTH + 10; i++) {
+            name += i % 10;
+            assertWorkflowId(name, trimToMaxLength(name, MAX_ID_LENGTH - 25));
+        }
+    }
+
+    private void assertWorkflowId(String name, String expected) {
+        String regEx = "\\.\\d{4}-\\d{2}-\\d{2}T\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{3}Z";
+        String uniqueWorkflowId = createUniqueWorkflowId(name);
+        Assert.assertTrue(uniqueWorkflowId.matches(".*" + regEx));
+        String[] split = uniqueWorkflowId.split(regEx);
+        String actual = split.length == 0 ? "" : split[0];
+        Assert.assertEquals(expected, actual);
     }
 }
