@@ -1,8 +1,6 @@
 package com.clario.swift.action;
 
-import com.amazonaws.services.simpleworkflow.model.EventType;
-import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
-import com.amazonaws.services.simpleworkflow.model.TimerFiredEventAttributes;
+import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.ActionHistoryEvent;
 import org.joda.time.DateTime;
 import org.junit.Test;
@@ -10,11 +8,12 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.amazonaws.services.simpleworkflow.model.EventType.ActivityTaskFailed;
 import static com.clario.swift.action.RetryPolicy.DEFAULT_INITIAL_RETRY_INTERVAL;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class RetryPolicyTest {
 
@@ -26,6 +25,39 @@ public class RetryPolicyTest {
     @Test(expected = IllegalStateException.class)
     public void testValidateMaxRetryIntervalLTInitial() {
         new RetryPolicy().withMaximumRetryInterval(SECONDS, 4).validate();
+    }
+
+    @Test
+    public void testMatchesRegEx() {
+        MockRetry retry = createMockRetry();
+        HistoryEvent he = new HistoryEvent();
+        he.setEventType(ActivityTaskFailed);
+        he.setActivityTaskFailedEventAttributes(new ActivityTaskFailedEventAttributes()
+            .withReason("WTF ERROR: something wicked this way came")
+            .withDetails("java.lang.IllegalStateException: Failed to invoke with: step1: 1.0 at ...."));
+        retry.currentHistoryEvent = new ActionHistoryEvent(he);
+
+        List<Decision> decisions = new ArrayList<>();
+
+        retry.withStopIfReasonMatches(".*IllegalStateException.*");
+        assertFalse(retry.decide(decisions));
+
+        retry.withStopIfReasonMatches(".*step\\d.*");
+        assertFalse(retry.decide(decisions));
+
+        retry.withStopIfReasonMatches(".*w.cked.*came.*");
+        assertFalse(retry.decide(decisions));
+
+        retry.withStopIfReasonMatches("^WTF.*");
+        assertFalse(retry.decide(decisions));
+
+        assertEquals(0, decisions.size());
+
+        retry.withStopIfReasonMatches("IllegalStateException");
+        assertTrue(retry.decide(decisions));
+        retry.withStopIfReasonMatches("XYZ");
+        assertTrue(retry.decide(decisions));
+        assertEquals(2, decisions.size());
     }
 
     @Test

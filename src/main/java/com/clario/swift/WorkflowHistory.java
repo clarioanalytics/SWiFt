@@ -8,7 +8,7 @@ import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionSignaledEven
 import java.util.*;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
-import static com.clario.swift.action.Action.RETRY_CONTROL_VALUE;
+import static com.clario.swift.action.RetryPolicy.RETRY_CONTROL_VALUE;
 
 /**
  * Container class of {@link HistoryEvent}s for the current decision task.

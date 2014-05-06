@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
@@ -28,7 +27,6 @@ import static java.lang.String.format;
 public abstract class Action<T extends Action> {
 
     /** String used as control value on start timer events to mark them as 'retry' timers. */
-    public static final String RETRY_CONTROL_VALUE = "--  SWiFt Retry Control Value --";
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     private final String actionId;
@@ -37,7 +35,6 @@ public abstract class Action<T extends Action> {
     private RetryPolicy retryPolicy;
     private boolean failWorkflowOnError = true;
     private boolean completeWorkflowOnSuccess = false;
-    private long retryCount;
 
     /**
      * Each action requires a workflow-unique identifier.
@@ -169,19 +166,8 @@ public abstract class Action<T extends Action> {
                 break;
 
             case error:
-                if (retryPolicy != null) {
-                    String reason = getCurrentHistoryEvent().getErrorReason();
-                    int delaySeconds = retryPolicy.nextRetryDelaySeconds();
-                    if (delaySeconds >= 0) {
-                        TimerAction timer = new TimerAction(getActionId())
-                            .withStartToFireTimeout(TimeUnit.SECONDS, delaySeconds)
-                            .withControl(RETRY_CONTROL_VALUE);
-                        log.info(format("%s error, will retry after %d seconds. reason:%s", this, delaySeconds, reason));
-                        decisions.add(timer.createInitiateActivityDecision());
-                        break;
-                    } else {
-                        log.info(format("%s error, retry policy has no more attempts. reason:%s", this, reason));
-                    }
+                if (retryPolicy != null && retryPolicy.decide(decisions)) {
+                    break;
                 }
                 if (failWorkflowOnError) {
                     decisions.add(createFailWorkflowExecutionDecision(format("%s error, decide fail workflow", this), null));
@@ -244,6 +230,7 @@ public abstract class Action<T extends Action> {
      */
     public abstract Decision createInitiateActivityDecision();
 
+    Logger getLogger() { return log; }
 
     /** Two actions are considered equal if their id is equal. */
     @Override

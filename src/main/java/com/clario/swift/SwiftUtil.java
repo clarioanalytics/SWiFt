@@ -6,9 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -17,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
+import static java.nio.charset.Charset.defaultCharset;
+import static java.nio.file.Files.readAllLines;
 
 /**
  * Utility methods.
@@ -251,5 +257,28 @@ public class SwiftUtil {
         String timestamp = "." + timestamp().replaceAll(":", ".");
         name = trimToMaxLength(name, MAX_ID_LENGTH - timestamp.length());
         return assertSwfValue(name + timestamp);
+    }
+
+
+    /**
+     * Read a text file into a string.
+     *
+     * @param clazz clazz
+     * @param fileName file name
+     *
+     * @return file as string
+     * @throws IllegalArgumentException if file does not exist
+     */
+    public static String readFile(Class clazz, String fileName) {
+        try {
+            URL resource = clazz.getResource(fileName);
+            if (resource == null) {
+                throw new FileNotFoundException(format("%s.class.getResource(\"%s\") returned null", clazz.getName(), fileName));
+            }
+            Path p = Paths.get(resource.getPath());
+            return join(readAllLines(p, defaultCharset()), "\n");
+        } catch (Exception e) {
+            throw new IllegalArgumentException(format("Error reading file \"%s\"", fileName), e);
+        }
     }
 }

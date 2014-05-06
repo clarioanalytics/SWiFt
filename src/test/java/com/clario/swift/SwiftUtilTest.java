@@ -167,6 +167,16 @@ public class SwiftUtilTest {
         }
     }
 
+    @Test
+    public void testReadFile() {
+        assertEquals("A\nB\nC\nD", readFile(SwiftUtil.class, "SwiftUtilTestFile.txt"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testReadMissingFile() {
+        assertEquals("A\nB\nC\nD", readFile(SwiftUtil.class, "NotThere.txt"));
+    }
+
     private void assertWorkflowId(String name, String expected) {
         String regEx = "\\.\\d{4}-\\d{2}-\\d{2}T\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{3}Z";
         String uniqueWorkflowId = createUniqueWorkflowId(name);

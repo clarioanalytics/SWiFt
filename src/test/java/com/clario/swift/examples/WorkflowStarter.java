@@ -6,6 +6,7 @@ import com.clario.swift.Workflow;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.clario.swift.SwiftUtil.readFile;
 import static com.clario.swift.examples.Config.submit;
 
 /**
@@ -16,8 +17,6 @@ public class WorkflowStarter extends Workflow {
     public static final String STARTER_TASKLIST = "services-api";
     public static final String STARTER_WF_NAME = "API_Index_Document";
     public static final String STARTER_WF_VERSION = "1";
-    public static final String STARTER_INPUT = "{ \"type\": \"client\", \"id\": \"5002\" }";
-
 
     public WorkflowStarter() {
         super(STARTER_WF_NAME, STARTER_WF_VERSION);
@@ -29,7 +28,7 @@ public class WorkflowStarter extends Workflow {
             .withTaskList(STARTER_TASKLIST)
             .withExecutionStartToCloseTimeout(TimeUnit.HOURS, 1)
             .withTaskStartToCloseTimeout(TimeUnit.MINUTES, 30);
-        submit(workflow, STARTER_INPUT);
+        submit(workflow, readFile(WorkflowStarter.class, "WorkflowStarterInput.txt"));
     }
 
     @Override

@@ -1,17 +1,23 @@
 package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryPolicy;
+import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.EventType;
+import com.amazonaws.services.simpleworkflow.model.RespondActivityTaskFailedRequest;
 import com.clario.swift.ActionHistoryEvent;
+import com.clario.swift.SwiftUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
+import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerFired;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.pow;
+import static java.lang.String.format;
 import static org.joda.time.Seconds.seconds;
 import static org.joda.time.Seconds.secondsBetween;
 
@@ -23,9 +29,12 @@ import static org.joda.time.Seconds.secondsBetween;
  * @author George Coller
  */
 public class RetryPolicy {
+    public static final String RETRY_CONTROL_VALUE = "--  SWiFt Retry Control Value --";
     public static final int DEFAULT_INITIAL_RETRY_INTERVAL = 5;
+    public static final double DEFAULT_BACKOFF_COEFFICIENT = 2.0;
     private Action<?> action;
-    protected double backoffCoefficient = 2.0;
+    protected String stopIfReasonMatchesRegEx = null;
+    protected double backoffCoefficient = DEFAULT_BACKOFF_COEFFICIENT;
     protected int maximumAttempts = MAX_VALUE;
     protected Seconds initialRetryInterval = seconds(DEFAULT_INITIAL_RETRY_INTERVAL);
     protected Seconds maximumRetryInterval = seconds(MAX_VALUE);
@@ -71,6 +80,26 @@ public class RetryPolicy {
      */
     public RetryPolicy withMaximumAttempts(int maximumAttempts) {
         this.maximumAttempts = maximumAttempts > 0 ? maximumAttempts : MAX_VALUE;
+        return this;
+    }
+
+    /**
+     * Set a regular expression that will stop retries if it matches against the reason the action that caused the error.
+     * <p/>
+     * Note: When a Swift action throws an exception the message is recorded in {@link RespondActivityTaskFailedRequest#getReason}
+     * and the stack-trace is recorded in {@link RespondActivityTaskFailedRequest#getDetails} by the activity poller.
+     * On the decision side these two values are appended together and returned by {@link ActionHistoryEvent#getErrorReason()}.
+     * <p/>
+     * Possible usages:
+     * <ul>
+     * <li>Set match regular expression to ".*IllegalArgumentException.*" to stop retries if a {@link java.lang.IllegalArgumentException} was thrown by an action.</li>
+     * <li>Set match regular expression to a special string your Activity will include in an error message</li>
+     * </ul>
+     *
+     * @see String#matches(String) for Java regular expression and matching rules
+     */
+    public RetryPolicy withStopIfReasonMatches(String regularExpression) {
+        this.stopIfReasonMatchesRegEx = regularExpression;
         return this;
     }
 
@@ -135,6 +164,36 @@ public class RetryPolicy {
     }
 
     /**
+     * Made a decision using the current action state and this policy.
+     *
+     * @param decisions list of decisions for current polling
+     *
+     * @return true, if a retry decision was added, otherwise false
+     * @throws IllegalStateException if no action set.
+     */
+    public boolean decide(List<Decision> decisions) {
+        assertActionSet();
+        Logger log = action.getLogger();
+        String reason = getCurrentHistoryEvent().getErrorReason();
+        if (stopIfReasonMatchesRegEx != null && reason.matches(stopIfReasonMatchesRegEx)) {
+            log.info(format("%s no more attempts. matched reason: %s", this, reason));
+            return false;
+        }
+        int delaySeconds = nextRetryDelaySeconds();
+        if (delaySeconds >= 0) {
+            TimerAction timer = new TimerAction(action.getActionId())
+                .withStartToFireTimeout(TimeUnit.SECONDS, delaySeconds)
+                .withControl(RETRY_CONTROL_VALUE);
+            log.info(format("%s retry after %d seconds. reason: %s", this, delaySeconds, reason));
+            decisions.add(timer.createInitiateActivityDecision());
+            return true;
+        } else {
+            log.info(format("%s no more attempts. reason: %s", this, reason));
+            return false;
+        }
+    }
+
+    /**
      * Calculate the interval to wait in seconds before the next retry should be submitted.
      *
      * @return interval in seconds, or less than zero to indicate no retry
@@ -177,12 +236,22 @@ public class RetryPolicy {
 
     @Override
     public String toString() {
-        return "ActionRetryPolicy{" +
-            "initialRetryInterval=" + initialRetryInterval +
-            ", backoffCoefficient=" + backoffCoefficient +
-            ", maximumRetryInterval=" + maximumRetryInterval +
-            ", maximumAttempts=" + maximumAttempts +
-            ", retryExpirationInterval=" + retryExpirationInterval +
-            '}';
+        List<String> parts = new ArrayList<>();
+        if (initialRetryInterval.getSeconds() != DEFAULT_INITIAL_RETRY_INTERVAL) {
+            parts.add("initialRetryInterval=" + initialRetryInterval);
+        }
+        if (backoffCoefficient != DEFAULT_BACKOFF_COEFFICIENT) {
+            parts.add("backoffCoefficient=" + backoffCoefficient);
+        }
+        if (maximumAttempts != MAX_VALUE) {
+            parts.add("maximumAttempts=" + maximumAttempts);
+        }
+        if (retryExpirationInterval.getSeconds() != MAX_VALUE) {
+            parts.add("retryExpirationInterval=" + retryExpirationInterval);
+        }
+        if (stopIfReasonMatchesRegEx != null) {
+            parts.add("stopIfReasonMatchesRegEx=" + stopIfReasonMatchesRegEx);
+        }
+        return RetryPolicy.class.getSimpleName() + "{" + SwiftUtil.join(parts, ", ") + "}";
     }
 }
