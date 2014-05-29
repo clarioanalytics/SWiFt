@@ -29,9 +29,7 @@ public class TimerWorkflow extends Workflow {
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0")
-        .withStartToCloseTimeout(MINUTES, 2)
-        .withCompleteWorkflowOnSuccess();
+    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0").withStartToCloseTimeout(MINUTES, 2).withCompleteWorkflowOnSuccess();
     private final TimerAction timerStep1 = new TimerAction("timer1").withStartToFireTimeout(SECONDS, 30);
 
 

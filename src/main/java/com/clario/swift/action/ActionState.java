@@ -23,5 +23,8 @@ public enum ActionState {
     success,
 
     /** Action finished in an error state on SWF */
-    error
+    error,
+
+    /** Action state is undefined, used instead of 'null' */
+    undefined
 }

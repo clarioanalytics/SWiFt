@@ -1,11 +1,12 @@
 package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionAlreadyStartedException;
+import com.clario.swift.ActionHistoryEvent;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ContinueAsNewAction;
 
 import java.util.List;
-import java.util.Map;
 
 import static com.clario.swift.examples.Config.*;
 import static java.util.concurrent.TimeUnit.DAYS;
@@ -30,12 +31,16 @@ public class ContinuousWorkflow extends Workflow {
     private static final String WF_VERSION = "1.0";
 
     public static void main(String[] args) throws InterruptedException {
-        Workflow workflow = new ContinuousWorkflow()
-            .withDomain(SWIFT_DOMAIN)
-            .withTaskList(SWIFT_TASK_LIST)
-            .withExecutionStartToCloseTimeout(DAYS, 365)
-            .withTaskStartToCloseTimeout(MINUTES, 1);
-        submit(workflow, WF_ID, "1");
+        try {
+            Workflow workflow = new ContinuousWorkflow()
+                .withDomain(SWIFT_DOMAIN)
+                .withTaskList(SWIFT_TASK_LIST)
+                .withExecutionStartToCloseTimeout(DAYS, 365)
+                .withTaskStartToCloseTimeout(MINUTES, 1);
+            submit(workflow, WF_ID, "1");
+        } catch (WorkflowExecutionAlreadyStartedException e) {
+            log.warn(WF_NAME + " is already running");
+        }
     }
 
     private final ContinueAsNewAction continueAsNewAction = new ContinueAsNewAction("continueAsNew");
@@ -47,13 +52,13 @@ public class ContinuousWorkflow extends Workflow {
 
     @Override
     public void decide(List<Decision> decisions) {
-        Map<String, String> signals = getWorkflowHistory().getSignals();
+        List<ActionHistoryEvent> signals = getWorkflowHistory().getSignals();
         Integer input = Integer.valueOf(getWorkflowInput());
         if (signals.isEmpty()) {
             log.info("New workflow instance started with input " + input);
         } else {
             input++;
-            log.info("Signal received, continuing workflow with new input " + input);
+            log.info(String.format("Signal '%s' received, continuing workflow with new input %d", signals.get(0).getActionId(), input));
             continueAsNewAction.withInput(input.toString());
             continueAsNewAction.decide(decisions);
         }

@@ -3,7 +3,8 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.Action;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.SwiftUtil.*;
@@ -35,8 +36,6 @@ public abstract class Workflow {
     private String taskList;
     private String workflowId;
     private String runId;
-
-    private final Set<String> checkpoints = new LinkedHashSet<>();
 
     public Workflow(String name, String version) {
         this.name = assertSwfValue(assertMaxLength(name, MAX_NAME_LENGTH));
@@ -73,35 +72,6 @@ public abstract class Workflow {
     public abstract void decide(List<Decision> decisions);
 
     /**
-     * Override to add one or more strings that will match to either an {@link Action#actionId} or recorded SWF Marker name to indicate
-     * to the {@link DecisionPoller} that it can stop polling for more history for a given {@link DecisionTask}.
-     * <p/>
-     * Amazon limits the number of {@link HistoryEvent} returned when polling for the next decision task to 1000 at a time.  For
-     * complex workflows that generate thousands of events (note even a simple workflow can create several dozen events) it may
-     * be important to create polling checkpoints to reduce the load on {@link DecisionPoller} instances.
-     *
-     * @see #getCurrentCheckpoint()
-     */
-    public void withCheckpoints(String... checkpoints) {
-        Collections.addAll(this.checkpoints, checkpoints);
-    }
-
-    /**
-     * Return the most recent checkpoint value found in the added {@link HistoryEvent} for the current decision task;
-     *
-     * @return the checkpoint or null if none found;
-     * @see #withCheckpoints
-     */
-    public String getCurrentCheckpoint() {
-        for (String checkpoint : checkpoints) {
-            if (!workflowHistory.filterEvents(checkpoint).isEmpty() || workflowHistory.getMarkers().containsKey(checkpoint)) {
-                return checkpoint;
-            }
-        }
-        return null;
-    }
-
-    /**
      * Called by {@link DecisionPoller} to initialize workflow for a new decision task.
      */
     public void init() {
@@ -133,6 +103,24 @@ public abstract class Workflow {
      */
     public void addHistoryEvents(List<HistoryEvent> events) {
         workflowHistory.addHistoryEvents(events);
+    }
+
+    /**
+     * The decision poller calls this method after each call to {@link #addHistoryEvents}
+     * to see if it should continue polling for more history or if this workflow
+     * currently has enough history to make its next set of decisions.
+     * <p/>
+     * Amazon SWF only returns 1000 history events on each poll.
+     * For workflows that generate thousands of events this method can
+     * be overridden to improve performance.
+     * <p/>
+     * The default implementation assumes all history events are required
+     * before calling {@link #decide}
+     *
+     * @return true if more history required, else false.
+     */
+    public boolean isContinuePollingForHistoryEvents() {
+        return true;
     }
 
     /**

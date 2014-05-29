@@ -2,6 +2,7 @@ package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
+import com.clario.swift.action.RecordMarkerAction;
 import com.clario.swift.action.SignalWorkflowAction;
 import com.clario.swift.action.StartChildWorkflowAction;
 import com.clario.swift.action.TimerAction;
@@ -34,20 +35,25 @@ public class SignalWaitForSignalWorkflow extends Workflow {
 
     private final SignalWorkflowAction signal = new SignalWorkflowAction("signal")
         .withInput("999");
+
+    private final RecordMarkerAction marker = new RecordMarkerAction("childId");
+
     private final TimerAction timer = new TimerAction("timer")
         .withStartToFireTimeout(SECONDS, 2);
 
     public SignalWaitForSignalWorkflow() {
         super("Signal Wait For Signal Workflow", "1.0");
-        addActions(signal, timer);
+        addActions(signal, timer, marker);
     }
 
     @Override
     public void decide(List<Decision> decisions) {
         log.info("decide");
 
-        // Use markers to do things only once per workflow run
-        String childWorkflowId = markChildWorkflowId(decisions);
+        if (!marker.isSuccess()) {
+            marker.withDetails(createUniqueWorkflowId("Child Workflow")).decide(decisions);
+        }
+        String childWorkflowId = marker.getOutput();
 
         StartChildWorkflowAction childWorkflow = new StartChildWorkflowAction(childWorkflowId)
             .withNameVersion("Wait For Signal Workflow", "1.0")
@@ -77,14 +83,4 @@ public class SignalWaitForSignalWorkflow extends Workflow {
             }
         }
     }
-
-    protected String markChildWorkflowId(List<Decision> decisions) {
-        String childWorkflowId = workflowHistory.getMarkers().get("childWorkflowId");
-        if (childWorkflowId == null) {
-            childWorkflowId = createUniqueWorkflowId("Child Workflow");
-            decisions.add(createRecordMarkerDecision("childWorkflowId", childWorkflowId));
-        }
-        return childWorkflowId;
-    }
-
 }

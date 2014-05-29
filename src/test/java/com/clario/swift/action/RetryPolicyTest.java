@@ -40,23 +40,23 @@ public class RetryPolicyTest {
 
         List<Decision> decisions = new ArrayList<>();
 
-        retry.withStopIfReasonMatches(".*IllegalStateException.*");
+        retry.withStopIfErrorMatches(".*IllegalStateException.*");
         assertFalse(retry.decide(decisions));
 
-        retry.withStopIfReasonMatches(".*step\\d.*");
+        retry.withStopIfErrorMatches(".*step\\d.*");
         assertFalse(retry.decide(decisions));
 
-        retry.withStopIfReasonMatches(".*w.cked.*came.*");
+        retry.withStopIfErrorMatches(".*w.cked.*came.*");
         assertFalse(retry.decide(decisions));
 
-        retry.withStopIfReasonMatches("^WTF.*");
+        retry.withStopIfErrorMatches("^WTF.*");
         assertFalse(retry.decide(decisions));
 
         assertEquals(0, decisions.size());
 
-        retry.withStopIfReasonMatches("IllegalStateException");
+        retry.withStopIfErrorMatches("IllegalStateException");
         assertTrue(retry.decide(decisions));
-        retry.withStopIfReasonMatches("XYZ");
+        retry.withStopIfErrorMatches("XYZ");
         assertTrue(retry.decide(decisions));
         assertEquals(2, decisions.size());
     }

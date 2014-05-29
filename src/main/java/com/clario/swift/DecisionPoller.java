@@ -86,7 +86,7 @@ public class DecisionPoller extends BasePoller {
                     workflow.init();
                 }
                 workflow.addHistoryEvents(decisionTask.getEvents());
-                if (workflow.getCurrentCheckpoint() != null) {
+                if (workflow.isContinuePollingForHistoryEvents()) {
                     request.setNextPageToken(decisionTask.getNextPageToken());
                 }
             }
@@ -99,21 +99,26 @@ public class DecisionPoller extends BasePoller {
 
         if (workflowErrors.isEmpty()) {
             try {
-                if (log.isInfoEnabled()) {
-                    log.info(format("decide workflowId=%s,runId=%s", workflowId, runId));
-                }
                 workflow.decide(decisions);
-                if (log.isInfoEnabled()) {
-                    for (Decision decision : decisions) {
-                        log.info(format("decide %s : %s", workflowId, decision));
+                if (decisions.isEmpty()) {
+                    log.debug("{} no decisions", workflowId, runId);
+                } else {
+                    if (log.isInfoEnabled()) {
+                        for (Decision decision : decisions) {
+                            log.info("{} -> {}", workflowId, logNiceDecision(decision));
+                        }
+                    } else if (log.isDebugEnabled()) {
+                        for (Decision decision : decisions) {
+                            log.debug("{} -> {}", workflowId, decision);
+                        }
                     }
                 }
             } catch (Throwable t) {
-                log.error(format("decide workflowId=%s,runId=%s", workflowId, runId), t);
+                log.error(format("%s %s", workflowId, runId), t);
                 decisions.add(createFailWorkflowExecutionDecision("decide() threw an unhandled exception", printStackTrace(t)));
             }
         } else {
-            String errorMessage = format("decide workflowId=%s,runId=%s schedule activity errors:\n%s", workflowId, runId, join(workflowErrors, "\n"));
+            String errorMessage = format("%s %s - schedule activity errors:\n%s", workflowId, runId, join(workflowErrors, "\n"));
             log.error(errorMessage);
             decisions.add(createFailWorkflowExecutionDecision("One or more activities failed during scheduling", errorMessage));
         }
@@ -121,8 +126,51 @@ public class DecisionPoller extends BasePoller {
         try {
             swf.respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
         } catch (Exception e) {
-            log.error(format("decide %s %s", workflowId, workflow), e);
+            log.error(format("%s: %s", workflowId, workflow), e);
         }
+    }
+
+    public static String logNiceDecision(Decision decision) {
+        String decisionType = decision.getDecisionType();
+        switch (DecisionType.valueOf(decision.getDecisionType())) {
+            case ScheduleActivityTask:
+                ScheduleActivityTaskDecisionAttributes a1 = decision.getScheduleActivityTaskDecisionAttributes();
+                return String.format("%s['%s' '%s': %s %s]", decisionType, a1.getActivityId(), a1.getActivityType().getName(), a1.getInput(), a1.getControl());
+            case CompleteWorkflowExecution:
+                CompleteWorkflowExecutionDecisionAttributes a2 = decision.getCompleteWorkflowExecutionDecisionAttributes();
+                return String.format("%s[%s]", decisionType, a2.getResult());
+            case FailWorkflowExecution:
+                FailWorkflowExecutionDecisionAttributes a3 = decision.getFailWorkflowExecutionDecisionAttributes();
+                return String.format("%s[%s %s]", decisionType, a3.getReason(), a3.getDetails());
+            case CancelWorkflowExecution:
+                CancelWorkflowExecutionDecisionAttributes a4 = decision.getCancelWorkflowExecutionDecisionAttributes();
+                return String.format("%s[%s]", decisionType, a4.getDetails());
+            case ContinueAsNewWorkflowExecution:
+                ContinueAsNewWorkflowExecutionDecisionAttributes a5 = decision.getContinueAsNewWorkflowExecutionDecisionAttributes();
+                return String.format("%s[%s]", decisionType, a5.getInput());
+            case RecordMarker:
+                RecordMarkerDecisionAttributes a6 = decision.getRecordMarkerDecisionAttributes();
+                return String.format("%s['%s': %s]", decisionType, a6.getMarkerName(), a6.getDetails());
+            case StartTimer:
+                StartTimerDecisionAttributes a7 = decision.getStartTimerDecisionAttributes();
+                return String.format("%s['%s': %s]", decisionType, a7.getTimerId(), a7.getControl());
+            case CancelTimer:
+                CancelTimerDecisionAttributes a8 = decision.getCancelTimerDecisionAttributes();
+                return String.format("%s['%s']", decisionType, a8.getTimerId());
+            case SignalExternalWorkflowExecution:
+                SignalExternalWorkflowExecutionDecisionAttributes a9 = decision.getSignalExternalWorkflowExecutionDecisionAttributes();
+                return String.format("%s['%s' wf='%s' runId='%s': '%s' '%s']", decisionType, a9.getSignalName(), a9.getWorkflowId(), a9.getRunId(), a9.getInput(), a9.getControl());
+            case RequestCancelExternalWorkflowExecution:
+                RequestCancelExternalWorkflowExecutionDecisionAttributes a10 = decision.getRequestCancelExternalWorkflowExecutionDecisionAttributes();
+                return String.format("%s[wf='%s' runId='%s': '%s']", decisionType, a10.getWorkflowId(), a10.getRunId(), a10.getControl());
+            case StartChildWorkflowExecution:
+                StartChildWorkflowExecutionDecisionAttributes a11 = decision.getStartChildWorkflowExecutionDecisionAttributes();
+                return String.format("%s['%s' '%s': '%s' '%s']", decisionType, a11.getWorkflowId(), a11.getWorkflowType().getName(), a11.getInput(), a11.getControl());
+            case RequestCancelActivityTask:
+                RequestCancelActivityTaskDecisionAttributes a12 = decision.getRequestCancelActivityTaskDecisionAttributes();
+                return String.format("%s[%s]", decisionType, a12.getActivityId());
+        }
+        return null;
     }
 
     private Workflow lookupWorkflow(DecisionTask decisionTask) {

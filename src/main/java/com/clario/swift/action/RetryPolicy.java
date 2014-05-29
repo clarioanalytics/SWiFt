@@ -12,9 +12,11 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerFired;
+import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.pow;
 import static java.lang.String.format;
@@ -33,7 +35,7 @@ public class RetryPolicy {
     public static final int DEFAULT_INITIAL_RETRY_INTERVAL = 5;
     public static final double DEFAULT_BACKOFF_COEFFICIENT = 2.0;
     private Action<?> action;
-    protected String stopIfReasonMatchesRegEx = null;
+    protected String stopIfErrorMatchesRegEx = null;
     protected double backoffCoefficient = DEFAULT_BACKOFF_COEFFICIENT;
     protected int maximumAttempts = MAX_VALUE;
     protected Seconds initialRetryInterval = seconds(DEFAULT_INITIAL_RETRY_INTERVAL);
@@ -84,11 +86,10 @@ public class RetryPolicy {
     }
 
     /**
-     * Set a regular expression that will stop retries if it matches against the reason the action that caused the error.
+     * Set a regular expression that will stop retries if it matches against the reason or details of the action that caused the error.
      * <p/>
      * Note: When a Swift action throws an exception the message is recorded in {@link RespondActivityTaskFailedRequest#getReason}
      * and the stack-trace is recorded in {@link RespondActivityTaskFailedRequest#getDetails} by the activity poller.
-     * On the decision side these two values are appended together and returned by {@link ActionHistoryEvent#getErrorReason()}.
      * <p/>
      * Possible usages:
      * <ul>
@@ -98,8 +99,8 @@ public class RetryPolicy {
      *
      * @see String#matches(String) for Java regular expression and matching rules
      */
-    public RetryPolicy withStopIfReasonMatches(String regularExpression) {
-        this.stopIfReasonMatchesRegEx = regularExpression;
+    public RetryPolicy withStopIfErrorMatches(String regularExpression) {
+        this.stopIfErrorMatchesRegEx = regularExpression;
         return this;
     }
 
@@ -132,7 +133,15 @@ public class RetryPolicy {
      */
     List<ActionHistoryEvent> getRetryTimerStartedEvents() {
         assertActionSet();
-        return action.getWorkflow().getWorkflowHistory().filterRetryTimerStartedEvents(action.getActionId());
+        List<ActionHistoryEvent> events = action.filterEvents(TimerStarted);
+        ListIterator<ActionHistoryEvent> iter = events.listIterator();
+        while (iter.hasNext()) {
+            ActionHistoryEvent event = iter.next();
+            if (!RETRY_CONTROL_VALUE.equals(event.getData())) {
+                iter.remove();
+            }
+        }
+        return events;
     }
 
     /**
@@ -164,7 +173,9 @@ public class RetryPolicy {
     }
 
     /**
-     * Made a decision using the current action state and this policy.
+     * Make a decision using the current action state and this policy.
+     * A retry decision is made by creating a {@link TimerAction}
+     * with the same actionId as the original action.
      *
      * @param decisions list of decisions for current polling
      *
@@ -173,22 +184,32 @@ public class RetryPolicy {
      */
     public boolean decide(List<Decision> decisions) {
         assertActionSet();
-        Logger log = action.getLogger();
-        String reason = getCurrentHistoryEvent().getErrorReason();
-        if (stopIfReasonMatchesRegEx != null && reason.matches(stopIfReasonMatchesRegEx)) {
-            log.info(format("%s no more attempts. matched reason: %s", this, reason));
-            return false;
+        Logger log = action.getLog();
+        ActionHistoryEvent currentHistoryEvent = getCurrentHistoryEvent();
+        String reason = currentHistoryEvent.getData();
+        String details = SwiftUtil.defaultIfEmpty(currentHistoryEvent.getData2(), "");
+        if (stopIfErrorMatchesRegEx != null) {
+            if (reason.matches(stopIfErrorMatchesRegEx)) {
+                log.info(format("%s no more attempts. matched reason: %s", this, reason));
+                return false;
+            }
+            if (details.matches(stopIfErrorMatchesRegEx)) {
+                log.info(format("%s no more attempts. matched details: %s", this, reason));
+                return false;
+            }
         }
+        String description = reason + (details.isEmpty() ? "" : "\n") + details;
+
         int delaySeconds = nextRetryDelaySeconds();
         if (delaySeconds >= 0) {
             TimerAction timer = new TimerAction(action.getActionId())
                 .withStartToFireTimeout(TimeUnit.SECONDS, delaySeconds)
                 .withControl(RETRY_CONTROL_VALUE);
-            log.info(format("%s retry after %d seconds. reason: %s", this, delaySeconds, reason));
+            log.info(format("%s retry after %d seconds: %s", this, delaySeconds, description));
             decisions.add(timer.createInitiateActivityDecision());
             return true;
         } else {
-            log.info(format("%s no more attempts. reason: %s", this, reason));
+            log.info(format("%s no more attempts: %s", this, description));
             return false;
         }
     }
@@ -221,7 +242,7 @@ public class RetryPolicy {
 
     // Exposed for unit testing
     protected ActionHistoryEvent getCurrentHistoryEvent() {
-        return action.getCurrentHistoryEvent();
+        return action.getCurrentEvent();
     }
 
     private void assertActionSet() {
@@ -249,8 +270,8 @@ public class RetryPolicy {
         if (retryExpirationInterval.getSeconds() != MAX_VALUE) {
             parts.add("retryExpirationInterval=" + retryExpirationInterval);
         }
-        if (stopIfReasonMatchesRegEx != null) {
-            parts.add("stopIfReasonMatchesRegEx=" + stopIfReasonMatchesRegEx);
+        if (stopIfErrorMatchesRegEx != null) {
+            parts.add("stopIfReasonMatchesRegEx=" + stopIfErrorMatchesRegEx);
         }
         return RetryPolicy.class.getSimpleName() + "{" + SwiftUtil.join(parts, ", ") + "}";
     }

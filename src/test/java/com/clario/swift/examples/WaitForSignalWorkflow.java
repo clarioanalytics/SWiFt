@@ -1,14 +1,13 @@
 package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.clario.swift.ActionHistoryEvent;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static com.clario.swift.examples.Config.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -42,11 +41,11 @@ public class WaitForSignalWorkflow extends Workflow {
     @Override
     public void decide(List<Decision> decisions) {
         // Wait until a signal is received, then do a activity
-        Map<String, String> signals = getWorkflowHistory().getSignals();
+        List<ActionHistoryEvent> signals = getWorkflowHistory().getSignals();
         if (signals.isEmpty()) {
             log.info("No signal received yet");
         } else {
-            String signalValue = new ArrayList<>(signals.values()).get(0);
+            String signalValue = signals.get(0).getData();
             if (step1
                 .withInput(signalValue)
                 .decide(decisions).isSuccess()) {

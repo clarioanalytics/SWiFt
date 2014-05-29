@@ -134,9 +134,9 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see #getState()
      */
     public String getChildRunId() {
-        for (ActionHistoryEvent event : getHistoryEvents()) {
+        for (ActionHistoryEvent event : getEvents()) {
             if (event.getType() == EventType.ChildWorkflowExecutionStarted) {
-                return event.getHistoryEvent().getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getRunId();
+                return event.getData();
             }
         }
         throw new UnsupportedOptionException(format("RunId not available %s %s", this, getState()));

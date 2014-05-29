@@ -8,6 +8,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import org.junit.Test;
 
+import java.util.List;
+
 import static com.clario.swift.SwiftUtil.readFile;
 import static org.junit.Assert.assertEquals;
 
@@ -25,25 +27,28 @@ public class WorkflowHistoryTest {
     @Test
     public void testFilterEvents() throws Exception {
         WorkflowHistory history = loadWorkflow("SimpleWorkflowHistory.json");
-        assertEquals(3, history.filterEvents("step1").size());
-        assertEquals(3, history.filterEvents("step2").size());
-        assertEquals(3, history.filterEvents("step3").size());
+        assertEquals(3, history.filterActionEvents("step1").size());
+        assertEquals(3, history.filterActionEvents("step2").size());
+        assertEquals(3, history.filterActionEvents("step3").size());
     }
 
 
     @Test
     public void testGetMarkers() throws Exception {
         WorkflowHistory history = loadWorkflow("RetryWorkflowHistory.json");
-        assertEquals(1, history.getMarkers().size());
-        assertEquals("1398724533227", history.getMarkers().get("failUntilTime"));
+        List<ActionHistoryEvent> markers = history.getMarkers();
+        assertEquals(1, markers.size());
+        assertEquals("failUntilTime", markers.get(0).getActionId());
+        assertEquals("1398724533227", markers.get(0).getData());
     }
 
     @Test
     public void testGetSignals() throws Exception {
         WorkflowHistory history = loadWorkflow("WaitForSignalWorkflow.json");
-        assertEquals(1, history.getSignals().size());
-        assertEquals("99", history.getSignals().get("Boo"));
-
+        List<ActionHistoryEvent> signals = history.getSignals();
+        assertEquals(1, signals.size());
+        assertEquals("Boo", signals.get(0).getActionId());
+        assertEquals("99", signals.get(0).getData());
     }
 
     @Test

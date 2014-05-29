@@ -2,6 +2,7 @@ package com.clario.swift.examples;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
+import com.clario.swift.action.RecordMarkerAction;
 import com.clario.swift.action.StartChildWorkflowAction;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -28,8 +29,11 @@ public class StartChildWorkflow extends Workflow {
         submit(workflow, "100");
     }
 
+    private final RecordMarkerAction childWorkflowIdMarker = new RecordMarkerAction("childWorkflowId");
+
     public StartChildWorkflow() {
         super("Start Child Workflow", "1.0");
+        addActions(childWorkflowIdMarker);
     }
 
     @Override
@@ -41,11 +45,11 @@ public class StartChildWorkflow extends Workflow {
         // Markers come in handy for this since they are persisted in the workflow state.
         // A signal could also be used but then we'd have to wait until the next poll cycle to start the child workflow
 
-        String childWorkflowId = workflowHistory.getMarkers().get("childWorkflowId");
-        if (childWorkflowId == null) {
-            childWorkflowId = createUniqueWorkflowId("Child Workflow");
-            decisions.add(createRecordMarkerDecision("childWorkflowId", childWorkflowId));
+        if (!childWorkflowIdMarker.isSuccess()) {
+            childWorkflowIdMarker.withDetails(createUniqueWorkflowId("Child Workflow"))
+                .decide(decisions);
         }
+        String childWorkflowId = childWorkflowIdMarker.getOutput();
 
         StartChildWorkflowAction startChildWorkflow = createChildWorkflow(childWorkflowId);
         startChildWorkflow.setWorkflow(this);

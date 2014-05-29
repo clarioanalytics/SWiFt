@@ -71,17 +71,14 @@ public class ActivityPoller extends BasePoller {
         }
 
         String input = task.getInput();
-        String key = makeKey(task.getActivityType().getName(), task.getActivityType().getVersion());
+        String name = task.getActivityType().getName();
+        String key = makeKey(name, task.getActivityType().getVersion());
         try {
-            if (log.isInfoEnabled()) {
-                log.info(format("invoke %s %s(%s)", task.getActivityId(), key, input));
-            }
+            log.debug("start: '{}' '{}' '{}'", task.getActivityId(), name, input);
             if (activityMap.containsKey(key)) {
                 String result = activityMap.get(key).invoke(task, input);
 
-                if (log.isInfoEnabled()) {
-                    log.info(format("completed %s %s(%s)=%s", task.getActivityId(), key, input, result));
-                }
+                log.info("'{}' '{}' '{}' -> '{}'", task.getActivityId(), key, input, result);
                 swf.respondActivityTaskCompleted(createRespondActivityCompleted(task, result));
             } else {
                 String format = format("Activity '%s' not registered on poller %s", task, getId());
@@ -91,7 +88,7 @@ public class ActivityPoller extends BasePoller {
                 );
             }
         } catch (Exception e) {
-            log.error(format("failed %s %s(%s)", task.getActivityId(), key, input));
+            log.error("'{}' '{}' '{}'", task.getActivityId(), key, input);
             swf.respondActivityTaskFailed(
                 createRespondActivityTaskFailed(task.getTaskToken(), e.getMessage(), printStackTrace(e))
             );
@@ -173,6 +170,7 @@ public class ActivityPoller extends BasePoller {
         }
 
         String invoke(final ActivityTask task, String input) {
+            String name = task.getActivityType() == null ? "unknown" : task.getActivityType().getName();
             try {
                 this.task = task;
                 this.input = input;
@@ -182,12 +180,12 @@ public class ActivityPoller extends BasePoller {
                 } else {
                     String resultString = result.toString();
                     if (resultString.length() > MAX_RESULT_LENGTH) {
-                        poller.log.warn(format("Activity %s returned result string longer than allowed %d characters, was trimmed\nresult was \"%s\"", task, MAX_RESULT_LENGTH, resultString));
+                        poller.log.warn(format("Activity '%s' '%s' returned result string longer than allowed %d characters, was trimmed\nresult was \"%s\"", task.getActivityId(), name, MAX_RESULT_LENGTH, resultString));
                     }
                     return trimToMaxLength(resultString, MAX_RESULT_LENGTH);
                 }
             } catch (Throwable e) {
-                throw new IllegalStateException(format("Failed to invoke with: %s: %s", task.getActivityId(), input), e);
+                throw new IllegalStateException(format("error: '%s' '%s' '%s'", task.getActivityId(), name, input), e);
             }
         }
 

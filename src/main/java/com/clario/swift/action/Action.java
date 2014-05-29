@@ -2,6 +2,7 @@ package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
+import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.clario.swift.ActionHistoryEvent;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.Workflow;
@@ -26,8 +27,7 @@ import static java.lang.String.format;
  */
 public abstract class Action<T extends Action> {
 
-    /** String used as control value on start timer events to mark them as 'retry' timers. */
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log;
 
     private final String actionId;
 
@@ -43,6 +43,7 @@ public abstract class Action<T extends Action> {
      */
     public Action(String actionId) {
         this.actionId = assertSwfValue(assertMaxLength(actionId, MAX_ID_LENGTH));
+        log = LoggerFactory.getLogger(String.format("%s '%s'", getClass().getSimpleName(), getActionId()));
     }
 
     /**
@@ -123,7 +124,7 @@ public abstract class Action<T extends Action> {
      */
     public String getOutput() {
         if (isSuccess()) {
-            return getCurrentHistoryEvent().getResult();
+            return getCurrentEvent().getData();
         } else {
             throw new IllegalStateException("method not available when action state is " + getState());
         }
@@ -155,13 +156,15 @@ public abstract class Action<T extends Action> {
             case active:
                 break;
             case success:
-                log.info(format("%s completed", this));
                 if (completeWorkflowOnSuccess) {
                     decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
+                    log.debug("success, workflow complete: {}", getOutput());
+                } else {
+                    log.debug("success: {}", getOutput());
                 }
                 break;
             case retry:
-                log.info(format("%s decide retry", this));
+                log.info("decide retry");
                 decisions.add(createInitiateActivityDecision());
                 break;
 
@@ -186,7 +189,7 @@ public abstract class Action<T extends Action> {
      * @see ActionState for details on how state is calculated
      */
     public ActionState getState() {
-        ActionHistoryEvent currentEvent = getCurrentHistoryEvent();
+        ActionHistoryEvent currentEvent = getCurrentEvent();
         if (currentEvent == null) {
             return initial;
         } else if (retryPolicy != null && retryPolicy.isRetryTimerEvent(currentEvent)) {
@@ -208,8 +211,8 @@ public abstract class Action<T extends Action> {
      *
      * @return most recent history event polled for this action.
      */
-    public ActionHistoryEvent getCurrentHistoryEvent() {
-        List<ActionHistoryEvent> events = getHistoryEvents();
+    public ActionHistoryEvent getCurrentEvent() {
+        List<ActionHistoryEvent> events = getEvents();
         return events.isEmpty() ? null : events.get(0);
     }
 
@@ -219,10 +222,19 @@ public abstract class Action<T extends Action> {
      * The list is sorted by {@link ActionHistoryEvent#getEventTimestamp()} in descending order (most recent events first).
      *
      * @return list of events or empty list.
-     * @see WorkflowHistory#filterEvents
+     * @see WorkflowHistory#filterActionEvents
      */
-    public List<ActionHistoryEvent> getHistoryEvents() {
-        return workflow.getWorkflowHistory().filterEvents(actionId);
+    public List<ActionHistoryEvent> getEvents() {
+        return workflow.getWorkflowHistory().filterActionEvents(actionId);
+    }
+
+    /**
+     * Filter this action's events by event type.
+     *
+     * @see WorkflowHistory#filterEvents)
+     */
+    public List<ActionHistoryEvent> filterEvents(EventType eventType) {
+        return workflow.getWorkflowHistory().filterEvents(actionId, eventType);
     }
 
     /**
@@ -230,7 +242,9 @@ public abstract class Action<T extends Action> {
      */
     public abstract Decision createInitiateActivityDecision();
 
-    Logger getLogger() { return log; }
+    Logger getLog() {
+        return log;
+    }
 
     /** Two actions are considered equal if their id is equal. */
     @Override
@@ -247,5 +261,4 @@ public abstract class Action<T extends Action> {
     public String toString() {
         return format("%s %s", getClass().getSimpleName(), getActionId());
     }
-
 }

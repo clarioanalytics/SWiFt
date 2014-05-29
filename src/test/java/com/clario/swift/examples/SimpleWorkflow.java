@@ -20,8 +20,8 @@ public class SimpleWorkflow extends Workflow {
         Workflow workflow = new SimpleWorkflow()
             .withDomain(SWIFT_DOMAIN)
             .withTaskList(SWIFT_TASK_LIST)
-            .withExecutionStartToCloseTimeout(MINUTES, 1)
-            .withTaskStartToCloseTimeout(SECONDS, 20)
+            .withExecutionStartToCloseTimeout(MINUTES, 5)
+            .withTaskStartToCloseTimeout(SECONDS, 30)
             .withChildPolicy(TERMINATE)
             .withDescription("A Simple Example Workflow");
         submit(workflow, "100");

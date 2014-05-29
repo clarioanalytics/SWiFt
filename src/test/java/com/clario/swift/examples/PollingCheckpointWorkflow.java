@@ -33,14 +33,18 @@ public class PollingCheckpointWorkflow extends Workflow {
 
     public PollingCheckpointWorkflow() {
         super("Polling Checkpoint Workflow", "1.0");
-        withCheckpoints("step3");
         addActions(step1, step2a, step2b, step3, step4, step5);
+    }
+
+    @Override
+    public boolean isContinuePollingForHistoryEvents() {
+        return !step3.isSuccess();
     }
 
     @Override
     public void decide(List<Decision> decisions) {
         // jump ahead on step 3 finish
-        if (!"step3".equals(getCurrentCheckpoint())) {
+        if (!step3.isSuccess()) {
             if (step1.withInput(getWorkflowInput()).decide(decisions).isSuccess()) {
                 String step1Output = step1.getOutput();
                 // Example Split
