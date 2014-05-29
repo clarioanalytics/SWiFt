@@ -33,6 +33,7 @@ public class RetryPolicyTest {
         HistoryEvent he = new HistoryEvent();
         he.setEventType(ActivityTaskFailed);
         he.setActivityTaskFailedEventAttributes(new ActivityTaskFailedEventAttributes()
+            .withScheduledEventId(123L)
             .withReason("WTF ERROR: something wicked this way came")
             .withDetails("java.lang.IllegalStateException: Failed to invoke with: step1: 1.0 at ...."));
         retry.currentHistoryEvent = new ActionHistoryEvent(he);
@@ -179,6 +180,7 @@ public class RetryPolicyTest {
         he.setEventId(eventId);
         he.setEventTimestamp(time.toDate());
         he.setEventType(EventType.TimerStarted);
+        he.setTimerStartedEventAttributes(new TimerStartedEventAttributes());
         return new ActionHistoryEvent(he);
     }
 }

@@ -1,12 +1,14 @@
 package com.clario.swift;
 
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
-import com.amazonaws.services.simpleworkflow.model.EventType;
-import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
+import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.ActionState;
 import org.joda.time.DateTime;
 
-import static com.amazonaws.services.simpleworkflow.model.EventType.*;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.clario.swift.ActionHistoryEvent.EventField.*;
 import static com.clario.swift.action.ActionState.*;
 
 /**
@@ -21,8 +23,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
 
     private final HistoryEvent historyEvent;
     private final EventType eventType;
-    private final Long initialEventId;
-    private final boolean isInitialEvent;
+    private final Map<EventField, String> fields;
 
     /**
      * Construct using an SWF <code>HistoryEvent</code>.
@@ -33,11 +34,13 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
      * @see #isActionHistoryEvent(HistoryEvent)
      */
     public ActionHistoryEvent(HistoryEvent historyEvent) {
-        if (isActionHistoryEvent(historyEvent)) {
+        fields = mapFields(historyEvent);
+
+        if (fields.containsKey(state)) {
             this.historyEvent = historyEvent;
             this.eventType = EventType.valueOf(historyEvent.getEventType());
-            this.isInitialEvent = isInitialEventType(eventType);
-            this.initialEventId = findInitialEventId(historyEvent);
+//            this.isInitialEvent = isInitialEventType(eventType);
+//            this.initialEventId = findInitialEventId(historyEvent);
         } else {
             throw new IllegalArgumentException("HistoryEvent type is not allowable: " + historyEvent);
         }
@@ -56,13 +59,13 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
 
     /**
      * Initial action events have an {@link #getType()} that starts an activity, timer, or child workflow decision.
-     * Clients can use this to check if {@link #getEventId()} is available for this instance.
+     * Clients can use this to check if {@link #getActionId()} is available for this instance.
      *
      * @return true if action type is an initial action event
-     * @see #getEventId()
+     * @see #getActionId()
      */
     public boolean isInitialEvent() {
-        return isInitialEvent;
+        return fields.containsKey(actionId);
     }
 
     /**
@@ -71,8 +74,8 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
      * @see #isInitialEvent()
      */
     public String getActionId() {
-        if (isInitialEvent) {
-            return findActionId(historyEvent);
+        if (isInitialEvent()) {
+            return fields.get(actionId);
         } else {
             throw new UnsupportedOperationException("Cannot get action id on non-initial action event: " + this);
         }
@@ -104,7 +107,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
      * If this event is an initial event, return its event id
      * otherwise return it's pointer to the initial history event id
      */
-    public Long getInitialEventId() { return initialEventId; }
+    public Long getInitialEventId() { return Long.valueOf(fields.get(initialEventId)); }
 
     /**
      * Return the result for actions that have a result-producing {@link HistoryEvent}.
@@ -127,126 +130,11 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
     //
 
     /**
-     * @return true if type indicates an event that initiated an action.
-     */
-    static boolean isInitialEventType(EventType eventType) {
-        return ActivityTaskScheduled == eventType
-            || TimerStarted == eventType
-            || StartChildWorkflowExecutionInitiated == eventType
-            || SignalExternalWorkflowExecutionInitiated == eventType;
-    }
-
-    /**
      * @return map an EventType to an action state.
      */
     static ActionState findActionState(HistoryEvent historyEvent) {
-        switch (EventType.valueOf(historyEvent.getEventType())) {
-            // Activity Tasks
-            case ActivityTaskScheduled:
-            case ActivityTaskStarted:
-                return active;
-            case ActivityTaskCompleted:
-                return success;
-            case ActivityTaskCanceled:
-            case ActivityTaskFailed:
-            case ActivityTaskTimedOut:
-                return error;
-
-            // Timers
-            case TimerStarted:
-                return active;
-            case TimerFired:
-                // NOTE: This could be a 'retry' event but we don't have the control field handy yet.
-                return success;
-            case StartTimerFailed:
-            case TimerCanceled:
-                return error;
-
-            // Child Workflows
-            case StartChildWorkflowExecutionInitiated:
-            case ChildWorkflowExecutionStarted:
-                return active;
-            case ChildWorkflowExecutionCompleted:
-                return success;
-            case ChildWorkflowExecutionCanceled:
-            case ChildWorkflowExecutionFailed:
-            case ChildWorkflowExecutionTerminated:
-            case ChildWorkflowExecutionTimedOut:
-                return error;
-
-            // Signals
-            case SignalExternalWorkflowExecutionInitiated:
-                return active;
-            case ExternalWorkflowExecutionSignaled:
-                return success;
-            default:
-                return null;
-        }
-    }
-
-    static Long findInitialEventId(HistoryEvent historyEvent) {
-        switch (EventType.valueOf(historyEvent.getEventType())) {
-            // Activity Tasks
-            case ActivityTaskScheduled:
-                return historyEvent.getEventId();
-            case ActivityTaskStarted:
-                return historyEvent.getActivityTaskStartedEventAttributes().getScheduledEventId();
-            case ActivityTaskCompleted:
-                return historyEvent.getActivityTaskCompletedEventAttributes().getScheduledEventId();
-            case ActivityTaskCanceled:
-                return historyEvent.getActivityTaskCanceledEventAttributes().getScheduledEventId();
-            case ActivityTaskFailed:
-                return historyEvent.getActivityTaskFailedEventAttributes().getScheduledEventId();
-            case ActivityTaskTimedOut:
-                return historyEvent.getActivityTaskTimedOutEventAttributes().getScheduledEventId();
-
-            // Timers
-            case TimerStarted:
-                return historyEvent.getEventId();
-            case TimerFired:
-                return historyEvent.getTimerFiredEventAttributes().getStartedEventId();
-            case TimerCanceled:
-                return historyEvent.getTimerCanceledEventAttributes().getStartedEventId();
-
-            // Child Workflows
-            case StartChildWorkflowExecutionInitiated:
-                return historyEvent.getEventId();
-            case ChildWorkflowExecutionCanceled:
-                return historyEvent.getChildWorkflowExecutionCanceledEventAttributes().getInitiatedEventId();
-            case ChildWorkflowExecutionCompleted:
-                return historyEvent.getChildWorkflowExecutionCompletedEventAttributes().getInitiatedEventId();
-            case ChildWorkflowExecutionFailed:
-                return historyEvent.getChildWorkflowExecutionFailedEventAttributes().getInitiatedEventId();
-            case ChildWorkflowExecutionStarted:
-                return historyEvent.getChildWorkflowExecutionStartedEventAttributes().getInitiatedEventId();
-            case ChildWorkflowExecutionTerminated:
-                return historyEvent.getChildWorkflowExecutionTerminatedEventAttributes().getInitiatedEventId();
-            case ChildWorkflowExecutionTimedOut:
-                return historyEvent.getChildWorkflowExecutionTimedOutEventAttributes().getInitiatedEventId();
-
-            // Signal External Workflow
-            case SignalExternalWorkflowExecutionInitiated:
-                return historyEvent.getEventId();
-            case ExternalWorkflowExecutionSignaled:
-                return historyEvent.getExternalWorkflowExecutionSignaledEventAttributes().getInitiatedEventId();
-            default:
-                return null;
-        }
-    }
-
-    static String findActionId(HistoryEvent historyEvent) {
-        switch (EventType.valueOf(historyEvent.getEventType())) {
-            case ActivityTaskScheduled:
-                return historyEvent.getActivityTaskScheduledEventAttributes().getActivityId();
-            case TimerStarted:
-                return historyEvent.getTimerStartedEventAttributes().getTimerId();
-            case StartChildWorkflowExecutionInitiated:
-                return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes().getWorkflowId();
-            case SignalExternalWorkflowExecutionInitiated:
-                return historyEvent.getSignalExternalWorkflowExecutionInitiatedEventAttributes().getSignalName();
-            default:
-                return null;
-        }
+        String value = mapFields(historyEvent).get(state);
+        return value == null ? null : ActionState.valueOf(value);
     }
 
     /**
@@ -257,46 +145,174 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
      * @see EventType#ChildWorkflowExecutionStarted runId of started child workflow
      */
     static String findResult(HistoryEvent historyEvent) {
-        EventType type = EventType.valueOf(historyEvent.getEventType());
-        switch (type) {
-            case ActivityTaskCompleted:
-                return historyEvent.getActivityTaskCompletedEventAttributes().getResult();
-            case ChildWorkflowExecutionStarted:
-                return historyEvent.getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getRunId();
-            case ChildWorkflowExecutionCompleted:
-                return historyEvent.getChildWorkflowExecutionCompletedEventAttributes().getResult();
-        }
-        return null;
+        return mapFields(historyEvent).get(result);
     }
 
-    private String findErrorReason(HistoryEvent historyEvent) {
-        EventType type = EventType.valueOf(historyEvent.getEventType());
-        switch (type) {
-            case ActivityTaskCanceled:
-                return historyEvent.getActivityTaskCanceledEventAttributes().getDetails();
-            case ActivityTaskFailed:
-                return historyEvent.getActivityTaskFailedEventAttributes().getReason() + " | " +
-                    historyEvent.getActivityTaskFailedEventAttributes().getDetails();
-            case ActivityTaskTimedOut:
-                return historyEvent.getActivityTaskTimedOutEventAttributes().getTimeoutType() + " | " +
-                    historyEvent.getActivityTaskTimedOutEventAttributes().getDetails();
-
-            case StartTimerFailed:
-                return historyEvent.getStartTimerFailedEventAttributes().getCause();
-            case TimerCanceled:
-                return "timer canceled";
-
-            case ChildWorkflowExecutionCanceled:
-                return historyEvent.getChildWorkflowExecutionCanceledEventAttributes().getDetails();
-            case ChildWorkflowExecutionTerminated:
-                return "child workflow terminated";
-            case ChildWorkflowExecutionTimedOut:
-                return historyEvent.getChildWorkflowExecutionTimedOutEventAttributes().getTimeoutType();
-            case ChildWorkflowExecutionFailed:
-                return historyEvent.getChildWorkflowExecutionFailedEventAttributes().getReason() + " | " +
-                    historyEvent.getChildWorkflowExecutionFailedEventAttributes().getDetails();
+    static String findErrorReason(HistoryEvent historyEvent) {
+        Map<EventField, String> map = mapFields(historyEvent);
+        String reason = map.get(EventField.reason);
+        String details = map.get(EventField.details);
+        if (reason != null) {
+            return details == null ? reason : reason + " | " + details;
+        } else {
+            return null;
         }
-        return null;
+    }
+
+    enum EventField {actionId, state, initialEventId, input, control, result, reason, details, runId}
+
+    /**
+     * Unifies the fields of different SWF history events.
+     *
+     * @param historyEvent the event to map
+     *
+     * @return map of field values
+     */
+    static Map<EventField, String> mapFields(HistoryEvent historyEvent) {
+        Map<EventField, String> map = new HashMap<>();
+        switch (EventType.valueOf(historyEvent.getEventType())) {
+
+            // Activity Tasks
+            case ActivityTaskScheduled:
+                map.put(state, active.name());
+                map.put(initialEventId, historyEvent.getEventId().toString());
+                ActivityTaskScheduledEventAttributes activityScheduled = historyEvent.getActivityTaskScheduledEventAttributes();
+                map.put(actionId, activityScheduled.getActivityId());
+                map.put(input, activityScheduled.getInput());
+                map.put(control, activityScheduled.getControl());
+                break;
+            case ActivityTaskStarted:
+                map.put(state, active.name());
+                map.put(initialEventId, historyEvent.getActivityTaskStartedEventAttributes().getScheduledEventId().toString());
+                break;
+            case ActivityTaskCompleted:
+                map.put(state, success.name());
+                ActivityTaskCompletedEventAttributes activityCompleted = historyEvent.getActivityTaskCompletedEventAttributes();
+                map.put(initialEventId, activityCompleted.getScheduledEventId().toString());
+                map.put(result, activityCompleted.getResult());
+                break;
+            case ActivityTaskCanceled:
+                map.put(state, error.name());
+                ActivityTaskCanceledEventAttributes activityCanceled = historyEvent.getActivityTaskCanceledEventAttributes();
+                map.put(initialEventId, activityCanceled.getScheduledEventId().toString());
+                map.put(details, activityCanceled.getDetails());
+                break;
+            case ActivityTaskFailed:
+                map.put(state, error.name());
+                ActivityTaskFailedEventAttributes activityFailed = historyEvent.getActivityTaskFailedEventAttributes();
+                map.put(initialEventId, activityFailed.getScheduledEventId().toString());
+                map.put(reason, activityFailed.getReason());
+                map.put(details, activityFailed.getDetails());
+                break;
+            case ActivityTaskTimedOut:
+                map.put(state, error.name());
+                ActivityTaskTimedOutEventAttributes activityTimedOut = historyEvent.getActivityTaskTimedOutEventAttributes();
+                map.put(initialEventId, activityTimedOut.getScheduledEventId().toString());
+                map.put(reason, activityTimedOut.getTimeoutType());
+                map.put(details, activityTimedOut.getDetails());
+                break;
+
+            // Timers
+            case TimerStarted:
+                map.put(state, active.name());
+                map.put(initialEventId, historyEvent.getEventId().toString());
+                TimerStartedEventAttributes timerStarted = historyEvent.getTimerStartedEventAttributes();
+                map.put(actionId, timerStarted.getTimerId());
+                map.put(control, timerStarted.getControl());
+                break;
+            case TimerFired:
+                // NOTE: This could be a 'retry' event but we don't have the control field handy yet.
+                map.put(state, success.name());
+                map.put(initialEventId, historyEvent.getTimerFiredEventAttributes().getStartedEventId().toString());
+                break;
+            case StartTimerFailed:
+                map.put(state, error.name());
+                map.put(reason, historyEvent.getStartTimerFailedEventAttributes().getCause());
+                break;
+            case TimerCanceled:
+                map.put(state, error.name());
+                map.put(reason, "timer canceled");
+                break;
+
+            // Child Workflows
+            case StartChildWorkflowExecutionInitiated:
+                map.put(state, active.name());
+                map.put(initialEventId, historyEvent.getEventId().toString());
+                StartChildWorkflowExecutionInitiatedEventAttributes childInitiated = historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes();
+                map.put(actionId, childInitiated.getWorkflowId());
+                map.put(input, childInitiated.getInput());
+                map.put(control, childInitiated.getControl());
+                break;
+            case ChildWorkflowExecutionStarted:
+                map.put(state, active.name());
+                ChildWorkflowExecutionStartedEventAttributes childStarted = historyEvent.getChildWorkflowExecutionStartedEventAttributes();
+                map.put(initialEventId, childStarted.getInitiatedEventId().toString());
+                map.put(runId, childStarted.getWorkflowExecution().getRunId());
+                map.put(result, childStarted.getWorkflowExecution().getRunId());
+                break;
+            case ChildWorkflowExecutionCompleted:
+                map.put(state, success.name());
+                map.put(initialEventId, historyEvent.getChildWorkflowExecutionCompletedEventAttributes().getInitiatedEventId().toString());
+                map.put(result, historyEvent.getChildWorkflowExecutionCompletedEventAttributes().getResult());
+                break;
+            case ChildWorkflowExecutionCanceled:
+                map.put(state, error.name());
+                ChildWorkflowExecutionCanceledEventAttributes childCanceled = historyEvent.getChildWorkflowExecutionCanceledEventAttributes();
+                map.put(initialEventId, childCanceled.getInitiatedEventId().toString());
+                map.put(reason, childCanceled.getDetails());
+                break;
+            case ChildWorkflowExecutionFailed:
+                map.put(state, error.name());
+                ChildWorkflowExecutionFailedEventAttributes childFailed = historyEvent.getChildWorkflowExecutionFailedEventAttributes();
+                map.put(initialEventId, childFailed.getInitiatedEventId().toString());
+                map.put(reason, childFailed.getReason());
+                map.put(details, childFailed.getDetails());
+                break;
+            case ChildWorkflowExecutionTerminated:
+                map.put(state, error.name());
+                map.put(initialEventId, historyEvent.getChildWorkflowExecutionTerminatedEventAttributes().getInitiatedEventId().toString());
+                map.put(reason, "child workflow terminated");
+                break;
+            case ChildWorkflowExecutionTimedOut:
+                map.put(state, error.name());
+                ChildWorkflowExecutionTimedOutEventAttributes childTimedOut = historyEvent.getChildWorkflowExecutionTimedOutEventAttributes();
+                map.put(initialEventId, childTimedOut.getInitiatedEventId().toString());
+                map.put(reason, childTimedOut.getTimeoutType());
+                break;
+
+            // Signals
+            case SignalExternalWorkflowExecutionInitiated:
+                map.put(state, active.name());
+                map.put(initialEventId, historyEvent.getEventId().toString());
+                SignalExternalWorkflowExecutionInitiatedEventAttributes signalInitiated = historyEvent.getSignalExternalWorkflowExecutionInitiatedEventAttributes();
+                map.put(actionId, signalInitiated.getSignalName());
+                map.put(input, signalInitiated.getInput());
+                map.put(control, signalInitiated.getControl());
+                break;
+            case ExternalWorkflowExecutionSignaled:
+                map.put(state, success.name());
+                ExternalWorkflowExecutionSignaledEventAttributes signalSignaled = historyEvent.getExternalWorkflowExecutionSignaledEventAttributes();
+                map.put(initialEventId, signalSignaled.getInitiatedEventId().toString());
+                map.put(runId, signalSignaled.getWorkflowExecution().getRunId());
+                break;
+
+            // Markers
+            case MarkerRecorded:
+                map.put(state, success.name());
+                map.put(initialEventId, historyEvent.getEventId().toString());
+                MarkerRecordedEventAttributes markerRecorded = historyEvent.getMarkerRecordedEventAttributes();
+                map.put(actionId, markerRecorded.getMarkerName());
+                map.put(input, markerRecorded.getDetails());
+                break;
+            default:
+        }
+        // no null values
+        for (EventField field : EventField.values()) {
+            if (map.containsKey(field) && map.get(field) == null) {
+                map.put(field, "");
+            }
+        }
+        return map;
     }
 
     /**
@@ -315,13 +331,11 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
         return SwiftUtil.DATE_TIME_FORMATTER.print(getEventTimestamp())
             + ' ' + getType()
             + ' ' + getEventId()
-            + (isInitialEvent ? ' ' : " -> ")
-            + (isInitialEvent ? getActionId() : initialEventId);
+            + (isInitialEvent() ? " " + getActionId() : " -> " + getInitialEventId());
     }
 
     @Override
     public int compareTo(ActionHistoryEvent event) {
         return -getEventId().compareTo(event.getEventId());
-
     }
 }
