@@ -28,7 +28,7 @@ public class CreatePollers {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         final Config config = getConfig();
-        final AmazonSimpleWorkflow swf = config.getAmazonSimpleWorkflow();
+        final AmazonSimpleWorkflow swf = Config.getSWF();
         int poolSize = config.getPoolSize() + 1;
         final ScheduledExecutorService service = Executors.newScheduledThreadPool(poolSize);
         startDecisionPoller(service, swf, poolSize / 2, false);
@@ -58,6 +58,7 @@ public class CreatePollers {
             poller.addWorkflows(new WaitForSignalWorkflow());
             poller.addWorkflows(new SignalWaitForSignalWorkflow());
             poller.addWorkflows(new RetryActivityWorkflow());
+            poller.addWorkflows(new ContinuousWorkflow());
             if (registerWorkflows && it == 1) {
                 poller.registerSwfWorkflows();
             }
@@ -89,6 +90,14 @@ public class CreatePollers {
         if (currentTime < failIfBeforeThisTime) {
             throw new IllegalStateException("Still too early: " + MILLISECONDS.toSeconds(failIfBeforeThisTime - currentTime) + " seconds left");
         }
+    }
+
+    @ActivityMethod(name = "Activity Echo", version = "1.0", description = "log and return input",
+        scheduleToCloseTimeout = "NONE", scheduleToStartTimeout = "NONE", startToCloseTimeout = "60")
+    public String activityEcho(ActivityContext context) {
+        String input = context.getInput();
+        log.info(input);
+        return input;
     }
 
     @ActivityMethod(name = "Activity X", version = "1.0")

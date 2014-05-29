@@ -5,7 +5,9 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.Run;
+import com.amazonaws.services.simpleworkflow.model.SignalWorkflowExecutionRequest;
 import com.amazonaws.services.simpleworkflow.model.StartWorkflowExecutionRequest;
+import com.amazonaws.services.simpleworkflow.model.WorkflowExecution;
 import com.clario.swift.Workflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,23 +48,42 @@ public class Config {
         return config;
     }
 
-    public AmazonSimpleWorkflow getAmazonSimpleWorkflow() {
-        return amazonSimpleWorkflow;
+    public static AmazonSimpleWorkflow getSWF() {
+        return config.amazonSimpleWorkflow;
     }
 
     public int getPoolSize() {
         return poolSize;
     }
 
-    public static void submit(Workflow workflow, String input) {
-        String workflowId = createUniqueWorkflowId(workflow.getName());
+    public static WorkflowExecution submit(Workflow workflow, String workflowId, String input) {
         log.info(format("submit workflow: %s", workflowId));
 
         workflow.withTags("Swift");
         StartWorkflowExecutionRequest request = workflow.createWorkflowExecutionRequest(workflowId, input);
 
         log.info(format("Start workflow execution: %s", workflowId));
-        Run run = config.getAmazonSimpleWorkflow().startWorkflowExecution(request);
+        Run run = getSWF().startWorkflowExecution(request);
         log.info(format("Started workflow %s", run));
+        return new WorkflowExecution().withWorkflowId(workflowId).withRunId(run.getRunId());
+
     }
+
+    public static WorkflowExecution submit(Workflow workflow, String input) {
+        String workflowId = createUniqueWorkflowId(workflow.getName());
+        return submit(workflow, workflowId, input);
+    }
+
+    public static void signal(String domain, String workflowId, String runId, String name, String input) {
+        log.info(format("Signal workflow %s with %s %s", workflowId, name, input));
+        getSWF().signalWorkflowExecution(new SignalWorkflowExecutionRequest()
+                .withDomain(domain)
+                .withWorkflowId(workflowId)
+                .withRunId(runId)
+                .withSignalName(name)
+                .withInput(input)
+        );
+    }
+
+
 }

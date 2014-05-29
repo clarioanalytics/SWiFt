@@ -5,6 +5,38 @@
     },
     {
         "type": "project",
-        "id": 6795
+        "id": 4503
+    },
+    {
+        "type": "job",
+        "id": 125
+    },
+    {
+        "type": "workflow",
+        "id": 76
+    },
+    {
+        "type": "user",
+        "id": 6011
+    },
+    {
+        "type": "file",
+        "id": "5002/ftp/ADULT_RAW.csv"
+    },
+    {
+        "type": "file",
+        "id": "5002/projects/workbench/6759/data/ADULT.csv"
+    },
+    {
+        "type": "jobRun",
+        "id": "5002/projects/workbench/1302/job/35/run/2014-04-03T00:49:51Z"
+    },
+    {
+        "type": "workflowRun",
+        "id": "5002/projects/workbench/6759/workflow/5540/run/2013-10-22T18:49:38Z"
+    },
+    {
+        "type": "result",
+        "id": "5002/projects/workbench/1302/workflow/3042/run/2014-04-24T15:38:43Z/result/Bivariate"
     }
 ]

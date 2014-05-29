@@ -159,6 +159,8 @@ public abstract class Workflow {
         return this;
     }
 
+    public String getDomain() { return domain; }
+
     /** Domain-unique workflow execution identifier * */
     public Workflow withWorkflowId(String workflowId) {
         this.workflowId = assertSwfValue(assertMaxLength(workflowId, MAX_ID_LENGTH));
@@ -198,11 +200,15 @@ public abstract class Workflow {
         return this;
     }
 
+    public List<String> getTags() { return tags; }
+
     /** Optional description to register with workflow */
     public Workflow withDescription(String description) {
         this.description = assertMaxLength(description, MAX_DESCRIPTION_LENGTH);
         return this;
     }
+
+    public String getDescription() { return description; }
 
     /**
      * The total duration for this workflow execution.
@@ -218,6 +224,8 @@ public abstract class Workflow {
         return this;
     }
 
+    public String getExecutionStartToCloseTimeout() { return executionStartToCloseTimeout; }
+
     /**
      * Specifies the maximum duration of decision tasks for this workflow execution.
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
@@ -230,6 +238,8 @@ public abstract class Workflow {
         return this;
     }
 
+    public String getTaskStartToCloseTimeout() { return taskStartToCloseTimeout; }
+
     /**
      * defaults to TERMINATE
      *
@@ -240,6 +250,7 @@ public abstract class Workflow {
         return this;
     }
 
+    public ChildPolicy getChildPolicy() { return childPolicy; }
 
     public StartWorkflowExecutionRequest createWorkflowExecutionRequest(String workflowId, String input) {
         return new StartWorkflowExecutionRequest()
