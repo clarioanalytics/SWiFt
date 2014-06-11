@@ -1,9 +1,10 @@
-package com.clario.swift.examples;
+package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.RecordMarkerAction;
 import com.clario.swift.action.StartChildWorkflowAction;
+import com.clario.swift.examples.Config;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +12,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
-import static com.clario.swift.examples.Config.*;
+import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
+import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -26,7 +28,7 @@ public class StartChildWorkflow extends Workflow {
             .withTaskList(SWIFT_TASK_LIST)
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30);
-        submit(workflow, "100");
+        Config.getConfig().submit(workflow, "100");
     }
 
     private final RecordMarkerAction childWorkflowIdMarker = new RecordMarkerAction("childWorkflowId");

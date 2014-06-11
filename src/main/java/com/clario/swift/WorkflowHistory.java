@@ -7,21 +7,21 @@ import com.clario.swift.action.ActionState;
 import java.util.*;
 
 /**
- * Container class of {@link HistoryEvent}s for the current decision task.
+ * Container class for {@link ActionEvent} instances related to the current workflow.
  * <p/>
- * Most of the heavy lifting comes from converting SWF {@link HistoryEvent} into a {@link ActionHistoryEvent} to
+ * Most of the heavy lifting comes from converting SWF {@link HistoryEvent} into a {@link ActionEvent} to
  * unify working with various SWF tasks like activities,timers, signals, starting child workflows.
  * <p/>
- * This class will also parse out any received signals, markers, and workflow-level errors.
+ * This class will also find any un-recoverable workflow error events.
  * <p/>
- * This class is not thread-safe and is meant to be used by a single {@link Workflow} instance.
+ * This class is not thread-safe and is meant to be used by a single {@link DecisionPoller} / {@link Workflow} instance.
  *
  * @author George Coller
- * @see ActionHistoryEvent
+ * @see ActionEvent
  * @see Workflow
  */
 public class WorkflowHistory {
-    private final LinkedList<ActionHistoryEvent> actionEvents = new LinkedList<>();
+    private final LinkedList<ActionEvent> actionEvents = new LinkedList<>();
     private final List<HistoryEvent> errorEvents = new ArrayList<>();
     private HistoryEvent workflowExecutionStarted;
 
@@ -29,13 +29,14 @@ public class WorkflowHistory {
         // Note: historyEvents are sorted newest to oldest
         for (HistoryEvent event : historyEvents) {
 
-            ActionHistoryEvent actionHistoryEvent = new ActionHistoryEvent(event);
+            ActionEvent actionEvent = new ActionEvent(event);
 
-            if (actionHistoryEvent.getActionState() != ActionState.undefined) {
-                actionEvents.add(actionHistoryEvent);
+            // filter out events we don't care about
+            if (actionEvent.getActionState() != ActionState.undefined) {
+                actionEvents.add(actionEvent);
             }
 
-            switch (actionHistoryEvent.getType()) {
+            switch (actionEvent.getType()) {
                 case WorkflowExecutionStarted:
                     workflowExecutionStarted = event;
                     break;
@@ -61,21 +62,21 @@ public class WorkflowHistory {
     }
 
     /**
-     * Return the list of {@link ActionHistoryEvent} related to a given action.
+     * Return the list of {@link ActionEvent} related to a given action.
      * The list is sorted by event timestamp in descending order (most recent first).
      *
-     * @param actionId unique id of the action.
+     * @param actionId workflow unique identifier of the action.
      *
      * @return the list, empty if no actions found
      */
-    public List<ActionHistoryEvent> filterActionEvents(String actionId) {
-        List<ActionHistoryEvent> list = new ArrayList<>();
+    public List<ActionEvent> filterActionEvents(String actionId) {
+        List<ActionEvent> list = new ArrayList<>();
 
         // iterate backwards through list (need to find initial event first)
-        Iterator<ActionHistoryEvent> iter = actionEvents.descendingIterator();
+        Iterator<ActionEvent> iter = actionEvents.descendingIterator();
         long initialId = -1;
         while (iter.hasNext()) {
-            ActionHistoryEvent event = iter.next();
+            ActionEvent event = iter.next();
             if (event.isInitialEvent() && event.getActionId().equals(actionId)) {
                 initialId = event.getEventId();
                 list.add(event);
@@ -95,9 +96,9 @@ public class WorkflowHistory {
      *
      * @return list of matching events
      */
-    public List<ActionHistoryEvent> filterEvents(String actionId, EventType eventType) {
-        List<ActionHistoryEvent> list = new ArrayList<>();
-        for (ActionHistoryEvent event : actionId == null ? actionEvents : filterActionEvents(actionId)) {
+    public List<ActionEvent> filterEvents(String actionId, EventType eventType) {
+        List<ActionEvent> list = new ArrayList<>();
+        for (ActionEvent event : actionId == null ? actionEvents : filterActionEvents(actionId)) {
             if (eventType == null || event.getType() == eventType) {
                 list.add(event);
             }
@@ -108,14 +109,14 @@ public class WorkflowHistory {
     /**
      * @return events with type {@link EventType#MarkerRecorded} converted to a map of marker name, details entries.
      */
-    public List<ActionHistoryEvent> getMarkers() {
+    public List<ActionEvent> getMarkers() {
         return filterEvents(null, EventType.MarkerRecorded);
     }
 
     /**
      * @return events with type {@link EventType#WorkflowExecutionSignaled} converted to a map of signal name, input entries.
      */
-    public List<ActionHistoryEvent> getSignals() {
+    public List<ActionEvent> getSignals() {
         return filterEvents(null, EventType.WorkflowExecutionSignaled);
     }
 
@@ -135,5 +136,9 @@ public class WorkflowHistory {
 
     public List<HistoryEvent> getErrorEvents() {
         return errorEvents;
+    }
+
+    public List<ActionEvent> getActionEvents() {
+        return actionEvents;
     }
 }

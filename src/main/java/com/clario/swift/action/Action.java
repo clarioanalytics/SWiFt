@@ -3,7 +3,7 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.EventType;
-import com.clario.swift.ActionHistoryEvent;
+import com.clario.swift.ActionEvent;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.Workflow;
 import com.clario.swift.WorkflowHistory;
@@ -124,7 +124,7 @@ public abstract class Action<T extends Action> {
      */
     public String getOutput() {
         if (isSuccess()) {
-            return getCurrentEvent().getData();
+            return getCurrentEvent().getData1();
         } else {
             throw new IllegalStateException("method not available when action state is " + getState());
         }
@@ -189,7 +189,7 @@ public abstract class Action<T extends Action> {
      * @see ActionState for details on how state is calculated
      */
     public ActionState getState() {
-        ActionHistoryEvent currentEvent = getCurrentEvent();
+        ActionEvent currentEvent = getCurrentEvent();
         if (currentEvent == null) {
             return initial;
         } else if (retryPolicy != null && retryPolicy.isRetryTimerEvent(currentEvent)) {
@@ -206,25 +206,25 @@ public abstract class Action<T extends Action> {
     public boolean isSuccess() { return success == getState(); }
 
     /**
-     * Most recently polled {@link ActionHistoryEvent} for this action
+     * Most recently polled {@link com.clario.swift.ActionEvent} for this action
      * or null if none exists (action is in an initial state).
      *
      * @return most recent history event polled for this action.
      */
-    public ActionHistoryEvent getCurrentEvent() {
-        List<ActionHistoryEvent> events = getEvents();
+    public ActionEvent getCurrentEvent() {
+        List<ActionEvent> events = getEvents();
         return events.isEmpty() ? null : events.get(0);
     }
 
     /**
      * Return the list of available history events polled for this action.
      * <p/>
-     * The list is sorted by {@link ActionHistoryEvent#getEventTimestamp()} in descending order (most recent events first).
+     * The list is sorted by {@link com.clario.swift.ActionEvent#getEventTimestamp()} in descending order (most recent events first).
      *
      * @return list of events or empty list.
      * @see WorkflowHistory#filterActionEvents
      */
-    public List<ActionHistoryEvent> getEvents() {
+    public List<ActionEvent> getEvents() {
         return workflow.getWorkflowHistory().filterActionEvents(actionId);
     }
 
@@ -233,7 +233,7 @@ public abstract class Action<T extends Action> {
      *
      * @see WorkflowHistory#filterEvents)
      */
-    public List<ActionHistoryEvent> filterEvents(EventType eventType) {
+    public List<ActionEvent> filterEvents(EventType eventType) {
         return workflow.getWorkflowHistory().filterEvents(actionId, eventType);
     }
 

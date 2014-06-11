@@ -1,10 +1,11 @@
-package com.clario.swift.examples;
+package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionAlreadyStartedException;
-import com.clario.swift.ActionHistoryEvent;
+import com.clario.swift.ActionEvent;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ContinueAsNewAction;
+import com.clario.swift.examples.Config;
 
 import java.util.List;
 
@@ -13,12 +14,12 @@ import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
- * Example of a never-ending workflow.
+ * Example of a never-ending workflow, which is useful for on-going "chron" jobs.
  * <p/>
  * Note: In this example I'm using signals to do the "Continue as New" action but
  * in a real workflow you'd probably use a timer-action.
  * <p/>
- * You can use this class' main method to start the workflow and then the SWF Console to send signals to it.
+ * You can use this class' main method to start the workflow and then the Amazon SWF Console to send signals to it.
  * With each signal the current workflow will be decided "Continue As New", which you'll notice in the polling log as
  * it increments the workflow input with each continuation.  You'll also notice that the runId changes for the workflow
  * after each signal, again demonstrating that the workflow did continue as new.
@@ -37,7 +38,7 @@ public class ContinuousWorkflow extends Workflow {
                 .withTaskList(SWIFT_TASK_LIST)
                 .withExecutionStartToCloseTimeout(DAYS, 365)
                 .withTaskStartToCloseTimeout(MINUTES, 1);
-            submit(workflow, WF_ID, "1");
+            Config.getConfig().submit(workflow, WF_ID, "1");
         } catch (WorkflowExecutionAlreadyStartedException e) {
             log.warn(WF_NAME + " is already running");
         }
@@ -52,7 +53,7 @@ public class ContinuousWorkflow extends Workflow {
 
     @Override
     public void decide(List<Decision> decisions) {
-        List<ActionHistoryEvent> signals = getWorkflowHistory().getSignals();
+        List<ActionEvent> signals = getWorkflowHistory().getSignals();
         Integer input = Integer.valueOf(getWorkflowInput());
         if (signals.isEmpty()) {
             log.info("New workflow instance started with input " + input);

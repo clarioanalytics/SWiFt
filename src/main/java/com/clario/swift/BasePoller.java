@@ -58,6 +58,9 @@ public abstract class BasePoller implements Runnable {
      */
     protected abstract void poll();
 
+    /**
+     * Avoid filling the log with 'timeout' messages by recording it every tenth time.
+     */
     protected boolean isLogTimeout() {
         pollCount++;
         return LOG_POLL_EVERY_COUNT % pollCount == 0;

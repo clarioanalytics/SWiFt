@@ -1,4 +1,4 @@
-package com.clario.swift.examples;
+package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
@@ -6,6 +6,7 @@ import com.clario.swift.action.RecordMarkerAction;
 import com.clario.swift.action.SignalWorkflowAction;
 import com.clario.swift.action.StartChildWorkflowAction;
 import com.clario.swift.action.TimerAction;
+import com.clario.swift.examples.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +14,8 @@ import java.util.List;
 
 import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
 import static com.clario.swift.action.ActionState.initial;
-import static com.clario.swift.examples.Config.*;
+import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
+import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -30,7 +32,7 @@ public class SignalWaitForSignalWorkflow extends Workflow {
             .withTaskList(SWIFT_TASK_LIST)
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30);
-        submit(workflow, "666");
+        Config.getConfig().submit(workflow, "666");
     }
 
     private final SignalWorkflowAction signal = new SignalWorkflowAction("signal")

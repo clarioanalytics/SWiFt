@@ -14,7 +14,7 @@ import static com.clario.swift.SwiftUtil.readFile;
 import static org.junit.Assert.assertEquals;
 
 public class WorkflowHistoryTest {
-    static final DecisionTask unmarshalDecisionTask(String json) {
+    static DecisionTask unmarshalDecisionTask(String json) {
         try {
             Unmarshaller<DecisionTask, JsonUnmarshallerContext> unmarshaller = new DecisionTaskJsonUnmarshaller();
             JsonParser parser = new JsonFactory().createParser(json);
@@ -36,19 +36,19 @@ public class WorkflowHistoryTest {
     @Test
     public void testGetMarkers() throws Exception {
         WorkflowHistory history = loadWorkflow("RetryWorkflowHistory.json");
-        List<ActionHistoryEvent> markers = history.getMarkers();
+        List<ActionEvent> markers = history.getMarkers();
         assertEquals(1, markers.size());
         assertEquals("failUntilTime", markers.get(0).getActionId());
-        assertEquals("1398724533227", markers.get(0).getData());
+        assertEquals("1398724533227", markers.get(0).getData1());
     }
 
     @Test
     public void testGetSignals() throws Exception {
         WorkflowHistory history = loadWorkflow("WaitForSignalWorkflow.json");
-        List<ActionHistoryEvent> signals = history.getSignals();
+        List<ActionEvent> signals = history.getSignals();
         assertEquals(1, signals.size());
         assertEquals("Boo", signals.get(0).getActionId());
-        assertEquals("99", signals.get(0).getData());
+        assertEquals("99", signals.get(0).getData1());
     }
 
     @Test

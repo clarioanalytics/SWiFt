@@ -1,4 +1,4 @@
-package com.clario.swift.examples;
+package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.SwiftUtil;
@@ -6,6 +6,7 @@ import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 import com.clario.swift.action.RecordMarkerAction;
 import com.clario.swift.action.RetryPolicy;
+import com.clario.swift.examples.Config;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.clario.swift.examples.Config.*;
+import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
+import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -28,7 +30,7 @@ public class RetryActivityWorkflow extends Workflow {
             .withTaskList(SWIFT_TASK_LIST)
             .withTaskStartToCloseTimeout(MINUTES, 60)
             .withExecutionStartToCloseTimeout(MINUTES, 60);
-        submit(workflow, "120");
+        Config.getConfig().submit(workflow, "120");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity Fail Until", "1.0")

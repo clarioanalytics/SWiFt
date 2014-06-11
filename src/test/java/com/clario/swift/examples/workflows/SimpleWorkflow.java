@@ -1,13 +1,15 @@
-package com.clario.swift.examples;
+package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
+import com.clario.swift.examples.Config;
 
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
-import static com.clario.swift.examples.Config.*;
+import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
+import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -24,7 +26,7 @@ public class SimpleWorkflow extends Workflow {
             .withTaskStartToCloseTimeout(SECONDS, 30)
             .withChildPolicy(TERMINATE)
             .withDescription("A Simple Example Workflow");
-        submit(workflow, "100");
+        Config.getConfig().submit(workflow, "100");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0");

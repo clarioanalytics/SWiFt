@@ -1,13 +1,13 @@
 package com.clario.swift.action;
 
-import com.clario.swift.ActionHistoryEvent;
+import com.clario.swift.ActionEvent;
 
 /**
- * Enumeration of Swift run states for an action.
+ * Enumeration of run states for an {@link Action}.
  * <p/>
- * State is calculated using the most-recent {@link ActionHistoryEvent} related to this action.
+ * An action's current state is calculated using the most recent {@link ActionEvent} in the related to that action.
  *
- * @see ActionHistoryEvent
+ * @see ActionEvent
  */
 public enum ActionState {
     /** Action has not yet been initiated by a workflow, default state of all Actions */

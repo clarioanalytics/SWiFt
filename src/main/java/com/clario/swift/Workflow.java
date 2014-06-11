@@ -11,7 +11,7 @@ import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
- * Implementation of a registered SWF Workflow.
+ * Contains the decision logic for an SWF Workflow.
  *
  * @author George Coller
  */

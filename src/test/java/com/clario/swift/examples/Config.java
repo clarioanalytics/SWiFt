@@ -5,7 +5,6 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.Run;
-import com.amazonaws.services.simpleworkflow.model.SignalWorkflowExecutionRequest;
 import com.amazonaws.services.simpleworkflow.model.StartWorkflowExecutionRequest;
 import com.amazonaws.services.simpleworkflow.model.WorkflowExecution;
 import com.clario.swift.Workflow;
@@ -18,6 +17,7 @@ import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
 import static java.lang.String.format;
 
 /**
+ * Config class used by example workflow action and decision pollers.
  * @author George Coller
  */
 public class Config {
@@ -27,7 +27,9 @@ public class Config {
 
     private static final Config config = new Config();
     private final AmazonSimpleWorkflow amazonSimpleWorkflow;
-    private int poolSize;
+    private int poolSize = 2;
+    private boolean registerActivities = false;
+    private boolean registerWorkflows = false;
 
     private Config() {
         try {
@@ -36,6 +38,8 @@ public class Config {
             String id = p.getProperty("amazon.aws.id");
             String key = p.getProperty("amazon.aws.key");
             poolSize = Integer.parseInt(p.getProperty("poolSize"));
+            registerActivities = Boolean.parseBoolean(p.getProperty("registerActivities"));
+            registerWorkflows = Boolean.parseBoolean(p.getProperty("registerWorkflows"));
             amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key),
                 new ClientConfiguration().withConnectionTimeout(10 * 1000)
             );
@@ -48,15 +52,23 @@ public class Config {
         return config;
     }
 
-    public static AmazonSimpleWorkflow getSWF() {
-        return config.amazonSimpleWorkflow;
+    public AmazonSimpleWorkflow getSWF() {
+        return amazonSimpleWorkflow;
     }
 
     public int getPoolSize() {
         return poolSize;
     }
 
-    public static WorkflowExecution submit(Workflow workflow, String workflowId, String input) {
+    public boolean isRegisterActivities() {
+        return registerActivities;
+    }
+
+    public boolean isRegisterWorkflows() {
+        return registerWorkflows;
+    }
+
+    public WorkflowExecution submit(Workflow workflow, String workflowId, String input) {
         log.info(format("submit workflow: %s", workflowId));
 
         workflow.withTags("Swift");
@@ -69,21 +81,8 @@ public class Config {
 
     }
 
-    public static WorkflowExecution submit(Workflow workflow, String input) {
+    public WorkflowExecution submit(Workflow workflow, String input) {
         String workflowId = createUniqueWorkflowId(workflow.getName());
         return submit(workflow, workflowId, input);
     }
-
-    public static void signal(String domain, String workflowId, String runId, String name, String input) {
-        log.info(format("Signal workflow %s with %s %s", workflowId, name, input));
-        getSWF().signalWorkflowExecution(new SignalWorkflowExecutionRequest()
-                .withDomain(domain)
-                .withWorkflowId(workflowId)
-                .withRunId(runId)
-                .withSignalName(name)
-                .withInput(input)
-        );
-    }
-
-
 }

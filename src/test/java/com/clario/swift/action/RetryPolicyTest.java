@@ -1,7 +1,7 @@
 package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.model.*;
-import com.clario.swift.ActionHistoryEvent;
+import com.clario.swift.ActionEvent;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
@@ -36,7 +36,7 @@ public class RetryPolicyTest {
             .withScheduledEventId(123L)
             .withReason("WTF ERROR: something wicked this way came")
             .withDetails("java.lang.IllegalStateException: Failed to invoke with: step1: 1.0 at ...."));
-        retry.currentHistoryEvent = new ActionHistoryEvent(he);
+        retry.currentHistoryEvent = new ActionEvent(he);
 
         List<Decision> decisions = new ArrayList<>();
 
@@ -152,35 +152,35 @@ public class RetryPolicyTest {
     }
 
     static class MockRetry extends RetryPolicy {
-        List<ActionHistoryEvent> events = new ArrayList<>();
-        ActionHistoryEvent currentHistoryEvent;
+        List<ActionEvent> events = new ArrayList<>();
+        ActionEvent currentHistoryEvent;
 
         @Override
-        List<ActionHistoryEvent> getRetryTimerStartedEvents() {
+        List<ActionEvent> getRetryTimerStartedEvents() {
             return events;
         }
 
         @Override
-        protected ActionHistoryEvent getCurrentHistoryEvent() {
+        protected ActionEvent getCurrentHistoryEvent() {
             return currentHistoryEvent;
         }
     }
 
-    private static ActionHistoryEvent makeTimerFired(DateTime time, long startedEventId) {
+    private static ActionEvent makeTimerFired(DateTime time, long startedEventId) {
         HistoryEvent he = new HistoryEvent();
         he.setEventTimestamp(time.toDate());
         he.setEventType(EventType.TimerFired);
         he.setTimerFiredEventAttributes(new TimerFiredEventAttributes()
             .withStartedEventId(startedEventId));
-        return new ActionHistoryEvent(he);
+        return new ActionEvent(he);
     }
 
-    private static ActionHistoryEvent createTimerStarted(DateTime time, long eventId) {
+    private static ActionEvent createTimerStarted(DateTime time, long eventId) {
         HistoryEvent he = new HistoryEvent();
         he.setEventId(eventId);
         he.setEventTimestamp(time.toDate());
         he.setEventType(EventType.TimerStarted);
         he.setTimerStartedEventAttributes(new TimerStartedEventAttributes());
-        return new ActionHistoryEvent(he);
+        return new ActionEvent(he);
     }
 }

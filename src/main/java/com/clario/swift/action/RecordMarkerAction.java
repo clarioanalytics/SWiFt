@@ -33,7 +33,7 @@ public class RecordMarkerAction extends Action<RecordMarkerAction> {
     @Override
     public String getOutput() {
         if (isSuccess()) {
-            return getCurrentEvent().getData();
+            return getCurrentEvent().getData1();
         } else {
             return details;
         }

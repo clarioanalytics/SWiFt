@@ -1,33 +1,32 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
+import com.clario.swift.action.Action;
 import com.clario.swift.action.ActionState;
 import org.joda.time.DateTime;
 
 import java.util.EnumMap;
 import java.util.Map;
 
-import static com.clario.swift.ActionHistoryEvent.EventField.*;
+import static com.clario.swift.ActionEvent.EventField.*;
 import static com.clario.swift.action.ActionState.*;
 
 /**
- * Class that unifies access to {@link HistoryEvent}s related to Activity, Timer, Child Workflow, or External Signal activities.
- * <p/>
- * Basically trying to extract all the ugliness of Amazon's SWF model into one place so that this API can be cleaner.
+ * Wrap {@link HistoryEvent} instances to make working with them easier and provide a uniform API.
+ * </p>
+ * An instance will be assigned {@link ActionState#undefined} if the wrapped <code>HistoryEvent</code> does not
+ * belong to an {@link Action}: Activity, Timer, Marker, Signal, Start Child, ContinueAsNew.
  *
  * @author George Coller
- * @see WorkflowHistory
  */
-public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
+public class ActionEvent implements Comparable<ActionEvent> {
     private final HistoryEvent historyEvent;
     private final Map<EventField, Object> fields;
 
     /**
-     * Construct using an SWF <code>HistoryEvent</code>.
-     *
-     * @param historyEvent must be compatible with action event
+     * Construct instance with an {@link HistoryEvent}.
      */
-    public ActionHistoryEvent(HistoryEvent historyEvent) {
+    public ActionEvent(HistoryEvent historyEvent) {
         fields = mapFields(historyEvent);
         this.historyEvent = historyEvent;
     }
@@ -40,18 +39,21 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
     }
 
     /**
-     * Initial action events have an {@link #getType()} that starts an activity, timer, or child workflow decision.
-     * Clients can use this to check if {@link #getActionId()} is available for this instance.
+     * Initial events relate to the initial decision to start an  an activity, timer, marker, signal, child workflow, etc.
      *
      * @return true if action type is an initial action event
      * @see #getActionId()
      */
     public boolean isInitialEvent() {
-        return fields.containsKey(actionId);
+        return Boolean.TRUE == fields.get(isInitialEvent);
     }
 
     /**
-     * @return unique action identifier for an initiator action event.
+     * Unique identifier for an initiated {@link Action}.
+     *
+     * Only available on initial events, so use {@link #isInitialEvent()} before calling this method.
+     *
+     * @return unique action identifier related to this event
      * @throws UnsupportedOperationException if instance is not an initiator action event.
      * @see #isInitialEvent()
      */
@@ -60,42 +62,76 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
     }
 
     /**
-     * @return {@link HistoryEvent#eventType} cast as {@link EventType} enumeration
+     * @return {@link HistoryEvent#eventType} cast to an {@link EventType} enumeration value.
      */
     public EventType getType() { return getField(eventType, true); }
 
     /**
-     * Find the {@link ActionState} mapping for this history event.
+     * @return action state for this event
      */
     public ActionState getActionState() { return getField(actionState, true); }
 
     /**
-     * @return {@link HistoryEvent#eventId}
+     * Event ids are unique within a workflow history and are created in sequence.
+     * @see HistoryEvent#eventId
      */
     public Long getEventId() { return getField(eventId, true); }
 
     /**
-     * @return {@link HistoryEvent#eventTimestamp}
+     * @see HistoryEvent#eventTimestamp
      */
     public DateTime getEventTimestamp() { return getField(timestamp, true); }
 
     /**
-     * Return the initial event id of the wrapped {@link HistoryEvent}.
-     * <p/>
-     * If this event is an initial event, return its event id
-     * otherwise return it's pointer to the initial history event id
+     * An 'initial event' is one that is related to the decision that started a particular {@link Action}.
+     *
+     * @return the initial event id of initial event, or if this is an initial event, returns {@link #getEventId}.
      */
     public Long getInitialEventId() { return getField(initialEventId, true); }
 
     /**
+     * Access primary data field for this event.
+     * <p/>
+     * Each SWF event type may have one or several 'data' fields, for example the field 'input' on
+     * an event with type <code>ActivityTaskScheduled</code> contains the input for that activity.
+     * <p/>
+     * The following table lists which data fields are returned by this method and {@link #getData2}:
+     *
+     * <table>
+     * <tr><th>Field</th><th>Data 1</th><th>Data 2</th></tr>
+     * <tr><td>ActivityTaskScheduled</td><td>input</td><td>control</td></tr>
+     * <tr><td>ActivityTaskStarted</td><td>identity</td><td>-</td></tr>
+     * <tr><td>ActivityTaskCompleted</td><td>result</td><td>-</td></tr>
+     * <tr><td>ActivityTaskCanceled</td><td>details</td><td>-</td></tr>
+     * <tr><td>ActivityTaskFailed</td><td>reason</td><td>details</td></tr>
+     * <tr><td>ActivityTaskTimedOut</td><td>timeoutType</td><td>details</td></tr>
+     * <tr><td>TimerStarted</td><td>control</td><td>-</td></tr>
+     * <tr><td>TimerFired</td><td>-</td><td>-</td></tr>
+     * <tr><td>StartTimerFailed</td><td>reason</td><td>-</td></tr>
+     * <tr><td>TimerCanceled</td><td>reason</td><td>-</td></tr>
+     * <tr><td>StartChildWorkflowExecutionInitiated</td><td>input</td><td>control</td></tr>
+     * <tr><td>ChildWorkflowExecutionStarted</td><td>runId</td><td>-</td></tr>
+     * <tr><td>ChildWorkflowExecutionCompleted</td><td>result</td><td>-</td></tr>
+     * <tr><td>ChildWorkflowExecutionCanceled</td><td>reason</td><td>-</td></tr>
+     * <tr><td>ChildWorkflowExecutionFailed</td><td>reason</td><td>details</td></tr>
+     * <tr><td>ChildWorkflowExecutionTerminated</td><td>reason</td><td>-</td></tr>
+     * <tr><td>ChildWorkflowExecutionTimedOut</td><td>timeoutType</td><td>-</td></tr>
+     * <tr><td>SignalExternalWorkflowExecutionInitiated</td><td>input</td><td>control</td></tr>
+     * <tr><td>ExternalWorkflowExecutionSignaled</td><td>runId</td><td>-</td></tr>
+     * <tr><td>WorkflowExecutionSignaled</td><td>input</td><td>-</td></tr>
+     * <tr><td>MarkerRecorded</td><td>details</td><td>-</td></tr>
+     * </table>
+     *
      * @return the primary data field for this event or null if it does not exist.
+     * @see HistoryEvent for more details
      */
-    public String getData() {
+    public String getData1() {
         return getField(dataValue1, false);
     }
 
     /**
      * @return the secondary data field for this event or null if it does not exist.
+     * @see #getData1 for details on what this method returns for a given event type
      */
     public String getData2() {
         return getField(dataValue2, false);
@@ -121,11 +157,11 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
     }
 
     public enum EventField {
-        eventId, eventType, timestamp, actionId, actionState, initialEventId, dataField1, dataValue1, dataField2, dataValue2
+        eventId, eventType, isInitialEvent, timestamp, actionId, actionState, initialEventId, dataField1, dataValue1, dataField2, dataValue2
     }
 
     /**
-     * Unifies the fields of different SWF history events.
+     * Parses out fields in the given {@link HistoryEvent} into a field map, which provides more uniform access.
      *
      * @param historyEvent the event to map
      *
@@ -143,6 +179,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
             case ActivityTaskScheduled:
                 map.put(actionState, active);
                 map.put(initialEventId, historyEvent.getEventId());
+                map.put(isInitialEvent, true);
                 ActivityTaskScheduledEventAttributes activityScheduled = historyEvent.getActivityTaskScheduledEventAttributes();
                 map.put(actionId, activityScheduled.getActivityId());
                 map.put(dataField1, "input");
@@ -193,13 +230,14 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
             case TimerStarted:
                 map.put(actionState, active);
                 map.put(initialEventId, historyEvent.getEventId());
+                map.put(isInitialEvent, true);
                 TimerStartedEventAttributes timerStarted = historyEvent.getTimerStartedEventAttributes();
                 map.put(actionId, timerStarted.getTimerId());
                 map.put(dataField1, "control");
                 map.put(dataValue1, timerStarted.getControl());
                 break;
             case TimerFired:
-                // NOTE: This could be a 'retry' event but we don't have the control field yet from the related TimerStarted event.
+                // If this is a retry timer event the actionState is really 'retry' but we don't have the related TimerStarted.control field yet
                 map.put(actionState, success);
                 TimerFiredEventAttributes timerFired = historyEvent.getTimerFiredEventAttributes();
                 map.put(actionId, timerFired.getTimerId());
@@ -220,6 +258,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
             case StartChildWorkflowExecutionInitiated:
                 map.put(actionState, active);
                 map.put(initialEventId, historyEvent.getEventId());
+                map.put(isInitialEvent, true);
                 StartChildWorkflowExecutionInitiatedEventAttributes childInitiated = historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes();
                 map.put(actionId, childInitiated.getWorkflowId());
                 map.put(dataField2, "input");
@@ -274,6 +313,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
             case SignalExternalWorkflowExecutionInitiated:
                 map.put(actionState, active);
                 map.put(initialEventId, historyEvent.getEventId());
+                map.put(isInitialEvent, true);
                 SignalExternalWorkflowExecutionInitiatedEventAttributes signalInitiated = historyEvent.getSignalExternalWorkflowExecutionInitiatedEventAttributes();
                 map.put(actionId, signalInitiated.getSignalName());
                 map.put(dataField1, "input");
@@ -293,6 +333,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
             case WorkflowExecutionSignaled:
                 map.put(actionState, success);
                 map.put(initialEventId, historyEvent.getEventId());
+                map.put(isInitialEvent, true);
                 WorkflowExecutionSignaledEventAttributes signaled = historyEvent.getWorkflowExecutionSignaledEventAttributes();
                 map.put(actionId, signaled.getSignalName());
                 map.put(dataField1, "input");
@@ -303,6 +344,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
             case MarkerRecorded:
                 map.put(actionState, success);
                 map.put(initialEventId, historyEvent.getEventId());
+                map.put(isInitialEvent, true);
                 MarkerRecordedEventAttributes markerRecorded = historyEvent.getMarkerRecordedEventAttributes();
                 map.put(actionId, markerRecorded.getMarkerName());
                 map.put(dataField1, "details");
@@ -321,7 +363,7 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
      * Two events are consider equal if they share the same {@link #getEventId()}.
      */
     public boolean equals(Object o) {
-        return this == o || o instanceof ActionHistoryEvent && getEventId().equals(((ActionHistoryEvent) o).getEventId());
+        return this == o || o instanceof ActionEvent && getEventId().equals(((ActionEvent) o).getEventId());
     }
 
     public int hashCode() {
@@ -333,8 +375,11 @@ public class ActionHistoryEvent implements Comparable<ActionHistoryEvent> {
         return fields.toString();
     }
 
+    /**
+     * Sort by eventId descending.
+     */
     @Override
-    public int compareTo(ActionHistoryEvent event) {
+    public int compareTo(ActionEvent event) {
         return -getEventId().compareTo(event.getEventId());
     }
 }

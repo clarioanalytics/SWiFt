@@ -4,7 +4,7 @@ import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryP
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.RespondActivityTaskFailedRequest;
-import com.clario.swift.ActionHistoryEvent;
+import com.clario.swift.ActionEvent;
 import com.clario.swift.SwiftUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
@@ -131,13 +131,13 @@ public class RetryPolicy {
      *
      * @throws IllegalStateException if no action set.
      */
-    List<ActionHistoryEvent> getRetryTimerStartedEvents() {
+    List<ActionEvent> getRetryTimerStartedEvents() {
         assertActionSet();
-        List<ActionHistoryEvent> events = action.filterEvents(TimerStarted);
-        ListIterator<ActionHistoryEvent> iter = events.listIterator();
+        List<ActionEvent> events = action.filterEvents(TimerStarted);
+        ListIterator<ActionEvent> iter = events.listIterator();
         while (iter.hasNext()) {
-            ActionHistoryEvent event = iter.next();
-            if (!RETRY_CONTROL_VALUE.equals(event.getData())) {
+            ActionEvent event = iter.next();
+            if (!RETRY_CONTROL_VALUE.equals(event.getData1())) {
                 iter.remove();
             }
         }
@@ -159,11 +159,11 @@ public class RetryPolicy {
      * @return true, if current event is a retry timer event
      * @throws IllegalStateException if no action set.
      */
-    boolean isRetryTimerEvent(ActionHistoryEvent currentEvent) {
+    boolean isRetryTimerEvent(ActionEvent currentEvent) {
         assertActionSet();
         if (TimerFired == currentEvent.getType()) {
             Long eventId = currentEvent.getInitialEventId();
-            for (ActionHistoryEvent event : getRetryTimerStartedEvents()) {
+            for (ActionEvent event : getRetryTimerStartedEvents()) {
                 if (eventId.equals(event.getEventId())) {
                     return true;
                 }
@@ -185,8 +185,8 @@ public class RetryPolicy {
     public boolean decide(List<Decision> decisions) {
         assertActionSet();
         Logger log = action.getLog();
-        ActionHistoryEvent currentHistoryEvent = getCurrentHistoryEvent();
-        String reason = currentHistoryEvent.getData();
+        ActionEvent currentHistoryEvent = getCurrentHistoryEvent();
+        String reason = currentHistoryEvent.getData1();
         String details = SwiftUtil.defaultIfEmpty(currentHistoryEvent.getData2(), "");
         if (stopIfErrorMatchesRegEx != null) {
             if (reason.matches(stopIfErrorMatchesRegEx)) {
@@ -221,7 +221,7 @@ public class RetryPolicy {
      * @throws IllegalStateException if no action set.
      */
     public int nextRetryDelaySeconds() {
-        List<ActionHistoryEvent> retryEvents = getRetryTimerStartedEvents();
+        List<ActionEvent> retryEvents = getRetryTimerStartedEvents();
         int retryCount = retryEvents.size();
         if (retryCount > maximumAttempts) {
             return -1;
@@ -241,7 +241,7 @@ public class RetryPolicy {
     }
 
     // Exposed for unit testing
-    protected ActionHistoryEvent getCurrentHistoryEvent() {
+    protected ActionEvent getCurrentHistoryEvent() {
         return action.getCurrentEvent();
     }
 

@@ -2,7 +2,7 @@ package com.clario.swift.action;
 
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.*;
-import com.clario.swift.ActionHistoryEvent;
+import com.clario.swift.ActionEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -134,9 +134,9 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see #getState()
      */
     public String getChildRunId() {
-        for (ActionHistoryEvent event : getEvents()) {
+        for (ActionEvent event : getEvents()) {
             if (event.getType() == EventType.ChildWorkflowExecutionStarted) {
-                return event.getData();
+                return event.getData1();
             }
         }
         throw new UnsupportedOptionException(format("RunId not available %s %s", this, getState()));

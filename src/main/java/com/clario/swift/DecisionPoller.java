@@ -74,8 +74,8 @@ public class DecisionPoller extends BasePoller {
         while (decisionTask == null || decisionTask.getNextPageToken() != null) {
             decisionTask = swf.pollForDecisionTask(request);
             if (decisionTask.getTaskToken() == null) {
-                if (isLogTimeout()) { log.info("poll timeout"); }
-                if (workflow == null) { return; }
+                if (isLogTimeout()) { log.info("poll timeout"); } // occasionally, log a heartbeat for a poller.
+                if (workflow == null) { return; } // return immediately if not currently collecting events for a workflow decision
             } else {
                 if (workflow == null) {
                     workflow = lookupWorkflow(decisionTask)
@@ -86,11 +86,16 @@ public class DecisionPoller extends BasePoller {
                     workflow.init();
                 }
                 workflow.addHistoryEvents(decisionTask.getEvents());
+
                 if (workflow.isContinuePollingForHistoryEvents()) {
                     request.setNextPageToken(decisionTask.getNextPageToken());
+                } else {
+                    decisionTask.setNextPageToken(null);
                 }
             }
         }
+
+        // Finished loading history for this workflow, now ask it to make the next set of decisions.
         String workflowId = decisionTask.getWorkflowExecution().getWorkflowId();
         String runId = decisionTask.getWorkflowExecution().getRunId();
 
@@ -173,6 +178,7 @@ public class DecisionPoller extends BasePoller {
         return null;
     }
 
+    // find the registered workflow related to the current decision task
     private Workflow lookupWorkflow(DecisionTask decisionTask) {
         String name = decisionTask.getWorkflowType().getName();
         String version = decisionTask.getWorkflowType().getVersion();
