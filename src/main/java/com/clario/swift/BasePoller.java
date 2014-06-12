@@ -23,7 +23,7 @@ public abstract class BasePoller implements Runnable {
     private int pollCount;
 
     /**
-     * @param id unique id for poller, used for logging and recording in SWF
+     * @param id unique id for poller used for logging and recording in SWF
      * @param domain SWF domain to poll
      * @param taskList SWF taskList to filter on
      */
@@ -40,7 +40,7 @@ public abstract class BasePoller implements Runnable {
      * {@link Runnable#run} implementation calls {@link #poll()} once,
      * allows for scheduling multiple poller instances in an external thread pool.
      *
-     * @see #poll() actual polling method called within this loop
+     * @see #poll
      */
     public void run() {
         log.debug("run");
@@ -54,7 +54,7 @@ public abstract class BasePoller implements Runnable {
     /**
      * Subclass implements to perform the SWF polling work.
      *
-     * @see #run for scheduling this poller in a thread pool
+     * @see #run
      */
     protected abstract void poll();
 
@@ -78,7 +78,7 @@ public abstract class BasePoller implements Runnable {
 
     @Override
     public String toString() {
-        LinkedHashMap<String, String> map = new LinkedHashMap<>(3);
+        LinkedHashMap<String, String> map = new LinkedHashMap<String, String>(3);
         map.put("id", id);
         map.put("domain", domain);
         map.put("taskList", taskList);

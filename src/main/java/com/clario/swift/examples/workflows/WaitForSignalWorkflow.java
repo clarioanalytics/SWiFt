@@ -5,14 +5,12 @@ import com.clario.swift.ActionEvent;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActionState;
 import com.clario.swift.action.ActivityAction;
-import com.clario.swift.examples.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
+import static com.clario.swift.examples.Config.config;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
@@ -33,11 +31,11 @@ public class WaitForSignalWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new WaitForSignalWorkflow()
-            .withDomain(SWIFT_DOMAIN)
-            .withTaskList(SWIFT_TASK_LIST)
+            .withDomain(config.getDomain())
+            .withTaskList(config.getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30);
-        Config.getConfig().submit(workflow, "100");
+        config.submit(workflow, "100");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0")

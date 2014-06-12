@@ -23,7 +23,7 @@ public abstract class Workflow {
     protected final String version;
     protected final String key;
     protected final WorkflowHistory workflowHistory;
-    private final List<String> tags = new ArrayList<>();
+    private final List<String> tags = new ArrayList<String>();
 
     // Optional fields used for submitting workflow.
     private String description;
@@ -45,8 +45,13 @@ public abstract class Workflow {
     }
 
     /**
-     * Called by subclass add a reference of this instance to each action used on the workflow.
-     * Actions require a reference to their enclosing workflow to access the current decision task state.
+     * Register {@link Action} instances with this workflow so that {@link Action#setWorkflow}
+     * will be automatically called with this instance before each {@link #decide}.
+     *
+     * Actions that are created dynamically within the {@link #decide} method will have to have
+     * {@link Action#setWorkflow} called directly.
+     *
+     * @see Action#setWorkflow
      */
     protected void addActions(Action... actions) {
         for (Action action : actions) {
@@ -64,8 +69,8 @@ public abstract class Workflow {
      * by this method.
      *
      * @see Action#decide
-     * @see Action#withCompleteWorkflowOnSuccess()
-     * @see Action#withNoFailWorkflowOnError()
+     * @see Action#withCompleteWorkflowOnSuccess
+     * @see Action#withNoFailWorkflowOnError
      * @see #createWorkflowExecutionRequest
      * @see #createFailWorkflowExecutionDecision
      */
@@ -77,7 +82,6 @@ public abstract class Workflow {
     public void init() {
         workflowHistory.reset();
     }
-
 
     public String getName() { return name; }
 
@@ -121,15 +125,6 @@ public abstract class Workflow {
      */
     public boolean isContinuePollingForHistoryEvents() {
         return true;
-    }
-
-    /**
-     * Get any error events recorded for current SWF decision task.
-     *
-     * @see WorkflowHistory#getErrorEvents
-     */
-    public List<HistoryEvent> getErrorEvents() {
-        return workflowHistory.getErrorEvents();
     }
 
     /**

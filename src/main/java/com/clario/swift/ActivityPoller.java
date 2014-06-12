@@ -11,19 +11,32 @@ import static java.lang.String.format;
 
 /**
  * Polls for activities on a given domain and task list and executes them.
+ * <p/>
+ * Implements {@link Runnable} so that multiple instances of this class can be
+ * scheduled to handle higher levels of activity tasks.
+ * <p/>
+ * Since this class is single-threaded it will be tied-up while the activity is processing so scale
+ * the size of the activity polling pool appropriately if you have many long-running activities.
  *
  * @author George Coller
+ * @see BasePoller
+ * @see com.clario.swift.examples.ActivityPollerPool StartActivityPollers for example usage.
  */
 public class ActivityPoller extends BasePoller {
-    private final Map<String, ActivityInvoker> activityMap = new LinkedHashMap<>();
+    private final Map<String, ActivityInvoker> activityMap = new LinkedHashMap<String, ActivityInvoker>();
 
-
+    /**
+     * @param id unique id for poller used for logging and recording in SWF
+     * @param domain SWF domain to poll
+     * @param taskList SWF taskList to filter on
+     */
     public ActivityPoller(String id, String domain, String taskList) {
         super(id, domain, taskList);
     }
 
     /**
-     * Register activities added to this poller on Amazon SWF, {@link TypeAlreadyExistsException} are ignored.
+     * Register activities added to this poller on Amazon SWF with this instance's domain and task list.
+     * {@link TypeAlreadyExistsException} are ignored making this method idempotent.
      *
      * @see ActivityMethod
      */
@@ -37,17 +50,18 @@ public class ActivityPoller extends BasePoller {
             } catch (TypeAlreadyExistsException e) {
                 log.warn(format("Activity already registered '%s' '%s'", method.name(), method.version()));
             } catch (Throwable t) {
-                log.error(format("Register activity failed '%s' '%s'", method.name(), method.version()), t);
-                throw t;
+                String format = format("Register activity failed '%s' '%s'", method.name(), method.version());
+                log.error(format, t);
+                throw new IllegalStateException(format, t);
             }
         }
     }
 
-
     /**
-     * Add one or more objects having methods annotated with {@link ActivityMethod}.
+     * Add objects with one or more methods annotated with {@link ActivityMethod}
+     * mirroring Activity Types registered on SWF with this poller's domain and task list.
      *
-     * @param annotatedObjects annotated objects
+     * @param annotatedObjects objects with one or more methods annotated with {@link ActivityMethod}
      */
     public void addActivities(Object... annotatedObjects) {
         for (Object object : annotatedObjects) {
@@ -62,6 +76,18 @@ public class ActivityPoller extends BasePoller {
         }
     }
 
+    /**
+     * Each call performs a long polling or the next activity task from SWF and then calls
+     * the matching registered {@link ActivityMethod} method to perform the task.
+     * <p/>
+     * <ul>
+     * <li>Methods that succeed will cause a {@link RespondActivityTaskCompletedRequest} to be returned.</li>
+     * <li>Methods that throw methods will cause a {@link RespondActivityTaskFailedRequest} to be returned.</li>
+     * <li>Methods may issue zero or more {@link RecordActivityTaskHeartbeatRequest} calls while processing</li>
+     * </ul>
+     *
+     * @see #addActivities(Object...)
+     */
     @Override
     protected void poll() {
         ActivityTask task = swf.pollForActivityTask(createPollForActivityTask(domain, taskList, getId()));
@@ -71,13 +97,11 @@ public class ActivityPoller extends BasePoller {
         }
 
         String input = task.getInput();
-        String name = task.getActivityType().getName();
-        String key = makeKey(name, task.getActivityType().getVersion());
+        String key = makeKey(task.getActivityType().getName(), task.getActivityType().getVersion());
         try {
-            log.debug("start: '{}' '{}' '{}'", task.getActivityId(), name, input);
+            log.debug("start: {}", task);
             if (activityMap.containsKey(key)) {
-                String result = activityMap.get(key).invoke(task, input);
-
+                String result = activityMap.get(key).invoke(task);
                 log.info("'{}' '{}' '{}' -> '{}'", task.getActivityId(), key, input, result);
                 swf.respondActivityTaskCompleted(createRespondActivityCompleted(task, result));
             } else {
@@ -108,6 +132,64 @@ public class ActivityPoller extends BasePoller {
             log.warn("Failed to record heartbeat: " + taskToken + ", " + details, e);
         }
 
+    }
+
+    /**
+     * Wraps a single method annotated with {@link ActivityMethod} and is registered on
+     * the activity map.
+     *
+     * This class also acts as the {@link ActivityContext} passed to an {@link ActivityMethod} annotated method.
+     *
+     * @see ActivityContext
+     */
+    static class ActivityInvoker implements ActivityContext {
+        private final ActivityPoller poller;
+        private final Method method;
+        private final Object instance;
+        private String input;
+        private ActivityTask task;
+
+        ActivityInvoker(ActivityPoller poller, Method method, Object instance) {
+            this.poller = poller;
+            this.method = method;
+            this.instance = instance;
+        }
+
+        String invoke(final ActivityTask task) {
+            String name = task.getActivityType() == null ? "unknown" : task.getActivityType().getName();
+            try {
+                this.task = task;
+                this.input = task.getInput();
+                Object result = method.invoke(instance, this);
+                if (result == null) {
+                    return null;
+                } else {
+                    String resultString = result.toString();
+                    if (resultString.length() > MAX_RESULT_LENGTH) {
+                        poller.log.warn(format("Activity '%s' '%s' returned result string longer than allowed %d characters, was trimmed\nresult was \"%s\"", task.getActivityId(), name, MAX_RESULT_LENGTH, resultString));
+                    }
+                    return trimToMaxLength(resultString, MAX_RESULT_LENGTH);
+                }
+            } catch (Throwable e) {
+                throw new IllegalStateException(format("error: '%s' '%s' '%s'", task.getActivityId(), name, task.getInput()), e);
+            }
+        }
+
+        ActivityMethod getActivityMethod() {
+            return method.getAnnotation(ActivityMethod.class);
+        }
+
+        public String getActionId() {
+            return task.getActivityId();
+        }
+
+        public void recordHeartbeat(String details) {
+            poller.recordHeartbeat(task.getTaskToken(), details);
+        }
+
+        public String getInput() {
+            return input;
+        }
     }
 
     public static RegisterActivityTypeRequest createRegisterActivityType(String domain, String taskList, ActivityMethod method) {
@@ -150,61 +232,4 @@ public class ActivityPoller extends BasePoller {
             .withResult(trimToMaxLength(result, MAX_RESULT_LENGTH));
     }
 
-    /**
-     * Added methods annotated with {@link ActivityMethod} are converted into this
-     * helper class and registered on the poller activity map
-     * <p/>
-     * Class acts both as a
-     */
-    static class ActivityInvoker implements ActivityContext {
-        private final ActivityPoller poller;
-        private final Method method;
-        private final Object instance;
-        private String input;
-        private ActivityTask task;
-
-        ActivityInvoker(ActivityPoller poller, Method method, Object instance) {
-            this.poller = poller;
-            this.method = method;
-            this.instance = instance;
-        }
-
-        String invoke(final ActivityTask task, String input) {
-            String name = task.getActivityType() == null ? "unknown" : task.getActivityType().getName();
-            try {
-                this.task = task;
-                this.input = input;
-                Object result = method.invoke(instance, this);
-                if (result == null) {
-                    return null;
-                } else {
-                    String resultString = result.toString();
-                    if (resultString.length() > MAX_RESULT_LENGTH) {
-                        poller.log.warn(format("Activity '%s' '%s' returned result string longer than allowed %d characters, was trimmed\nresult was \"%s\"", task.getActivityId(), name, MAX_RESULT_LENGTH, resultString));
-                    }
-                    return trimToMaxLength(resultString, MAX_RESULT_LENGTH);
-                }
-            } catch (Throwable e) {
-                throw new IllegalStateException(format("error: '%s' '%s' '%s'", task.getActivityId(), name, input), e);
-            }
-        }
-
-        ActivityMethod getActivityMethod() {
-            return method.getAnnotation(ActivityMethod.class);
-        }
-
-        @Override
-        public String getActionId() {
-            return task.getActivityId();
-        }
-
-        @Override
-        public void recordHeartbeat(String details) {
-            poller.recordHeartbeat(task.getTaskToken(), details);
-        }
-
-        public String getInput() {
-            return input;
-        }
-    }
 }

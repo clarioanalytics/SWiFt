@@ -30,7 +30,6 @@ import static java.nio.file.Files.readAllLines;
  * @author George Coller
  */
 public class SwiftUtil {
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC();
     public static final DateTimeFormatter DATE_TIME_MILLIS_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
     public static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
     public static final int MAX_NUMBER_TAGS = 5;
@@ -51,10 +50,12 @@ public class SwiftUtil {
     /**
      * Convert an object into a JSON string.
      *
+     * Uses <code>com.fasterxml.jackson.databind.ObjectMapper</code>
+     * of <a href="https://github.com/FasterXML/jackson-databind">Jackson JSON</a>,
+     * which is already a dependency of the Java AWS SDK.
      * @param o object to convert
      *
      * @return JSON string.
-     * @see ObjectMapper for details on what can be converted.
      */
     public static String toJson(Object o) {
         try {
@@ -67,10 +68,13 @@ public class SwiftUtil {
     /**
      * Convert a JSON string into a structure of Java collections.
      *
+     * Uses <code>com.fasterxml.jackson.databind.ObjectMapper</code>
+     * of <a href="https://github.com/FasterXML/jackson-databind">Jackson JSON</a>,
+     * which is already a dependency of the Java AWS SDK.
+     *
      * @param json string to convert
      *
      * @return converted structure
-     * @see ObjectMapper for details on what can be converted.
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> fromJson(String json) {
@@ -87,7 +91,7 @@ public class SwiftUtil {
      * @param value to assert
      *
      * @return the parameter for method chaining
-     * @see RegisterWorkflowTypeRequest#getName() for details on valid naming rules in SWF
+     * @see RegisterWorkflowTypeRequest#getName
      */
     public static String assertSwfValue(String value) {
         if (value != null) {
@@ -196,7 +200,7 @@ public class SwiftUtil {
      * @return list of joined entries
      */
     public static <A, B> List<String> joinEntries(Map<A, B> map, String separator) {
-        List<String> list = new ArrayList<>(map.size());
+        List<String> list = new ArrayList<String>(map.size());
         separator = defaultIfNull(separator, "");
         for (Map.Entry<A, B> entry : map.entrySet()) {
             list.add(format("%s%s%s", defaultIfNull(entry.getKey(), ""), separator, defaultIfNull(entry.getValue(), "")));

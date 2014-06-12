@@ -65,7 +65,7 @@ public class SwiftUtilTest {
         assertEquals(empty, joinEntries(emptyMap(), null));
         assertEquals(empty, joinEntries(emptyMap(), ""));
         assertEquals(empty, joinEntries(emptyMap(), ",,,"));
-        Map<String, Integer> map = new HashMap<>();
+        Map<String, Integer> map = new HashMap<String, Integer>();
         map.put("A", 1);
         map.put("B", 2);
         map.put("C", null);
@@ -120,7 +120,7 @@ public class SwiftUtilTest {
         assertBadSwfValue("a\t");
         assertBadSwfValue("\ta");
 
-        List<String> badStrings = new ArrayList<>();
+        List<String> badStrings = new ArrayList<String>();
         badStrings.addAll(Arrays.asList(":", "/", "|", "arn"));
         for (char i = 0x0000; i < 0x001f; i++) { badStrings.add(String.valueOf(i)); }
         for (char i = 0x007f; i < 0x009f; i++) { badStrings.add(String.valueOf(i)); }

@@ -4,19 +4,17 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 import com.clario.swift.action.RecordMarkerAction;
-import com.clario.swift.examples.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
+import static com.clario.swift.examples.Config.config;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
- * Example on how you can shortcut loading history events if you have what you need to make the next decision,
+ * Example workflow demonstrating how to stop loading history events when it's determined that the next decision can be made,
  * which will improve performance on workflows that generate thousands of events.
  *
  * @author George Coller
@@ -26,11 +24,11 @@ public class PollingCheckpointWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new PollingCheckpointWorkflow()
-            .withDomain(SWIFT_DOMAIN)
-            .withTaskList(SWIFT_TASK_LIST)
+            .withDomain(config.getDomain())
+            .withTaskList(config.getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 5)
             .withTaskStartToCloseTimeout(MINUTES, 1);
-        Config.getConfig().submit(workflow, "100");
+        config.submit(workflow, "100");
     }
 
     private final RecordMarkerAction doOnceMarkerAction = new RecordMarkerAction("doOnceMarkerAction");
@@ -62,9 +60,9 @@ public class PollingCheckpointWorkflow extends Workflow {
         if (!step2.isSuccess()) {
             if (step1.decide(decisions).isSuccess()) {
 
-                if (!doOnceMarkerAction.isSuccess()) {
-                    // Create a ton of markers to fill up the event history
-                    doOnceMarkerAction.decide(decisions);
+                if (doOnceMarkerAction.isInitial()) {
+                    // Create a 2000 markers to fill up the event history
+                    doOnceMarkerAction.withDetails("marker doOnce").decide(decisions);
                     for (int i = 0; i < 2000; i++) {
                         decisions.add(doOnceMarkerAction.withDetails(format("marker %d", i)).createInitiateActivityDecision());
                     }

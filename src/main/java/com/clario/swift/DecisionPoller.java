@@ -11,31 +11,37 @@ import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static java.lang.String.format;
 
+
 /**
  * Poll for {@link DecisionTask} on a single domain and task list and ask a registered {@link Workflow} for next decisions.
- * Note: Single threaded, run multiple instances as {@link Runnable} for higher throughput
+ * <p/>
+ * Implements {@link Runnable} so that multiple instances of this class can be  scheduled to handle higher levels of activity tasks.
  *
  * @author George Coller
+ * @see com.clario.swift.BasePoller
+ * @see com.clario.swift.examples.DecisionPollerPool StartDecisionPollers for example usage.
  */
 public class DecisionPoller extends BasePoller {
-    private final Map<String, Workflow> workflows = new LinkedHashMap<>();
+    private final Map<String, Workflow> workflows = new LinkedHashMap<String, Workflow>();
     private final String executionContext;
 
     /**
-     * Construct a workflow poller
+     * Construct a decision poller.
      *
-     * @param id unique identifier of poller for logging purposes
-     * @param executionContext optional context to be sent on each {@link RespondDecisionTaskCompletedRequest}
+     * @param id unique id for poller used for logging and recording in SWF
+     * @param domain SWF domain to poll
+     * @param taskList SWF taskList to filter on
+     * @param executionContext optional value to be sent on each {@link RespondDecisionTaskCompletedRequest}
      */
     public DecisionPoller(String id, String domain, String taskList, String executionContext) {
         super(id, domain, taskList);
         this.executionContext = executionContext;
     }
-
     /**
-     * Register workflows added to this poller on Amazon SWF, {@link TypeAlreadyExistsException} are ignored.
-     * <p/>
-     * Use this poller's domain and taskList.
+     * Register workflows added to this poller on Amazon SWF with this instance's domain and task list.
+     * {@link TypeAlreadyExistsException} are ignored making this method idempotent.
+     *
+     * @see ActivityMethod
      */
     public void registerSwfWorkflows() {
         for (Workflow workflow : workflows.values()) {
@@ -46,15 +52,17 @@ public class DecisionPoller extends BasePoller {
                 log.info(format("Register workflow succeeded %s", workflow));
             } catch (TypeAlreadyExistsException e) {
                 log.info(format("Workflow already registered %s", workflow));
-            } catch (Throwable e) {
-                log.error(format("Register workflow failed %s", workflow));
-                throw e;
+            } catch (Throwable t) {
+                String format = format("Register workflow failed %s", workflow);
+                log.error(format);
+                throw new IllegalStateException(format, t);
             }
         }
     }
 
     /**
-     * Add one or more workflows to the poller.
+     * Add {@link Workflow} implementations to the poller
+     * mirroring Worklfow Types registered on SWF with this poller's domain and task list.
      */
     public void addWorkflows(Workflow... workflows) {
         for (Workflow workflow : workflows) {
@@ -99,8 +107,8 @@ public class DecisionPoller extends BasePoller {
         String workflowId = decisionTask.getWorkflowExecution().getWorkflowId();
         String runId = decisionTask.getWorkflowExecution().getRunId();
 
-        List<Decision> decisions = new ArrayList<>();
-        List<HistoryEvent> workflowErrors = workflow.getErrorEvents();
+        List<Decision> decisions = new ArrayList<Decision>();
+        List<HistoryEvent> workflowErrors = workflow.getWorkflowHistory().getErrorEvents();
 
         if (workflowErrors.isEmpty()) {
             try {

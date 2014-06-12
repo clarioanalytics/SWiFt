@@ -25,7 +25,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
     private String executionStartToCloseTimeout;
     private String taskStartToCloseTimeout;
     private String childPolicy = ChildPolicy.TERMINATE.name(); // sensible default
-    private final List<String> tags = new ArrayList<>();
+    private final List<String> tags = new ArrayList<String>();
 
     public StartChildWorkflowAction(String actionId) {
         super(actionId);
@@ -45,7 +45,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * Set the taskList for the child workflow.
      * If null, defaults to the calling workflow taskList.
      *
-     * @see com.clario.swift.Workflow#getTaskList()
+     * @see com.clario.swift.Workflow#getTaskList
      * @see StartChildWorkflowExecutionDecisionAttributes#taskList
      */
     public StartChildWorkflowAction withTaskList(String taskList) {
@@ -131,7 +131,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * Clients should ensure that the child workflow has been started in a prior decision task before calling this method.
      *
      * @throws UnsupportedOperationException if child runId is not available
-     * @see #getState()
+     * @see #getState
      */
     public String getChildRunId() {
         for (ActionEvent event : getEvents()) {

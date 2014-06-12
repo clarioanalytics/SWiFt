@@ -21,8 +21,8 @@ import java.util.*;
  * @see Workflow
  */
 public class WorkflowHistory {
-    private final LinkedList<ActionEvent> actionEvents = new LinkedList<>();
-    private final List<HistoryEvent> errorEvents = new ArrayList<>();
+    private final LinkedList<ActionEvent> actionEvents = new LinkedList<ActionEvent>();
+    private final List<HistoryEvent> errorEvents = new ArrayList<HistoryEvent>();
     private HistoryEvent workflowExecutionStarted;
 
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
@@ -70,7 +70,7 @@ public class WorkflowHistory {
      * @return the list, empty if no actions found
      */
     public List<ActionEvent> filterActionEvents(String actionId) {
-        List<ActionEvent> list = new ArrayList<>();
+        List<ActionEvent> list = new ArrayList<ActionEvent>();
 
         // iterate backwards through list (need to find initial event first)
         Iterator<ActionEvent> iter = actionEvents.descendingIterator();
@@ -97,7 +97,7 @@ public class WorkflowHistory {
      * @return list of matching events
      */
     public List<ActionEvent> filterEvents(String actionId, EventType eventType) {
-        List<ActionEvent> list = new ArrayList<>();
+        List<ActionEvent> list = new ArrayList<ActionEvent>();
         for (ActionEvent event : actionId == null ? actionEvents : filterActionEvents(actionId)) {
             if (eventType == null || event.getType() == eventType) {
                 list.add(event);
@@ -134,6 +134,9 @@ public class WorkflowHistory {
         }
     }
 
+    /**
+     * Get any error events recorded for current SWF decision task.
+     */
     public List<HistoryEvent> getErrorEvents() {
         return errorEvents;
     }

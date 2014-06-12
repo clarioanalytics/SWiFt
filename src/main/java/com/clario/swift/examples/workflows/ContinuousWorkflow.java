@@ -5,7 +5,6 @@ import com.amazonaws.services.simpleworkflow.model.WorkflowExecutionAlreadyStart
 import com.clario.swift.ActionEvent;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ContinueAsNewAction;
-import com.clario.swift.examples.Config;
 
 import java.util.List;
 
@@ -34,11 +33,11 @@ public class ContinuousWorkflow extends Workflow {
     public static void main(String[] args) throws InterruptedException {
         try {
             Workflow workflow = new ContinuousWorkflow()
-                .withDomain(SWIFT_DOMAIN)
-                .withTaskList(SWIFT_TASK_LIST)
+                .withDomain(config.getDomain())
+                .withTaskList(config.getTaskList())
                 .withExecutionStartToCloseTimeout(DAYS, 365)
                 .withTaskStartToCloseTimeout(MINUTES, 1);
-            Config.getConfig().submit(workflow, WF_ID, "1");
+            config.submit(workflow, WF_ID, "1");
         } catch (WorkflowExecutionAlreadyStartedException e) {
             log.warn(WF_NAME + " is already running");
         }

@@ -14,7 +14,7 @@ import static com.clario.swift.action.ActionState.*;
 /**
  * Wrap {@link HistoryEvent} instances to make working with them easier and provide a uniform API.
  * </p>
- * An instance will be assigned {@link ActionState#undefined} if the wrapped <code>HistoryEvent</code> does not
+ * An instance will be assigned {@link ActionState#undefined} if the wrapped {@link HistoryEvent} does not
  * belong to an {@link Action}: Activity, Timer, Marker, Signal, Start Child, ContinueAsNew.
  *
  * @author George Coller
@@ -42,7 +42,7 @@ public class ActionEvent implements Comparable<ActionEvent> {
      * Initial events relate to the initial decision to start an  an activity, timer, marker, signal, child workflow, etc.
      *
      * @return true if action type is an initial action event
-     * @see #getActionId()
+     * @see #getActionId
      */
     public boolean isInitialEvent() {
         return Boolean.TRUE == fields.get(isInitialEvent);
@@ -55,7 +55,7 @@ public class ActionEvent implements Comparable<ActionEvent> {
      *
      * @return unique action identifier related to this event
      * @throws UnsupportedOperationException if instance is not an initiator action event.
-     * @see #isInitialEvent()
+     * @see #isInitialEvent
      */
     public String getActionId() {
         return getField(actionId, true);
@@ -96,34 +96,32 @@ public class ActionEvent implements Comparable<ActionEvent> {
      * an event with type <code>ActivityTaskScheduled</code> contains the input for that activity.
      * <p/>
      * The following table lists which data fields are returned by this method and {@link #getData2}:
-     *
-     * <table>
-     * <tr><th>Field</th><th>Data 1</th><th>Data 2</th></tr>
-     * <tr><td>ActivityTaskScheduled</td><td>input</td><td>control</td></tr>
-     * <tr><td>ActivityTaskStarted</td><td>identity</td><td>-</td></tr>
-     * <tr><td>ActivityTaskCompleted</td><td>result</td><td>-</td></tr>
-     * <tr><td>ActivityTaskCanceled</td><td>details</td><td>-</td></tr>
-     * <tr><td>ActivityTaskFailed</td><td>reason</td><td>details</td></tr>
-     * <tr><td>ActivityTaskTimedOut</td><td>timeoutType</td><td>details</td></tr>
-     * <tr><td>TimerStarted</td><td>control</td><td>-</td></tr>
-     * <tr><td>TimerFired</td><td>-</td><td>-</td></tr>
-     * <tr><td>StartTimerFailed</td><td>reason</td><td>-</td></tr>
-     * <tr><td>TimerCanceled</td><td>reason</td><td>-</td></tr>
-     * <tr><td>StartChildWorkflowExecutionInitiated</td><td>input</td><td>control</td></tr>
-     * <tr><td>ChildWorkflowExecutionStarted</td><td>runId</td><td>-</td></tr>
-     * <tr><td>ChildWorkflowExecutionCompleted</td><td>result</td><td>-</td></tr>
-     * <tr><td>ChildWorkflowExecutionCanceled</td><td>reason</td><td>-</td></tr>
-     * <tr><td>ChildWorkflowExecutionFailed</td><td>reason</td><td>details</td></tr>
-     * <tr><td>ChildWorkflowExecutionTerminated</td><td>reason</td><td>-</td></tr>
-     * <tr><td>ChildWorkflowExecutionTimedOut</td><td>timeoutType</td><td>-</td></tr>
-     * <tr><td>SignalExternalWorkflowExecutionInitiated</td><td>input</td><td>control</td></tr>
-     * <tr><td>ExternalWorkflowExecutionSignaled</td><td>runId</td><td>-</td></tr>
-     * <tr><td>WorkflowExecutionSignaled</td><td>input</td><td>-</td></tr>
-     * <tr><td>MarkerRecorded</td><td>details</td><td>-</td></tr>
-     * </table>
-     *
+     * <pre>{@code Field                                    | Data 1      | Data 2
+    -----------------------------------------+-------------+--------
+    ActivityTaskScheduled                    | input       | control
+    ActivityTaskStarted                      | identity    | -
+    ActivityTaskCompleted                    | result      | -
+    ActivityTaskCanceled                     | details     | -
+    ActivityTaskFailed                       | reason      | details
+    ActivityTaskTimedOut                     | timeoutType | details
+    TimerStarted                             | control     | -
+    TimerFired                               | -           | -
+    StartTimerFailed                         | reason      | -
+    TimerCanceled                            | reason      | -
+    StartChildWorkflowExecutionInitiated     | input       | control
+    ChildWorkflowExecutionStarted            | runId       | -
+    ChildWorkflowExecutionCompleted          | result      | -
+    ChildWorkflowExecutionCanceled           | reason      | -
+    ChildWorkflowExecutionFailed             | reason      | details
+    ChildWorkflowExecutionTerminated         | reason      | -
+    ChildWorkflowExecutionTimedOut           | timeoutType | -
+    SignalExternalWorkflowExecutionInitiated | input       | control
+    ExternalWorkflowExecutionSignaled        | runId       | -
+    WorkflowExecutionSignaled                | input       | -
+    MarkerRecorded                           | details     | -
+     * }</pre>
      * @return the primary data field for this event or null if it does not exist.
-     * @see HistoryEvent for more details
+     * @see HistoryEvent
      */
     public String getData1() {
         return getField(dataValue1, false);
@@ -131,7 +129,7 @@ public class ActionEvent implements Comparable<ActionEvent> {
 
     /**
      * @return the secondary data field for this event or null if it does not exist.
-     * @see #getData1 for details on what this method returns for a given event type
+     * See {@link #getData1} for details.
      */
     public String getData2() {
         return getField(dataValue2, false);
@@ -168,7 +166,7 @@ public class ActionEvent implements Comparable<ActionEvent> {
      * @return map of field values
      */
     static Map<EventField, Object> mapFields(HistoryEvent historyEvent) {
-        Map<EventField, Object> map = new EnumMap<>(EventField.class);
+        Map<EventField, Object> map = new EnumMap<EventField, Object>(EventField.class);
         map.put(timestamp, new DateTime(historyEvent.getEventTimestamp()));
         map.put(eventId, historyEvent.getEventId());
         EventType type = EventType.valueOf(historyEvent.getEventType());
@@ -378,7 +376,6 @@ public class ActionEvent implements Comparable<ActionEvent> {
     /**
      * Sort by eventId descending.
      */
-    @Override
     public int compareTo(ActionEvent event) {
         return -getEventId().compareTo(event.getEventId());
     }

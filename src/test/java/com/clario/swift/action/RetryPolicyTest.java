@@ -38,7 +38,7 @@ public class RetryPolicyTest {
             .withDetails("java.lang.IllegalStateException: Failed to invoke with: step1: 1.0 at ...."));
         retry.currentHistoryEvent = new ActionEvent(he);
 
-        List<Decision> decisions = new ArrayList<>();
+        List<Decision> decisions = new ArrayList<Decision>();
 
         retry.withStopIfErrorMatches(".*IllegalStateException.*");
         assertFalse(retry.decide(decisions));
@@ -152,7 +152,7 @@ public class RetryPolicyTest {
     }
 
     static class MockRetry extends RetryPolicy {
-        List<ActionEvent> events = new ArrayList<>();
+        List<ActionEvent> events = new ArrayList<ActionEvent>();
         ActionEvent currentHistoryEvent;
 
         @Override

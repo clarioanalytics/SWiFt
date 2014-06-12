@@ -4,10 +4,8 @@ import com.amazonaws.services.simpleworkflow.model.RecordActivityTaskHeartbeatRe
 import com.amazonaws.services.simpleworkflow.model.ScheduleActivityTaskDecisionAttributes;
 
 /**
- * Context passed to a method annotated with {@link ActivityMethod}
- * <p/>
- * so it can get inputs, set outputs and record heartbeats without having to be configured
- * with Amazon SWF.
+ * Context passed to methods annotated with {@link ActivityMethod} facilitating
+ * getting the activity input and long-running activity tasks that need to record heartbeats.
  *
  * @author George Coller
  */

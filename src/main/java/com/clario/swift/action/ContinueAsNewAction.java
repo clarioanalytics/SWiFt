@@ -7,10 +7,11 @@ import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
- * Initiate a continue workflow as new action.
+ * Initiate a continue workflow as new action, which stops the current workflow and creates a new one with the same
+ * {@link Workflow#workflowId}.
  * <p/>
- * This action is used for endless workflows, which should be terminated and continued as new
- * periodically to ensure that the history log does not get too large.
+ * Useful for creating on-going, "chron"-like, workflows.  Such workflows need to be terminated and restarted so that
+ * the event history does not get too large.
  *
  * @author George Coller
  */
@@ -23,6 +24,7 @@ public class ContinueAsNewAction extends Action<ContinueAsNewAction> {
     }
 
     /**
+     * Allows for starting the new workflow with a new input value.
      * @see StartChildWorkflowExecutionDecisionAttributes#input
      */
     public ContinueAsNewAction withInput(String input) {

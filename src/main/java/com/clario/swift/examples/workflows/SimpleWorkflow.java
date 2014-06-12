@@ -3,13 +3,11 @@ package com.clario.swift.examples.workflows;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
-import com.clario.swift.examples.Config;
 
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
+import static com.clario.swift.examples.Config.config;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -20,13 +18,13 @@ public class SimpleWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new SimpleWorkflow()
-            .withDomain(SWIFT_DOMAIN)
-            .withTaskList(SWIFT_TASK_LIST)
+            .withDomain(config.getDomain())
+            .withTaskList(config.getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 5)
             .withTaskStartToCloseTimeout(SECONDS, 30)
             .withChildPolicy(TERMINATE)
             .withDescription("A Simple Example Workflow");
-        Config.getConfig().submit(workflow, "100");
+        config.submit(workflow, "100");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0");

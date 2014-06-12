@@ -10,9 +10,38 @@ import static com.clario.swift.SwiftUtil.assertMaxLength;
 /**
  * Add a marker to a SWF workflow.
  * <p/>
- * Note: Adding markers do not create additional decision tasks.
+ * <b>WARNING</b>: Marker actions do not cause an additional decision event to be issued by SWF.
+ * <p/>
+ * What this means is that workflows that add {@link RecordMarkerAction} decisions must also
+ * add an additional decision (another Action or {@link Workflow#createCompleteWorkflowExecutionDecision(String)}
+ * or the workflow will get stuck.
+ * <p/>
+ * Example usage within a {@link Workflow} subclass:
+ * <pre><code>
+ private final RecordMarkerAction doOnceMarker = new RecordMarkerAction("doOnceMarker");
+
+ ...
+
+ public StartChildWorkflow() {
+     ....
+
+     addActions(doOnceMarker);
+ }
+
+ public void decide(List<Decision> decisions) {
+     if (doOnceMarker.isInitial()) {
+         String markerInput = ... // result of some run-once code
+
+         doOnceMarker
+              .withDetails(markerInput)
+              .decide(decisions)
+     }
+ }
+ * </code></pre>
+ *
  *
  * @author George Coller
+ * @see com.clario.swift.examples.workflows Example workflows for usage ideas.
  */
 public class RecordMarkerAction extends Action<RecordMarkerAction> {
 
@@ -23,7 +52,7 @@ public class RecordMarkerAction extends Action<RecordMarkerAction> {
     }
 
     /**
-     * @see RecordMarkerDecisionAttributes#getDetails()
+     * @see RecordMarkerDecisionAttributes#getDetails
      */
     public RecordMarkerAction withDetails(String input) {
         this.details = assertMaxLength(input, MAX_INPUT_LENGTH);

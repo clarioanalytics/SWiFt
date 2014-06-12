@@ -14,20 +14,26 @@ import org.slf4j.LoggerFactory;
 import java.util.Properties;
 
 import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 
 /**
- * Config class used by example workflow action and decision pollers.
+ * Config class used by example workflows and {@link ActivityPollerPool} and {@link DecisionPollerPool}.
+ * <p/>
+ * See the project's README.md file for more info.
+ *
  * @author George Coller
  */
 public class Config {
-    public static final String SWIFT_DOMAIN = "dev-clario-swift";
-    public static final String SWIFT_TASK_LIST = "default";
     public static final Logger log = LoggerFactory.getLogger(Config.class);
 
-    private static final Config config = new Config();
+    public static final Config config = new Config();
     private final AmazonSimpleWorkflow amazonSimpleWorkflow;
-    private int poolSize = 2;
+    private String domain;
+    private String taskList;
+    private int activityPoolSize = 2;
+    private int decisionPoolSize = 2;
     private boolean registerActivities = false;
     private boolean registerWorkflows = false;
 
@@ -37,36 +43,36 @@ public class Config {
             p.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
             String id = p.getProperty("amazon.aws.id");
             String key = p.getProperty("amazon.aws.key");
-            poolSize = Integer.parseInt(p.getProperty("poolSize"));
-            registerActivities = Boolean.parseBoolean(p.getProperty("registerActivities"));
-            registerWorkflows = Boolean.parseBoolean(p.getProperty("registerWorkflows"));
             amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key),
                 new ClientConfiguration().withConnectionTimeout(10 * 1000)
             );
+
+            domain = p.getProperty("swf.domain");
+            taskList = p.getProperty("swf.task.list");
+
+            activityPoolSize = parseInt(p.getProperty("activity.pool.size"));
+            decisionPoolSize = parseInt(p.getProperty("decision.pool.size"));
+
+            registerActivities = parseBoolean(p.getProperty("register.activities"));
+            registerWorkflows = parseBoolean(p.getProperty("register.workflows"));
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
     }
 
-    public static Config getConfig() {
-        return config;
-    }
+    public AmazonSimpleWorkflow getSWF() { return amazonSimpleWorkflow; }
 
-    public AmazonSimpleWorkflow getSWF() {
-        return amazonSimpleWorkflow;
-    }
+    public String getDomain() { return domain; }
 
-    public int getPoolSize() {
-        return poolSize;
-    }
+    public String getTaskList() { return taskList; }
 
-    public boolean isRegisterActivities() {
-        return registerActivities;
-    }
+    public int getActivityPoolSize() { return activityPoolSize; }
 
-    public boolean isRegisterWorkflows() {
-        return registerWorkflows;
-    }
+    public int getDecisionPoolSize() { return decisionPoolSize; }
+
+    public boolean isRegisterActivities() { return registerActivities; }
+
+    public boolean isRegisterWorkflows() { return registerWorkflows; }
 
     public WorkflowExecution submit(Workflow workflow, String workflowId, String input) {
         log.info(format("submit workflow: %s", workflowId));
@@ -78,7 +84,6 @@ public class Config {
         Run run = getSWF().startWorkflowExecution(request);
         log.info(format("Started workflow %s", run));
         return new WorkflowExecution().withWorkflowId(workflowId).withRunId(run.getRunId());
-
     }
 
     public WorkflowExecution submit(Workflow workflow, String input) {

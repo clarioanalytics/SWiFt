@@ -11,15 +11,15 @@ import java.lang.annotation.Target;
 /**
  * Mark a method as an activity method that can handle a registered SWF Activity Tasks.
  * Methods annotated with <code>ActivityMethod</code> must have the following signature:
- * <pre>
- * &#64;ActivityMethod(name="doSomething", version="1.0")
+ * <pre><code>
+ * @ActivityMethod(name="doSomething", version="1.0")
  * Object methodName({@link ActivityContext} context) {...}
  *
  * or
  *
- * &#64;ActivityMethod(name="doSomething", version="1.0")
+ * @ActivityMethod(name="doSomething", version="1.0")
  * void methodName({@link ActivityContext} context) {...}
- * </pre>
+ * </code></pre>
  * <p/>
  * If the return type is void or the method returns null an empty string will be recorded as the activity task result.
  * Otherwise the result will be recorded as the return value converted to a string using {@link #toString}.
@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  *
  * @author George Coller
  * @see ActivityContext
- * @see RegisterActivityTypeRequest for details and limits of the parameters.
+ * @see RegisterActivityTypeRequest RegisterActivityTypeRequest for details and limits of the parameters
  * @see RespondActivityTaskCompletedRequest#result
  */
 @Retention(RetentionPolicy.RUNTIME)

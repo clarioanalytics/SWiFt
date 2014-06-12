@@ -5,18 +5,16 @@ import com.clario.swift.Workflow;
 import com.clario.swift.action.RecordMarkerAction;
 import com.clario.swift.action.StartChildWorkflowAction;
 import com.clario.swift.examples.Config;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
+ * Example workflow that uses a {@link StartChildWorkflowAction} to start a child workflow and keep track of it.
  * @author George Coller
  */
 public class StartChildWorkflow extends Workflow {
@@ -24,11 +22,11 @@ public class StartChildWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new StartChildWorkflow()
-            .withDomain(SWIFT_DOMAIN)
-            .withTaskList(SWIFT_TASK_LIST)
+            .withDomain(Config.config.getDomain())
+            .withTaskList(Config.config.getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30);
-        Config.getConfig().submit(workflow, "100");
+        Config.config.submit(workflow, "100");
     }
 
     private final RecordMarkerAction childWorkflowIdMarker = new RecordMarkerAction("childWorkflowId");
@@ -44,11 +42,11 @@ public class StartChildWorkflow extends Workflow {
 
         // Since instances of StartChildWorkflow could be used across multiple calls we need to create a
         // specifically-named childWorkflowId for this workflow run's start child workflow call.
-        // Markers come in handy for this since they are persisted in the workflow state.
-        // A signal could also be used but then we'd have to wait until the next poll cycle to start the child workflow
-
-        if (!childWorkflowIdMarker.isSuccess()) {
-            childWorkflowIdMarker.withDetails(createUniqueWorkflowId("Child Workflow"))
+        // Markers come in handy for this since they are persisted immediately in the workflow state.
+        if (childWorkflowIdMarker.isInitial()) {
+            // do this code only once
+            childWorkflowIdMarker
+                .withDetails(createUniqueWorkflowId("Child Workflow"))
                 .decide(decisions);
         }
         String childWorkflowId = childWorkflowIdMarker.getOutput();
@@ -62,7 +60,9 @@ public class StartChildWorkflow extends Workflow {
             .decide(decisions).isSuccess()) {
 
             String childRunId = startChildWorkflow.getChildRunId();
-            Assert.assertNotNull(childRunId);
+            if (childRunId == null) {
+                throw new IllegalStateException("Expecting childRunId to be non-null");
+            }
             log.info("Child run id " + childRunId);
             String data = startChildWorkflow.getOutput();
             decisions.add(createCompleteWorkflowExecutionDecision(data));
@@ -75,5 +75,4 @@ public class StartChildWorkflow extends Workflow {
             .withExecutionStartToCloseTimeout(MINUTES, 10)
             .withTaskStartToCloseTimeout(null, -1);
     }
-
 }

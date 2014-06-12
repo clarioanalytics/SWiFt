@@ -4,31 +4,30 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 import com.clario.swift.action.TimerAction;
-import com.clario.swift.examples.Config;
 
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
-import static com.clario.swift.examples.Config.SWIFT_DOMAIN;
-import static com.clario.swift.examples.Config.SWIFT_TASK_LIST;
+import static com.clario.swift.examples.Config.config;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * Example of using a {@link TimerAction} in a workflow.
+ *
  * @author George Coller
  */
 public class TimerWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new TimerWorkflow()
-            .withDomain(SWIFT_DOMAIN)
-            .withDomain(SWIFT_DOMAIN)
-            .withTaskList(SWIFT_TASK_LIST)
+            .withDomain(config.getDomain())
+            .withDomain(config.getDomain())
+            .withTaskList(config.getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30)
             .withChildPolicy(TERMINATE);
-        Config.getConfig().submit(workflow, "100");
+        config.submit(workflow, "100");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);

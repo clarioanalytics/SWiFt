@@ -205,6 +205,12 @@ public abstract class Action<T extends Action> {
      */
     public boolean isSuccess() { return success == getState(); }
 
+
+    /**
+     * @return true, if this instance is in it's initial state.
+     */
+    public boolean isInitial() { return initial == getState(); }
+
     /**
      * Most recently polled {@link com.clario.swift.ActionEvent} for this action
      * or null if none exists (action is in an initial state).
@@ -231,7 +237,7 @@ public abstract class Action<T extends Action> {
     /**
      * Filter this action's events by event type.
      *
-     * @see WorkflowHistory#filterEvents)
+     * @see WorkflowHistory#filterEvents
      */
     public List<ActionEvent> filterEvents(EventType eventType) {
         return workflow.getWorkflowHistory().filterEvents(actionId, eventType);

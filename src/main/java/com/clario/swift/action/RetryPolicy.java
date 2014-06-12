@@ -97,7 +97,7 @@ public class RetryPolicy {
      * <li>Set match regular expression to a special string your Activity will include in an error message</li>
      * </ul>
      *
-     * @see String#matches(String) for Java regular expression and matching rules
+     * @see String#matches(String)
      */
     public RetryPolicy withStopIfErrorMatches(String regularExpression) {
         this.stopIfErrorMatchesRegEx = regularExpression;
@@ -114,7 +114,7 @@ public class RetryPolicy {
      * </ul>
      * <p/>
      *
-     * @see ExponentialRetryPolicy#validate()
+     * @see ExponentialRetryPolicy#validate
      */
     public void validate() {
         assertActionSet();
@@ -257,7 +257,7 @@ public class RetryPolicy {
 
     @Override
     public String toString() {
-        List<String> parts = new ArrayList<>();
+        List<String> parts = new ArrayList<String>();
         if (initialRetryInterval.getSeconds() != DEFAULT_INITIAL_RETRY_INTERVAL) {
             parts.add("initialRetryInterval=" + initialRetryInterval);
         }
