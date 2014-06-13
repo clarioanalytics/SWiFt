@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 public class StartChildWorkflow extends Workflow {
     public static final Logger log = LoggerFactory.getLogger(StartChildWorkflow.class);
 
+    /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new StartChildWorkflow()
             .withDomain(Config.config.getDomain())
@@ -52,19 +53,18 @@ public class StartChildWorkflow extends Workflow {
         String childWorkflowId = childWorkflowIdMarker.getOutput();
 
         StartChildWorkflowAction startChildWorkflow = createChildWorkflow(childWorkflowId);
-        startChildWorkflow.setWorkflow(this);
+        startChildWorkflow.setWorkflow(this); // Required step for dynamically created actions
 
         if (startChildWorkflow
             .withInput(input)
             .withTaskList(getTaskList())
-            .decide(decisions).isSuccess()) {
+            .decide(decisions)
+            .isSuccess()) {
 
             String childRunId = startChildWorkflow.getChildRunId();
-            if (childRunId == null) {
-                throw new IllegalStateException("Expecting childRunId to be non-null");
-            }
-            log.info("Child run id " + childRunId);
             String data = startChildWorkflow.getOutput();
+            log.info("Child run '{}': {} ", childRunId, data);
+
             decisions.add(createCompleteWorkflowExecutionDecision(data));
         }
     }

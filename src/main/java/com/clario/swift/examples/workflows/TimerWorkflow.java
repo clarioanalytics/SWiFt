@@ -19,6 +19,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 public class TimerWorkflow extends Workflow {
 
+    /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new TimerWorkflow()
             .withDomain(config.getDomain())

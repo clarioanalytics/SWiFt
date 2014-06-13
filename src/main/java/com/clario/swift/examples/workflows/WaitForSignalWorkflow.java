@@ -3,7 +3,6 @@ package com.clario.swift.examples.workflows;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.ActionEvent;
 import com.clario.swift.Workflow;
-import com.clario.swift.action.ActionState;
 import com.clario.swift.action.ActivityAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +28,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 public class WaitForSignalWorkflow extends Workflow {
     public static final Logger log = LoggerFactory.getLogger(WaitForSignalWorkflow.class);
 
+    /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new WaitForSignalWorkflow()
             .withDomain(config.getDomain())
@@ -40,7 +40,7 @@ public class WaitForSignalWorkflow extends Workflow {
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0")
         .withScheduleToCloseTimeout(MINUTES, 60)
-        .withStartToCloseTimeout(MINUTES, -1)
+        .withStartToCloseTimeout(MINUTES, -1)  // setting -1 is same as "NONE", or no timeout
         .withStartToCloseTimeout(MINUTES, -1);
 
     public WaitForSignalWorkflow() {
@@ -59,8 +59,8 @@ public class WaitForSignalWorkflow extends Workflow {
             ActionEvent signalEvent = signals.get(0);
             String input = signalEvent.getData1();
 
-            // Only log the first time here
-            if (step1.getState() == ActionState.initial) {
+            if (step1.isInitial()) {
+                // Only log the first time
                 log.info("Signal '{}' received with value {}", signalEvent.getActionId(), input);
             }
 
@@ -69,6 +69,8 @@ public class WaitForSignalWorkflow extends Workflow {
                 .withCompleteWorkflowOnSuccess()
                 .decide(decisions)
                 .isSuccess()) {
+
+                // a complete workflow decision should now be in decisions list.
                 log.info("Signal received and step1 finished");
             }
         }

@@ -96,7 +96,8 @@ public class ActionEvent implements Comparable<ActionEvent> {
      * an event with type <code>ActivityTaskScheduled</code> contains the input for that activity.
      * <p/>
      * The following table lists which data fields are returned by this method and {@link #getData2}:
-     * <pre>{@code Field                                    | Data 1      | Data 2
+     * <pre>{@code &nbsp;
+    Field                                    | Data 1      | Data 2
     -----------------------------------------+-------------+--------
     ActivityTaskScheduled                    | input       | control
     ActivityTaskStarted                      | identity    | -

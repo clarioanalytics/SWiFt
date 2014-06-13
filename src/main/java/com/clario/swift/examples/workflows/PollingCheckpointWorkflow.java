@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 public class PollingCheckpointWorkflow extends Workflow {
     private final Logger log = LoggerFactory.getLogger(PollingCheckpointWorkflow.class);
 
+    /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new PollingCheckpointWorkflow()
             .withDomain(config.getDomain())
