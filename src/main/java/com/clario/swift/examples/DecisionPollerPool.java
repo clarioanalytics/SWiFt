@@ -14,7 +14,7 @@ import static com.clario.swift.examples.Config.config;
 
 
 /**
- * Launch a few decision pollers registered with the example workflows.
+ * Launch a pool of {@link DecisionPoller}.
  *
  * @author George Coller
  */
@@ -30,14 +30,14 @@ public class DecisionPollerPool {
 
             DecisionPoller poller = new DecisionPoller(pollerId, config.getDomain(), config.getTaskList(), executionContext);
             poller.setSwf(config.getSWF());
-            poller.addWorkflows(new SimpleWorkflow());
-            poller.addWorkflows(new TimerWorkflow());
-            poller.addWorkflows(new PollingCheckpointWorkflow());
-            poller.addWorkflows(new StartChildWorkflow());
-            poller.addWorkflows(new WaitForSignalWorkflow());
-            poller.addWorkflows(new SignalWaitForSignalWorkflow());
-            poller.addWorkflows(new RetryActivityWorkflow());
             poller.addWorkflows(new ContinuousWorkflow());
+            poller.addWorkflows(new PollingCheckpointWorkflow());
+            poller.addWorkflows(new RetryActivityWorkflow());
+            poller.addWorkflows(new SignalWaitForSignalWorkflow());
+            poller.addWorkflows(new SimpleWorkflow());
+            poller.addWorkflows(new StartChildWorkflow());
+            poller.addWorkflows(new TimerWorkflow());
+            poller.addWorkflows(new WaitForSignalWorkflow());
 
             if (config.isRegisterWorkflows() && it == 1) {
                 poller.registerSwfWorkflows();
@@ -48,12 +48,14 @@ public class DecisionPollerPool {
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
-                System.out.println("Shutting Down Simple Workflow Service");
-                config.getSWF().shutdown();
-                System.out.println("Shutting Down Pool");
-                service.shutdownNow();
+                log.info("Shutting down pool and exiting.");
+                try {
+                    config.getSWF().shutdown();
+                } finally {
+                    service.shutdownNow();
+                }
             }
         });
+        log.info("decision pollers started:");
     }
-
 }

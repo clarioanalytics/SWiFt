@@ -3,12 +3,14 @@ package com.clario.swift;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.clario.swift.SwiftUtil.*;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptySet;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.junit.Assert.*;
 
@@ -43,12 +45,6 @@ public class SwiftUtilTest {
     }
 
     @Test
-    public void testJson() {
-        String expected = "{\"A\":1,\"B\":{\"C\":[1,2,3]},\"D\":null}";
-        assertEquals(expected, toJson(fromJson(expected)));
-    }
-
-    @Test
     public void testJoin() {
         assertEquals("", join(emptySet(), null));
         assertEquals("", join(emptySet(), ""));
@@ -58,22 +54,22 @@ public class SwiftUtilTest {
         assertEquals("A,B,C", join(asList("A", "B", "C"), ","));
         assertEquals("A||B||C", join(asList("A", "B", "C"), "||"));
     }
-
-    @Test
-    public void testJoinEntries() {
-        List<String> empty = emptyList();
-        assertEquals(empty, joinEntries(emptyMap(), null));
-        assertEquals(empty, joinEntries(emptyMap(), ""));
-        assertEquals(empty, joinEntries(emptyMap(), ",,,"));
-        Map<String, Integer> map = new HashMap<String, Integer>();
-        map.put("A", 1);
-        map.put("B", 2);
-        map.put("C", null);
-        assertEquals(Arrays.asList("A1", "B2", "C"), joinEntries(map, null));
-        assertEquals(Arrays.asList("A1", "B2", "C"), joinEntries(map, ""));
-        assertEquals(Arrays.asList("A-1", "B-2", "C-"), joinEntries(map, "-"));
-        assertEquals(Arrays.asList("A||1", "B||2", "C||"), joinEntries(map, "||"));
-    }
+//
+//    @Test
+//    public void testJoinEntries() {
+//        List<String> empty = emptyList();
+//        assertEquals(empty, joinEntries(emptyMap(), null));
+//        assertEquals(empty, joinEntries(emptyMap(), ""));
+//        assertEquals(empty, joinEntries(emptyMap(), ",,,"));
+//        Map<String, Integer> map = new HashMap<String, Integer>();
+//        map.put("A", 1);
+//        map.put("B", 2);
+//        map.put("C", null);
+//        assertEquals(Arrays.asList("A1", "B2", "C"), joinEntries(map, null));
+//        assertEquals(Arrays.asList("A1", "B2", "C"), joinEntries(map, ""));
+//        assertEquals(Arrays.asList("A-1", "B-2", "C-"), joinEntries(map, "-"));
+//        assertEquals(Arrays.asList("A||1", "B||2", "C||"), joinEntries(map, "||"));
+//    }
 
     @Test
     public void testTrimToMaxLength() {
@@ -166,17 +162,6 @@ public class SwiftUtilTest {
             assertWorkflowId(name, trimToMaxLength(name, MAX_ID_LENGTH - 25));
         }
     }
-
-    @Test
-    public void testReadFile() {
-        assertEquals("A\nB\nC\nD", readFile(SwiftUtil.class, "SwiftUtilTestFile.txt"));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testReadMissingFile() {
-        assertEquals("A\nB\nC\nD", readFile(SwiftUtil.class, "NotThere.txt"));
-    }
-
     private void assertWorkflowId(String name, String expected) {
         String regEx = "\\.\\d{4}-\\d{2}-\\d{2}T\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{3}Z";
         String uniqueWorkflowId = createUniqueWorkflowId(name);

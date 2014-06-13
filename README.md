@@ -47,6 +47,16 @@ Give _SWiFt_ a fork and let us know what you think!
 Visit [http://aws.amazon.com/swf](http://aws.amazon.com/swf) to learn.  It is our hope that _SWiFt_ will be straight-forward
 enough that it actually helps developers understand SWF features better.
 
+Amazon SWF's API has been relatively stable awhile now so if your project depends on an older version of the Amazon Java SDK SWiFt will most likely work fine.
+
+## Dependencies
+
+In trying to limit jarplosion _SWiFt_ only uses dependencies required by the Amazon Java SDK itself to do SWF work.
+
+See the pom.xml file for the current list.
+
+The only additional project _SWiFt_ uses is [SL4J](http://www.slf4j.org) which, like Apache Commons Logging, is a logging facade.
+
 ## Building
 
 To do a clean, build, and create javadocs:

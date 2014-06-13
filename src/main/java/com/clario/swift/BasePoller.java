@@ -4,10 +4,6 @@ import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedHashMap;
-
-import static com.clario.swift.SwiftUtil.toJson;
-
 /**
  * Base class for Activity and Decision pollers.
  *
@@ -78,11 +74,7 @@ public abstract class BasePoller implements Runnable {
 
     @Override
     public String toString() {
-        LinkedHashMap<String, String> map = new LinkedHashMap<String, String>(3);
-        map.put("id", id);
-        map.put("domain", domain);
-        map.put("taskList", taskList);
-        return toJson(map);
+        return String.format("Poller '%s': %s %s", id, domain, taskList);
     }
 
     public void setSwf(AmazonSimpleWorkflow swf) { this.swf = swf; }

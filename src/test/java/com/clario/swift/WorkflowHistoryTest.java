@@ -8,9 +8,15 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import org.junit.Test;
 
+import java.io.FileNotFoundException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
-import static com.clario.swift.SwiftUtil.readFile;
+import static java.lang.String.format;
+import static java.nio.charset.Charset.defaultCharset;
+import static java.nio.file.Files.readAllLines;
 import static org.junit.Assert.assertEquals;
 
 public class WorkflowHistoryTest {
@@ -70,6 +76,19 @@ public class WorkflowHistoryTest {
             return history;
         } catch (Exception e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    public static String readFile(Class clazz, String fileName) {
+        try {
+            URL resource = clazz.getResource(fileName);
+            if (resource == null) {
+                throw new FileNotFoundException(format("%s.class.getResource(\"%s\") returned null", clazz.getName(), fileName));
+            }
+            Path p = Paths.get(resource.getPath());
+            return SwiftUtil.join(readAllLines(p, defaultCharset()), "\n");
+        } catch (Exception e) {
+            throw new IllegalArgumentException(format("Error reading file \"%s\"", fileName), e);
         }
     }
 }

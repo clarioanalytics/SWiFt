@@ -1,28 +1,16 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.RegisterWorkflowTypeRequest;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
-import static java.nio.charset.Charset.defaultCharset;
-import static java.nio.file.Files.readAllLines;
 
 /**
  * Utility methods.
@@ -31,7 +19,6 @@ import static java.nio.file.Files.readAllLines;
  */
 public class SwiftUtil {
     public static final DateTimeFormatter DATE_TIME_MILLIS_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
-    public static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
     public static final int MAX_NUMBER_TAGS = 5;
     public static final int MAX_RUN_ID_LENGTH = 64;
     public static final int MAX_VERSION_LENGTH = 64;
@@ -46,44 +33,6 @@ public class SwiftUtil {
 
     // Ensure all-static utility class
     private SwiftUtil() { }
-
-    /**
-     * Convert an object into a JSON string.
-     *
-     * Uses <code>com.fasterxml.jackson.databind.ObjectMapper</code>
-     * of <a href="https://github.com/FasterXML/jackson-databind">Jackson JSON</a>,
-     * which is already a dependency of the Java AWS SDK.
-     * @param o object to convert
-     *
-     * @return JSON string.
-     */
-    public static String toJson(Object o) {
-        try {
-            return JSON_OBJECT_MAPPER.writeValueAsString(o);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize to JSON", e);
-        }
-    }
-
-    /**
-     * Convert a JSON string into a structure of Java collections.
-     *
-     * Uses <code>com.fasterxml.jackson.databind.ObjectMapper</code>
-     * of <a href="https://github.com/FasterXML/jackson-databind">Jackson JSON</a>,
-     * which is already a dependency of the Java AWS SDK.
-     *
-     * @param json string to convert
-     *
-     * @return converted structure
-     */
-    @SuppressWarnings("unchecked")
-    public static Map<String, Object> fromJson(String json) {
-        try {
-            return JSON_OBJECT_MAPPER.readValue(json, Map.class);
-        } catch (IOException e) {
-            throw new IllegalStateException(format("Failed to unmarshal JSON: \"%s\"", json), e);
-        }
-    }
 
     /**
      * Assert the value passes the constraints for SWF fields like name, version, domain, taskList, identifiers.
@@ -144,13 +93,6 @@ public class SwiftUtil {
     }
 
     /**
-     * @return true if the parameter is not null or has a length greater than zero
-     */
-    public static boolean isNotEmpty(String s) {
-        return !(s == null || s.length() == 0);
-    }
-
-    /**
      * @return replacement parameter if the value parameter is null, otherwise return value parameter.
      */
     public static <T> T defaultIfNull(T value, T replacement) {
@@ -166,6 +108,13 @@ public class SwiftUtil {
         } else {
             return replacement == null ? null : valueOf(replacement);
         }
+    }
+
+    /**
+     * @return true if the parameter is not null or has a length greater than zero
+     */
+    public static boolean isNotEmpty(String s) {
+        return !(s == null || s.length() == 0);
     }
 
     /**
@@ -189,23 +138,6 @@ public class SwiftUtil {
             }
         }
         return b.toString();
-    }
-
-    /**
-     * Join each entry of a map into a string using a given separator and returning the resulting list of strings.
-     *
-     * @param map map to join
-     * @param separator string to insert between each key,value pair, defaults to empty string.
-     *
-     * @return list of joined entries
-     */
-    public static <A, B> List<String> joinEntries(Map<A, B> map, String separator) {
-        List<String> list = new ArrayList<String>(map.size());
-        separator = defaultIfNull(separator, "");
-        for (Map.Entry<A, B> entry : map.entrySet()) {
-            list.add(format("%s%s%s", defaultIfNull(entry.getKey(), ""), separator, defaultIfNull(entry.getValue(), "")));
-        }
-        return list;
     }
 
     /**
@@ -261,28 +193,5 @@ public class SwiftUtil {
         String timestamp = "." + timestamp().replaceAll(":", ".");
         name = trimToMaxLength(name, MAX_ID_LENGTH - timestamp.length());
         return assertSwfValue(name + timestamp);
-    }
-
-
-    /**
-     * Read a text file into a string.
-     *
-     * @param clazz clazz
-     * @param fileName file name
-     *
-     * @return file as string
-     * @throws IllegalArgumentException if file does not exist
-     */
-    public static String readFile(Class clazz, String fileName) {
-        try {
-            URL resource = clazz.getResource(fileName);
-            if (resource == null) {
-                throw new FileNotFoundException(format("%s.class.getResource(\"%s\") returned null", clazz.getName(), fileName));
-            }
-            Path p = Paths.get(resource.getPath());
-            return join(readAllLines(p, defaultCharset()), "\n");
-        } catch (Exception e) {
-            throw new IllegalArgumentException(format("Error reading file \"%s\"", fileName), e);
-        }
     }
 }

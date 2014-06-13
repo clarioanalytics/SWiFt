@@ -19,7 +19,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
- * Launch a couple of activity pollers with activities used in the examples.
+ * Launch a pool of {@link ActivityPoller}.
  * @author George Coller
  */
 public class ActivityPollerPool {
@@ -42,12 +42,15 @@ public class ActivityPollerPool {
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
-                System.out.println("Shutting Down Simple Workflow Service");
-                config.getSWF().shutdown();
-                System.out.println("Shutting Down Pool");
-                service.shutdownNow();
+                log.info("Shutting down pool and exiting.");
+                try {
+                    config.getSWF().shutdown();
+                } finally {
+                    service.shutdownNow();
+                }
             }
         });
+        log.info("activity pollers started:");
     }
 
     //---------------------------------------

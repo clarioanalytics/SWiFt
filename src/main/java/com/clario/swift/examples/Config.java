@@ -50,11 +50,11 @@ public class Config {
             domain = p.getProperty("swf.domain");
             taskList = p.getProperty("swf.task.list");
 
-            activityPoolSize = parseInt(p.getProperty("activity.pool.size"));
-            decisionPoolSize = parseInt(p.getProperty("decision.pool.size"));
+            activityPoolSize = parseInt(p.getProperty("activity.pollers.pool.size"));
+            decisionPoolSize = parseInt(p.getProperty("decision.pollers.pool.size"));
 
-            registerActivities = parseBoolean(p.getProperty("register.activities"));
-            registerWorkflows = parseBoolean(p.getProperty("register.workflows"));
+            registerActivities = parseBoolean(p.getProperty("activity.pollers.register"));
+            registerWorkflows = parseBoolean(p.getProperty("decision.pollers.register"));
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
