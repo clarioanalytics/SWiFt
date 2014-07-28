@@ -15,6 +15,7 @@ import static java.lang.String.format;
 public class ActivityAction extends Action<ActivityAction> {
     private String name;
     private String version;
+    private String taskList;
     private String input;
     private String control;
     private String heartBeatTimeoutTimeout;
@@ -62,6 +63,18 @@ public class ActivityAction extends Action<ActivityAction> {
      */
     public ActivityAction withInput(String input) {
         this.input = assertMaxLength(input, MAX_INPUT_LENGTH);
+        return this;
+    }
+
+    /**
+     * Set the task list for this activity.
+     * If not set the activity will use its related workflow task list.
+     * This allows for sending activity tasks to different lists.
+     *
+     * @param input task list
+     */
+    public ActivityAction withTaskList(String input) {
+        this.taskList = input;
         return this;
     }
 
@@ -146,7 +159,7 @@ public class ActivityAction extends Action<ActivityAction> {
                     .withVersion(version))
                 .withActivityId(getActionId())
                 .withTaskList(new TaskList()
-                    .withName(getWorkflow().getTaskList()))
+                    .withName(taskList == null ? getWorkflow().getTaskList() : taskList))
                 .withInput(input)
                 .withControl(control)
                 .withHeartbeatTimeout(heartBeatTimeoutTimeout)
