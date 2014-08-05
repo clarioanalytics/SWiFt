@@ -27,8 +27,8 @@ public abstract class Workflow {
 
     // Optional fields used for submitting workflow.
     private String description;
-    private String executionStartToCloseTimeout = null;
-    private String taskStartToCloseTimeout = "NONE";
+    private String executionStartToCloseTimeout = SWF_TIMEOUT_YEAR;
+    private String taskStartToCloseTimeout = SWF_TIMEOUT_NONE;
     private ChildPolicy childPolicy = ChildPolicy.TERMINATE; // sensible default
 
     // Set by poller
@@ -47,7 +47,7 @@ public abstract class Workflow {
     /**
      * Register {@link Action} instances with this workflow so that {@link Action#setWorkflow}
      * will be automatically called with this instance before each {@link #decide}.
-     *
+     * <p/>
      * Actions that are created dynamically within the {@link #decide} method will have to have
      * {@link Action#setWorkflow} called directly.
      *
@@ -178,7 +178,7 @@ public abstract class Workflow {
             this.tags.add(assertMaxLength(tag, MAX_NAME_LENGTH));
         }
         if (this.tags.size() > MAX_NUMBER_TAGS) {
-            throw new AssertionError(String.format("More than %d tags not allowed, received: %s", MAX_NUMBER_TAGS, join(this.tags, ",")));
+            throw new AssertionError(format("More than %d tags not allowed, received: %s", MAX_NUMBER_TAGS, join(this.tags, ",")));
         }
         return this;
     }
@@ -195,15 +195,13 @@ public abstract class Workflow {
 
     /**
      * The total duration for this workflow execution.
-     * Pass null unit or duration &lt;= 0 for default timeout period.
-     * <p/>
-     * Note: Unlike other timeouts a value of NONE is not allowed.
+     * Pass null unit or duration &lt;= 0 for default timeout period of 365 days.
+     * Default is 365 days.
      *
      * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
      */
     public Workflow withExecutionStartToCloseTimeout(TimeUnit unit, long duration) {
-        String timeoutString = calcTimeoutString(unit, duration);
-        executionStartToCloseTimeout = TIMEOUT_NONE.equals(timeoutString) ? null : timeoutString;
+        executionStartToCloseTimeout = calcTimeoutOrYear(unit, duration);
         return this;
     }
 
@@ -217,7 +215,7 @@ public abstract class Workflow {
      * @see StartWorkflowExecutionRequest#taskStartToCloseTimeout
      */
     public Workflow withTaskStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.taskStartToCloseTimeout = calcTimeoutString(unit, duration);
+        this.taskStartToCloseTimeout = calcTimeoutOrNone(unit, duration);
         return this;
     }
 
@@ -273,12 +271,25 @@ public abstract class Workflow {
             );
     }
 
-    public static Decision createFailWorkflowExecutionDecision(String reason, String details) {
+    /**
+     * Create a fail workflow reason by combining a target name and message.
+     *
+     * @param target target name, optional, usually the <code>toString()</code> of the object that caused an error.
+     * @param message error message
+     *
+     * @return message if target is null, otherwise target and message combined into a single string
+     */
+    public static String createFailReasonString(String target, String message) {
+        String fail = target == null ? message : format("%s:\n%s", target, message);
+        return trimToMaxLength(fail, REASON_MAX_LENGTH);
+    }
+
+    public static Decision createFailWorkflowExecutionDecision(String target, String reason, String details) {
         return new Decision()
             .withDecisionType(DecisionType.FailWorkflowExecution)
             .withFailWorkflowExecutionDecisionAttributes(
                 new FailWorkflowExecutionDecisionAttributes()
-                    .withReason(trimToMaxLength(reason, REASON_MAX_LENGTH))
+                    .withReason(createFailReasonString(target, reason))
                     .withDetails(trimToMaxLength(details, DETAILS_MAX_LENGTH))
             );
     }

@@ -63,7 +63,7 @@ public class WorkflowHistory {
 
     /**
      * Return the list of {@link ActionEvent} related to a given action.
-     * The list is sorted by event timestamp in descending order (most recent first).
+     * The list is sorted by event id in descending order (most recent first).
      *
      * @param actionId workflow unique identifier of the action.
      *

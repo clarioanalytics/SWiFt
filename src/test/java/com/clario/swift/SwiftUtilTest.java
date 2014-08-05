@@ -139,16 +139,29 @@ public class SwiftUtilTest {
     }
 
     @Test
-    public void testCalcTimeoutString() {
-        assertEquals(TIMEOUT_NONE, calcTimeoutString(null, -1));
-        assertEquals(TIMEOUT_NONE, calcTimeoutString(null, 0));
-        assertEquals(TIMEOUT_NONE, calcTimeoutString(null, 1));
-        assertEquals(TIMEOUT_NONE, calcTimeoutString(DAYS, -1));
-        assertEquals(TIMEOUT_NONE, calcTimeoutString(DAYS, 0));
-        assertEquals(String.valueOf(1), calcTimeoutString(TimeUnit.SECONDS, 1));
-        assertEquals(String.valueOf(60), calcTimeoutString(TimeUnit.MINUTES, 1));
-        assertEquals(String.valueOf(60 * 60), calcTimeoutString(TimeUnit.HOURS, 1));
+    public void testCalcTimeoutOrNone() {
+        assertEquals(SWF_TIMEOUT_NONE, calcTimeoutOrNone(null, -1));
+        assertEquals(SWF_TIMEOUT_NONE, calcTimeoutOrNone(null, 0));
+        assertEquals(SWF_TIMEOUT_NONE, calcTimeoutOrNone(null, 1));
+        assertEquals(SWF_TIMEOUT_NONE, calcTimeoutOrNone(DAYS, -1));
+        assertEquals(SWF_TIMEOUT_NONE, calcTimeoutOrNone(DAYS, 0));
+        assertEquals(String.valueOf(1), calcTimeoutOrNone(TimeUnit.SECONDS, 1));
+        assertEquals(String.valueOf(60), calcTimeoutOrNone(TimeUnit.MINUTES, 1));
+        assertEquals(String.valueOf(60 * 60), calcTimeoutOrNone(TimeUnit.HOURS, 1));
     }
+
+    @Test
+    public void testCalcTimeoutOrYear() {
+        assertEquals(SWF_TIMEOUT_YEAR, SwiftUtil.calcTimeoutOrYear(null, -1));
+        assertEquals(SWF_TIMEOUT_YEAR, calcTimeoutOrYear(null, 0));
+        assertEquals(SWF_TIMEOUT_YEAR, calcTimeoutOrYear(null, 1));
+        assertEquals(SWF_TIMEOUT_YEAR, calcTimeoutOrYear(DAYS, -1));
+        assertEquals(SWF_TIMEOUT_YEAR, calcTimeoutOrYear(DAYS, 0));
+        assertEquals(String.valueOf(1), calcTimeoutOrYear(TimeUnit.SECONDS, 1));
+        assertEquals(String.valueOf(60), calcTimeoutOrYear(TimeUnit.MINUTES, 1));
+        assertEquals(String.valueOf(60 * 60), calcTimeoutOrYear(TimeUnit.HOURS, 1));
+    }
+
 
     @Test
     public void testCalcWorkflowId() throws Exception {
@@ -162,6 +175,7 @@ public class SwiftUtilTest {
             assertWorkflowId(name, trimToMaxLength(name, MAX_ID_LENGTH - 25));
         }
     }
+
     private void assertWorkflowId(String name, String expected) {
         String regEx = "\\.\\d{4}-\\d{2}-\\d{2}T\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{3}Z";
         String uniqueWorkflowId = createUniqueWorkflowId(name);

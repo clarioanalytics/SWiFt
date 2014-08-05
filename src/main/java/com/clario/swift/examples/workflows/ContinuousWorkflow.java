@@ -31,8 +31,8 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  */
 public class ContinuousWorkflow extends Workflow {
     public static final String WF_ID = "Continuous Workflow Example";
-    private static final String WF_NAME = "Continuous Workflow";
-    private static final String WF_VERSION = "1.0";
+    public static final String WF_NAME = "Continuous Workflow";
+    public static final String WF_VERSION = "1.0";
 
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) throws InterruptedException {
@@ -48,7 +48,7 @@ public class ContinuousWorkflow extends Workflow {
         }
     }
 
-    private final ContinueAsNewAction continueAsNewAction = new ContinueAsNewAction("continueAsNew");
+    final ContinueAsNewAction continueAsNewAction = new ContinueAsNewAction("continueAsNew");
 
     public ContinuousWorkflow() {
         super(WF_NAME, WF_VERSION);

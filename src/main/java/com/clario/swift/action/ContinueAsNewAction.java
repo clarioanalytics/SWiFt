@@ -25,6 +25,7 @@ public class ContinueAsNewAction extends Action<ContinueAsNewAction> {
 
     /**
      * Allows for starting the new workflow with a new input value.
+     *
      * @see StartChildWorkflowExecutionDecisionAttributes#input
      */
     public ContinueAsNewAction withInput(String input) {
@@ -46,8 +47,8 @@ public class ContinueAsNewAction extends Action<ContinueAsNewAction> {
             .withContinueAsNewWorkflowExecutionDecisionAttributes(new ContinueAsNewWorkflowExecutionDecisionAttributes()
                     .withInput(defaultIfNull(input, workflow.getWorkflowInput()))
                     .withTaskList(new TaskList().withName(workflow.getTaskList()))
-                    .withExecutionStartToCloseTimeout(defaultIfNull(workflow.getExecutionStartToCloseTimeout(), "NONE"))
-                    .withTaskStartToCloseTimeout(defaultIfNull(workflow.getTaskStartToCloseTimeout(), "NONE"))
+                    .withExecutionStartToCloseTimeout(defaultIfNull(workflow.getExecutionStartToCloseTimeout(), SWF_TIMEOUT_YEAR))
+                    .withTaskStartToCloseTimeout(defaultIfNull(workflow.getTaskStartToCloseTimeout(), SWF_TIMEOUT_NONE))
                     .withChildPolicy(workflow.getChildPolicy())
                     .withTagList(workflow.getTags())
                     .withWorkflowTypeVersion(workflow.getVersion())

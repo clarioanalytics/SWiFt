@@ -1,0 +1,255 @@
+{
+    "events": [
+        {
+            "eventId": 22,
+            "eventType": "WorkflowExecutionCompleted",
+            "workflowExecutionCompletedEventAttributes": {
+                "result": "201",
+                "decisionTaskCompletedEventId": 21
+            },
+            "eventTimestamp": 1402527412.862
+        },
+        {
+            "eventId": 21,
+            "eventType": "DecisionTaskCompleted",
+            "decisionTaskCompletedEventAttributes": {
+                "startedEventId": 20,
+                "executionContext": "georgecoller",
+                "scheduledEventId": 19
+            },
+            "eventTimestamp": 1402527412.862
+        },
+        {
+            "eventId": 20,
+            "decisionTaskStartedEventAttributes": {
+                "scheduledEventId": 19,
+                "identity": "decision poller 2"
+            },
+            "eventTimestamp": 1402527412.749,
+            "eventType": "DecisionTaskStarted"
+        },
+        {
+            "eventId": 19,
+            "eventType": "DecisionTaskScheduled",
+            "decisionTaskScheduledEventAttributes": {
+                "startToCloseTimeout": "1800",
+                "taskList": {
+                    "name": "default"
+                }
+            },
+            "eventTimestamp": 1402527412.701
+        },
+        {
+            "eventId": 18,
+            "eventType": "ActivityTaskCompleted",
+            "activityTaskCompletedEventAttributes": {
+                "startedEventId": 17,
+                "scheduledEventId": 16,
+                "result": "201"
+            },
+            "eventTimestamp": 1402527412.701
+        },
+        {
+            "activityTaskStartedEventAttributes": {
+                "scheduledEventId": 16,
+                "identity": "activity poller 2"
+            },
+            "eventId": 17,
+            "eventTimestamp": 1402527410.602,
+            "eventType": "ActivityTaskStarted"
+        },
+        {
+            "activityTaskScheduledEventAttributes": {
+                "taskList": {
+                    "name": "default"
+                },
+                "scheduleToCloseTimeout": "NONE",
+                "activityType": {
+                    "version": "1.0",
+                    "name": "Activity Y"
+                },
+                "heartbeatTimeout": "NONE",
+                "activityId": "step2",
+                "scheduleToStartTimeout": "NONE",
+                "decisionTaskCompletedEventId": 15,
+                "input": "101",
+                "startToCloseTimeout": "120"
+            },
+            "eventId": 16,
+            "eventTimestamp": 1402527410.553,
+            "eventType": "ActivityTaskScheduled"
+        },
+        {
+            "eventId": 15,
+            "eventType": "DecisionTaskCompleted",
+            "decisionTaskCompletedEventAttributes": {
+                "startedEventId": 14,
+                "executionContext": "georgecoller",
+                "scheduledEventId": 13
+            },
+            "eventTimestamp": 1402527410.553
+        },
+        {
+            "eventId": 14,
+            "decisionTaskStartedEventAttributes": {
+                "scheduledEventId": 13,
+                "identity": "decision poller 2"
+            },
+            "eventTimestamp": 1402527410.424,
+            "eventType": "DecisionTaskStarted"
+        },
+        {
+            "eventId": 13,
+            "eventType": "DecisionTaskScheduled",
+            "decisionTaskScheduledEventAttributes": {
+                "startToCloseTimeout": "1800",
+                "taskList": {
+                    "name": "default"
+                }
+            },
+            "eventTimestamp": 1402527410.387
+        },
+        {
+            "eventId": 12,
+            "eventType": "TimerFired",
+            "eventTimestamp": 1402527410.387,
+            "timerFiredEventAttributes": {
+                "startedEventId": 11,
+                "timerId": "timer1"
+            }
+        },
+        {
+            "eventId": 11,
+            "eventType": "TimerStarted",
+            "timerStartedEventAttributes": {
+                "timerId": "timer1",
+                "startToFireTimeout": "30",
+                "decisionTaskCompletedEventId": 10
+            },
+            "eventTimestamp": 1402527380.384
+        },
+        {
+            "eventId": 10,
+            "eventType": "DecisionTaskCompleted",
+            "decisionTaskCompletedEventAttributes": {
+                "startedEventId": 9,
+                "executionContext": "georgecoller",
+                "scheduledEventId": 8
+            },
+            "eventTimestamp": 1402527380.384
+        },
+        {
+            "eventId": 9,
+            "decisionTaskStartedEventAttributes": {
+                "scheduledEventId": 8,
+                "identity": "decision poller 2"
+            },
+            "eventTimestamp": 1402527380.279,
+            "eventType": "DecisionTaskStarted"
+        },
+        {
+            "eventId": 8,
+            "eventType": "DecisionTaskScheduled",
+            "decisionTaskScheduledEventAttributes": {
+                "startToCloseTimeout": "1800",
+                "taskList": {
+                    "name": "default"
+                }
+            },
+            "eventTimestamp": 1402527380.242
+        },
+        {
+            "eventId": 7,
+            "eventType": "ActivityTaskCompleted",
+            "activityTaskCompletedEventAttributes": {
+                "startedEventId": 6,
+                "scheduledEventId": 5,
+                "result": "101"
+            },
+            "eventTimestamp": 1402527380.242
+        },
+        {
+            "activityTaskStartedEventAttributes": {
+                "scheduledEventId": 5,
+                "identity": "activity poller 2"
+            },
+            "eventId": 6,
+            "eventTimestamp": 1402527378.111,
+            "eventType": "ActivityTaskStarted"
+        },
+        {
+            "activityTaskScheduledEventAttributes": {
+                "taskList": {
+                    "name": "default"
+                },
+                "scheduleToCloseTimeout": "NONE",
+                "activityType": {
+                    "version": "1.0",
+                    "name": "Activity X"
+                },
+                "heartbeatTimeout": "NONE",
+                "activityId": "step1",
+                "scheduleToStartTimeout": "NONE",
+                "decisionTaskCompletedEventId": 4,
+                "input": "100",
+                "startToCloseTimeout": "120"
+            },
+            "eventId": 5,
+            "eventTimestamp": 1402527378.062,
+            "eventType": "ActivityTaskScheduled"
+        },
+        {
+            "eventId": 4,
+            "eventType": "DecisionTaskCompleted",
+            "decisionTaskCompletedEventAttributes": {
+                "startedEventId": 3,
+                "executionContext": "georgecoller",
+                "scheduledEventId": 2
+            },
+            "eventTimestamp": 1402527378.062
+        },
+        {
+            "eventId": 3,
+            "decisionTaskStartedEventAttributes": {
+                "scheduledEventId": 2,
+                "identity": "decision poller 1"
+            },
+            "eventTimestamp": 1402527377.843,
+            "eventType": "DecisionTaskStarted"
+        },
+        {
+            "eventId": 2,
+            "eventType": "DecisionTaskScheduled",
+            "decisionTaskScheduledEventAttributes": {
+                "startToCloseTimeout": "1800",
+                "taskList": {
+                    "name": "default"
+                }
+            },
+            "eventTimestamp": 1402527377.777
+        },
+        {
+            "eventId": 1,
+            "eventType": "WorkflowExecutionStarted",
+            "workflowExecutionStartedEventAttributes": {
+                "taskList": {
+                    "name": "default"
+                },
+                "parentInitiatedEventId": 0,
+                "taskStartToCloseTimeout": "1800",
+                "childPolicy": "TERMINATE",
+                "executionStartToCloseTimeout": "1800",
+                "input": "100",
+                "workflowType": {
+                    "version": "1.0",
+                    "name": "Timer Workflow"
+                },
+                "tagList": [
+                    "Swift"
+                ]
+            },
+            "eventTimestamp": 1402527377.777
+        }
+    ]
+}
+

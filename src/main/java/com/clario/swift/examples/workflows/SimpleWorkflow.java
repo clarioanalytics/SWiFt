@@ -41,9 +41,9 @@ public class SimpleWorkflow extends Workflow {
     }
 
     // Create known actions as fields
-    private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0");
-    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0");
-    private final ActivityAction step3 = new ActivityAction("step3", "Activity Z", "1.0");
+    final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0");
+    final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0");
+    final ActivityAction step3 = new ActivityAction("step3", "Activity Z", "1.0");
 
 
     /** Start the workflow by submitting it to SWF. */

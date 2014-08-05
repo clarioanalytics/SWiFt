@@ -35,6 +35,16 @@ Our major goals are:
 This is our company's first open-source release and we hope it finds an audience that will enjoy using it.  
 
 Give _SWiFt_ a fork and let us know what you think!
+    
+### Note on Timeouts
+
+The SWF Java API allows for registering activities and workflows with no timeout value specified.
+Amazon SWF really should reject activity and workflow registrations with missing timeout values since allowing it
+leads to annoying errors when trying to start workflows or activities.
+
+As much as possible _SWiFt_ tries to enforce sensible defaults for timeout values.  What this means is that "NONE" is set
+by default on most timeout values.  365 days is set on timeout values that do not allow "NONE", specifically 
+workflow execution start to close timeouts on workflows and start child workflow actions. 
 
 ## Requirements
 

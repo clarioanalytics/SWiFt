@@ -173,7 +173,8 @@ public abstract class Action<T extends Action> {
                     break;
                 }
                 if (failWorkflowOnError) {
-                    decisions.add(createFailWorkflowExecutionDecision(format("%s error, decide fail workflow", this), null));
+                    ActionEvent event = getCurrentEvent();
+                    decisions.add(createFailWorkflowExecutionDecision(toString(), event.getData1(), event.getData2()));
                 }
 
                 break;

@@ -18,10 +18,10 @@ public class ActivityAction extends Action<ActivityAction> {
     private String taskList;
     private String input;
     private String control;
-    private String heartBeatTimeoutTimeout;
-    private String scheduleToCloseTimeout;
-    private String scheduleToStartTimeout;
-    private String startToCloseTimeout;
+    private String heartBeatTimeoutTimeout = SWF_TIMEOUT_NONE;
+    private String scheduleToCloseTimeout = SWF_TIMEOUT_NONE;
+    private String scheduleToStartTimeout = SWF_TIMEOUT_NONE;
+    private String startToCloseTimeout = SWF_TIMEOUT_NONE;
 
     /**
      * Useful for creating an instance in a workflow but deferring which
@@ -58,6 +58,10 @@ public class ActivityAction extends Action<ActivityAction> {
         return this;
     }
 
+    public String getName() { return name; }
+
+    public String getVersion() { return version; }
+
     /**
      * @see ScheduleActivityTaskDecisionAttributes#input
      */
@@ -65,6 +69,8 @@ public class ActivityAction extends Action<ActivityAction> {
         this.input = assertMaxLength(input, MAX_INPUT_LENGTH);
         return this;
     }
+
+    public String getInput() { return input; }
 
     /**
      * Set the task list for this activity.
@@ -78,6 +84,8 @@ public class ActivityAction extends Action<ActivityAction> {
         return this;
     }
 
+    public String getTaskList() { return taskList; }
+
     /**
      * @see ScheduleActivityTaskDecisionAttributes#control
      */
@@ -86,16 +94,46 @@ public class ActivityAction extends Action<ActivityAction> {
         return this;
     }
 
+    public String getControl() { return control; }
+
+
+    /**
+     * Set all timeout values to null instead of the default "NONE".
+     * <p/>
+     * By default "NONE" is set on all activity action timeouts to avoid SWF API
+     * errors when attempting to execute an activity that was registered without
+     * default values.
+     * <p/>
+     * This method can be used in cases where you know the activity was registered with
+     * default values and you want to use those default values. For instance a subclass
+     * can call this method in its constructor.
+     *
+     * @see #withHeartBeatTimeoutTimeout
+     * @see #withScheduleToCloseTimeout
+     * @see #withScheduleToStartTimeout
+     * @see #withStartToCloseTimeout
+     */
+    public ActivityAction withUnsetDefaultTimeouts() {
+        heartBeatTimeoutTimeout = null;
+        scheduleToCloseTimeout = null;
+        scheduleToStartTimeout = null;
+        startToCloseTimeout = null;
+        return this;
+    }
+
     /**
      * Override activity's default heartbeat timeout.
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
+     * @see #withUnsetDefaultTimeouts()
      * @see ScheduleActivityTaskDecisionAttributes#heartbeatTimeout
      */
     public ActivityAction withHeartBeatTimeoutTimeout(TimeUnit unit, long duration) {
-        this.heartBeatTimeoutTimeout = calcTimeoutString(unit, duration);
+        this.heartBeatTimeoutTimeout = calcTimeoutOrNone(unit, duration);
         return this;
     }
+
+    public String getHeartBeatTimeoutTimeout() { return heartBeatTimeoutTimeout; }
 
     /**
      * Override activity's default schedule to close timeout.
@@ -105,12 +143,15 @@ public class ActivityAction extends Action<ActivityAction> {
      * </pre>
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
+     * @see #withUnsetDefaultTimeouts()
      * @see ScheduleActivityTaskDecisionAttributes#scheduleToCloseTimeout
      */
     public ActivityAction withScheduleToCloseTimeout(TimeUnit unit, long duration) {
-        this.scheduleToCloseTimeout = calcTimeoutString(unit, duration);
+        this.scheduleToCloseTimeout = calcTimeoutOrNone(unit, duration);
         return this;
     }
+
+    public String getScheduleToCloseTimeout() { return scheduleToCloseTimeout; }
 
     /**
      * Override activity's default schedule to close timeout.
@@ -120,12 +161,16 @@ public class ActivityAction extends Action<ActivityAction> {
      * </pre>
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
+     * @see #withUnsetDefaultTimeouts()
      * @see ScheduleActivityTaskDecisionAttributes#scheduleToStartTimeout
      */
     public ActivityAction withScheduleToStartTimeout(TimeUnit unit, long duration) {
-        this.scheduleToStartTimeout = calcTimeoutString(unit, duration);
+        this.scheduleToStartTimeout = calcTimeoutOrNone(unit, duration);
         return this;
     }
+
+    public String getScheduleToStartTimeout() { return scheduleToStartTimeout; }
+
 
     /**
      * Override activity's default start to close timeout.
@@ -135,13 +180,15 @@ public class ActivityAction extends Action<ActivityAction> {
      * </pre>
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
+     * @see #withUnsetDefaultTimeouts()
      * @see ScheduleActivityTaskDecisionAttributes#startToCloseTimeout
      */
     public ActivityAction withStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.startToCloseTimeout = calcTimeoutString(unit, duration);
+        this.startToCloseTimeout = calcTimeoutOrNone(unit, duration);
         return this;
     }
 
+    public String getStartToCloseTimeout() { return startToCloseTimeout; }
 
     @Override
     protected ActivityAction thisObject() { return this; }

@@ -65,7 +65,7 @@ public @interface ActivityMethod {
     String taskList() default "default";
 
     /**
-     * Schedule to close timeout.
+     * Schedule to close timeout, default "NONE".
      * <pre>
      * schedule ---> start ---> close
      * |_____________________________|
@@ -77,7 +77,7 @@ public @interface ActivityMethod {
     String scheduleToCloseTimeout() default "NONE";
 
     /**
-     * Schedule to close timeout.
+     * Schedule to close timeout, default "NONE".
      * <pre>
      * schedule ---> start ---> close
      * |_________________|
@@ -89,7 +89,7 @@ public @interface ActivityMethod {
     String scheduleToStartTimeout() default "NONE";
 
     /**
-     * Schedule to close timeout.
+     * Schedule to close timeout, default "NONE".
      * <pre>
      * schedule ---> start ---> close
      *              |_______________|
@@ -102,7 +102,7 @@ public @interface ActivityMethod {
 
 
     /**
-     * Heartbeat timeout.
+     * Heartbeat timeout, default "NONE".
      * Used when registering or submitting this activity.
      *
      * @see RegisterActivityTypeRequest#defaultTaskHeartbeatTimeout

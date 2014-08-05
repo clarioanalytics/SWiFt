@@ -37,6 +37,7 @@ public class DecisionPoller extends BasePoller {
         super(id, domain, taskList);
         this.executionContext = executionContext;
     }
+
     /**
      * Register workflows added to this poller on Amazon SWF with this instance's domain and task list.
      * {@link TypeAlreadyExistsException} are ignored making this method idempotent.
@@ -127,13 +128,16 @@ public class DecisionPoller extends BasePoller {
                     }
                 }
             } catch (Throwable t) {
-                log.error(format("%s %s", workflowId, runId), t);
-                decisions.add(createFailWorkflowExecutionDecision("decide() threw an unhandled exception", printStackTrace(t)));
+                String runInfo = format("%s %s", workflowId, runId);
+                log.error(runInfo, t);
+                decisions.add(createFailWorkflowExecutionDecision(runInfo, t.getMessage(), printStackTrace(t)));
             }
         } else {
-            String errorMessage = format("%s %s - schedule activity errors:\n%s", workflowId, runId, join(workflowErrors, "\n"));
-            log.error(errorMessage);
-            decisions.add(createFailWorkflowExecutionDecision("One or more activities failed during scheduling", errorMessage));
+            String joinedErrors = join(workflowErrors, "\n");
+            Decision failWorkflowExecutionDecision = createFailWorkflowExecutionDecision(format("%s %s", workflowId, runId), "Errors reported", joinedErrors);
+            FailWorkflowExecutionDecisionAttributes attributes = failWorkflowExecutionDecision.getFailWorkflowExecutionDecisionAttributes();
+            log.error("{}:\n\n{}", attributes.getReason(), attributes.getDetails());
+            decisions.add(failWorkflowExecutionDecision);
         }
 
         try {

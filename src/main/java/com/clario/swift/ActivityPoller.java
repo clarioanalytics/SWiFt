@@ -199,10 +199,10 @@ public class ActivityPoller extends BasePoller {
             .withName(method.name())
             .withVersion(method.version())
             .withDescription(defaultIfEmpty(method.description(), null))
-            .withDefaultTaskHeartbeatTimeout(defaultIfEmpty(method.heartbeatTimeout(), null))
-            .withDefaultTaskStartToCloseTimeout(defaultIfEmpty(method.startToCloseTimeout(), null))
-            .withDefaultTaskScheduleToStartTimeout(defaultIfEmpty(method.scheduleToStartTimeout(), null))
-            .withDefaultTaskScheduleToCloseTimeout(defaultIfEmpty(method.scheduleToCloseTimeout(), null));
+            .withDefaultTaskHeartbeatTimeout(defaultIfEmpty(method.heartbeatTimeout(), SWF_TIMEOUT_NONE))
+            .withDefaultTaskStartToCloseTimeout(defaultIfEmpty(method.startToCloseTimeout(), SWF_TIMEOUT_NONE))
+            .withDefaultTaskScheduleToStartTimeout(defaultIfEmpty(method.scheduleToStartTimeout(), SWF_TIMEOUT_NONE))
+            .withDefaultTaskScheduleToCloseTimeout(defaultIfEmpty(method.scheduleToCloseTimeout(), SWF_TIMEOUT_NONE));
     }
 
     public static PollForActivityTaskRequest createPollForActivityTask(String domain, String taskList, String id) {

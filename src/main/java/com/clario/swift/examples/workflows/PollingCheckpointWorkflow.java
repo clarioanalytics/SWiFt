@@ -35,9 +35,9 @@ public class PollingCheckpointWorkflow extends Workflow {
     private final RecordMarkerAction doOnceMarkerAction = new RecordMarkerAction("doOnceMarkerAction");
 
     // Just some no-op activities
-    private final ActivityAction step1 = new ActivityAction("step1", "Activity Echo", "1.0").withInput("activity step 1");
-    private final ActivityAction step2 = new ActivityAction("step2", "Activity Echo", "1.0").withInput("activity step 2");
-    private final ActivityAction step3 = new ActivityAction("step3", "Activity Echo", "1.0").withInput("activity step 3");
+    final ActivityAction step1 = new ActivityAction("step1", "Activity Echo", "1.0").withInput("activity step 1");
+    final ActivityAction step2 = new ActivityAction("step2", "Activity Echo", "1.0").withInput("activity step 2");
+    final ActivityAction step3 = new ActivityAction("step3", "Activity Echo", "1.0").withInput("activity step 3");
 
     public PollingCheckpointWorkflow() {
         super("Polling Checkpoint Workflow", "1.0");

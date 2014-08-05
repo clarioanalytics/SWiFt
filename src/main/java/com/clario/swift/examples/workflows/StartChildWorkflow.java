@@ -30,7 +30,7 @@ public class StartChildWorkflow extends Workflow {
         Config.config.submit(workflow, "100");
     }
 
-    private final RecordMarkerAction childWorkflowIdMarker = new RecordMarkerAction("childWorkflowId");
+    final RecordMarkerAction childWorkflowIdMarker = new RecordMarkerAction("childWorkflowId");
 
     public StartChildWorkflow() {
         super("Start Child Workflow", "1.0");

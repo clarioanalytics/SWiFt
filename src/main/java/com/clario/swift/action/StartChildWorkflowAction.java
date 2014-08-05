@@ -76,12 +76,12 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
 
     /**
      * Override the child workflow default start to close timeout.
-     * Pass null unit or duration &lt;= 0 for a timeout of NONE.
+     * Pass null unit or duration &lt;= 0 for a timeout of 365 days.
      *
      * @see StartWorkflowExecutionRequest#executionStartToCloseTimeout
      */
     public StartChildWorkflowAction withExecutionStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.executionStartToCloseTimeout = calcTimeoutString(unit, duration);
+        this.executionStartToCloseTimeout = calcTimeoutOrYear(unit, duration);
         return this;
     }
 
@@ -92,7 +92,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see StartWorkflowExecutionRequest#taskStartToCloseTimeout
      */
     public StartChildWorkflowAction withTaskStartToCloseTimeout(TimeUnit unit, long duration) {
-        this.taskStartToCloseTimeout = calcTimeoutString(unit, duration);
+        this.taskStartToCloseTimeout = calcTimeoutOrNone(unit, duration);
         return this;
     }
 

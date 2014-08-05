@@ -31,28 +31,30 @@ public class TimerWorkflow extends Workflow {
         config.submit(workflow, "100");
     }
 
-    private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0").withStartToCloseTimeout(MINUTES, 2);
-    private final TimerAction timerStep1 = new TimerAction("timer1").withStartToFireTimeout(SECONDS, 30);
+    final ActivityAction beforeTimer = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);
+    final ActivityAction afterTimer = new ActivityAction("step2", "Activity Y", "1.0").withStartToCloseTimeout(MINUTES, 2);
+    final TimerAction timerAction = new TimerAction("timer1")
+        .withStartToFireTimeout(SECONDS, 30)
+        .withControl("Sample Timer Control Value");
 
 
     public TimerWorkflow() {
         super("Timer Workflow", "1.0");
-        addActions(step1, step2, timerStep1);
+        addActions(beforeTimer, afterTimer, timerAction);
     }
 
     @Override
     public void decide(List<Decision> decisions) {
         String input = getWorkflowInput();
         String output;
-        if (step1.withInput(input).decide(decisions).isSuccess()) {
-            output = step1.getOutput();
+        if (beforeTimer.withInput(input).decide(decisions).isSuccess()) {
+            output = beforeTimer.getOutput();
 
             // Timer makes workflow sleep for 30 seconds
-            if (timerStep1.decide(decisions).isSuccess()) {
+            if (timerAction.decide(decisions).isSuccess()) {
 
                 // 30 seconds have passed now decide step2 and then finish
-                step2.withInput(output)
+                afterTimer.withInput(output)
                     .withCompleteWorkflowOnSuccess()
                     .decide(decisions);
             }

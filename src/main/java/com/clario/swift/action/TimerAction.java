@@ -24,14 +24,16 @@ public class TimerAction extends Action<TimerAction> {
 
     /**
      * The duration to wait before firing the timer. This field is required.
-     * Pass null unit or duration &lt;= 0 for a timeout of NONE.
+     * Pass null unit or duration &lt;= 0 for a timeout of 365 days.
      *
      * @see StartTimerDecisionAttributes#startToFireTimeout
      */
     public TimerAction withStartToFireTimeout(TimeUnit unit, long duration) {
-        startToFireTimeout = calcTimeoutString(unit, duration);
+        startToFireTimeout = calcTimeoutOrYear(unit, duration);
         return this;
     }
+
+    public String getStartToFireTimeout() { return startToFireTimeout; }
 
     /**
      * Optional control value to add to this timer.
@@ -42,6 +44,8 @@ public class TimerAction extends Action<TimerAction> {
         this.control = assertMaxLength(control, MAX_CONTROL_LENGTH);
         return this;
     }
+
+    public String getControl() { return control; }
 
     /**
      * @return a decision of type {@link DecisionType#StartTimer}.

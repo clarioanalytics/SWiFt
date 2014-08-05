@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
+import static java.util.concurrent.TimeUnit.DAYS;
 
 /**
  * Utility methods.
@@ -18,6 +19,8 @@ import static java.lang.String.valueOf;
  * @author George Coller
  */
 public class SwiftUtil {
+    public static final String SWF_TIMEOUT_NONE = "NONE";
+    public static final String SWF_TIMEOUT_YEAR = Long.toString((DAYS.toSeconds(365)));
     public static final DateTimeFormatter DATE_TIME_MILLIS_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
     public static final int MAX_NUMBER_TAGS = 5;
     public static final int MAX_RUN_ID_LENGTH = 64;
@@ -164,19 +167,35 @@ public class SwiftUtil {
         return DATE_TIME_MILLIS_FORMATTER.print(System.currentTimeMillis());
     }
 
-    /** SWF value for timeouts to indicate no-timeout value */
-    public static final String TIMEOUT_NONE = "NONE";
-
     /**
      * Calc a SWF timeout string.
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
      * @param unit time unit to use with duration
      * @param duration duration converted to seconds
+     *
+     * @see #calcTimeoutOrYear(TimeUnit, long)
      */
-    public static String calcTimeoutString(TimeUnit unit, long duration) {
-        return unit == null || duration < 1 ? TIMEOUT_NONE : valueOf(unit.toSeconds(duration));
+    public static String calcTimeoutOrNone(TimeUnit unit, long duration) {
+        return unit == null || duration < 1 ? SWF_TIMEOUT_NONE : valueOf(unit.toSeconds(duration));
     }
+
+    /**
+     * Calc a SWF timeout string.
+     * Pass null unit or duration &lt;= 0 for a timeout of 365 days.
+     * <p/>
+     * Some SWF timeouts, specifically workflow execution start to close timeouts cannot be set to "NONE".
+     * Instead a maximum duration of 365 days is used for the default.
+     *
+     * @param unit time unit to use with duration
+     * @param duration duration converted to seconds
+     *
+     * @see #calcTimeoutOrNone(TimeUnit, long)
+     */
+    public static String calcTimeoutOrYear(TimeUnit unit, long duration) {
+        return unit == null || duration < 1 ? SWF_TIMEOUT_YEAR : valueOf(unit.toSeconds(duration));
+    }
+
 
     /**
      * Make a unique and valid workflowId.
