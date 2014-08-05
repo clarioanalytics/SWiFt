@@ -22,13 +22,13 @@ public class TimerWorkflow extends Workflow {
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new TimerWorkflow()
-            .withDomain(config.getDomain())
-            .withDomain(config.getDomain())
-            .withTaskList(config.getTaskList())
+            .withDomain(config().getDomain())
+            .withDomain(config().getDomain())
+            .withTaskList(config().getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30)
             .withChildPolicy(TERMINATE);
-        config.submit(workflow, "100");
+        config().submit(workflow, "100");
     }
 
     final ActivityAction beforeTimer = new ActivityAction("step1", "Activity X", "1.0").withStartToCloseTimeout(MINUTES, 2);

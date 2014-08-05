@@ -28,11 +28,11 @@ public class RetryActivityWorkflow extends Workflow {
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new RetryActivityWorkflow()
-            .withDomain(config.getDomain())
-            .withTaskList(config.getTaskList())
+            .withDomain(config().getDomain())
+            .withTaskList(config().getTaskList())
             .withTaskStartToCloseTimeout(MINUTES, 60)
             .withExecutionStartToCloseTimeout(MINUTES, 60);
-        config.submit(workflow, "120");
+        config().submit(workflow, "120");
     }
 
     // Adding the RetryPolicy is the important part of this example

@@ -27,8 +27,8 @@ import static java.lang.String.format;
  */
 public class Config {
     public static final Logger log = LoggerFactory.getLogger(Config.class);
+    private static Config config;
 
-    public static final Config config = new Config();
     private final AmazonSimpleWorkflow amazonSimpleWorkflow;
     private String domain;
     private String taskList;
@@ -38,27 +38,35 @@ public class Config {
     private boolean registerWorkflows = false;
 
     private Config() {
+        Properties p = new Properties();
         try {
-            Properties p = new Properties();
             p.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
-            String id = p.getProperty("amazon.aws.id");
-            String key = p.getProperty("amazon.aws.key");
-            amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key),
-                new ClientConfiguration().withConnectionTimeout(10 * 1000)
-            );
-
-            domain = p.getProperty("swf.domain");
-            taskList = p.getProperty("swf.task.list");
-
-            activityPoolSize = parseInt(p.getProperty("activity.pollers.pool.size"));
-            decisionPoolSize = parseInt(p.getProperty("decision.pollers.pool.size"));
-
-            registerActivities = parseBoolean(p.getProperty("activity.pollers.register"));
-            registerWorkflows = parseBoolean(p.getProperty("decision.pollers.register"));
-        } catch (Exception e) {
-            throw new IllegalStateException(e.getMessage(), e);
+        } catch (Exception ignored) {
+            throw new IllegalStateException("Cannot init example workflow configuration, config.properties file");
         }
+        String id = p.getProperty("amazon.aws.id");
+        String key = p.getProperty("amazon.aws.key");
+        amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key),
+            new ClientConfiguration().withConnectionTimeout(10 * 1000)
+        );
+
+        domain = p.getProperty("swf.domain");
+        taskList = p.getProperty("swf.task.list");
+
+        activityPoolSize = parseInt(p.getProperty("activity.pollers.pool.size"));
+        decisionPoolSize = parseInt(p.getProperty("decision.pollers.pool.size"));
+
+        registerActivities = parseBoolean(p.getProperty("activity.pollers.register"));
+        registerWorkflows = parseBoolean(p.getProperty("decision.pollers.register"));
     }
+
+    public static synchronized Config config() {
+        if (config == null) {
+            config = new Config();
+        }
+        return config;
+    }
+
 
     public AmazonSimpleWorkflow getSWF() { return amazonSimpleWorkflow; }
 

@@ -25,11 +25,11 @@ public class PollingCheckpointWorkflow extends Workflow {
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new PollingCheckpointWorkflow()
-            .withDomain(config.getDomain())
-            .withTaskList(config.getTaskList())
+            .withDomain(config().getDomain())
+            .withTaskList(config().getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 5)
             .withTaskStartToCloseTimeout(MINUTES, 1);
-        config.submit(workflow, "100");
+        config().submit(workflow, "100");
     }
 
     private final RecordMarkerAction doOnceMarkerAction = new RecordMarkerAction("doOnceMarkerAction");

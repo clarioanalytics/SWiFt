@@ -31,13 +31,13 @@ public class SimpleWorkflow extends Workflow {
 
     public static void main(String[] args) {
         Workflow workflow = new SimpleWorkflow()
-            .withDomain(config.getDomain())
-            .withTaskList(config.getTaskList())
+            .withDomain(config().getDomain())
+            .withTaskList(config().getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 5)
             .withTaskStartToCloseTimeout(SECONDS, 30)
             .withChildPolicy(TERMINATE)
             .withDescription("A Simple Example Workflow");
-        config.submit(workflow, "100");
+        config().submit(workflow, "100");
     }
 
     // Create known actions as fields

@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * Launch a pool of {@link ActivityPoller}.
+ *
  * @author George Coller
  */
 public class ActivityPollerPool {
@@ -27,16 +28,16 @@ public class ActivityPollerPool {
     private static final Logger log = LoggerFactory.getLogger(DecisionPollerPool.class);
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        final ScheduledExecutorService service = Executors.newScheduledThreadPool(config.getActivityPoolSize());
+        final ScheduledExecutorService service = Executors.newScheduledThreadPool(config().getActivityPoolSize());
 
-        for (int it = 1; it <= config.getActivityPoolSize(); it++) {
-            ActivityPoller poller = new ActivityPoller(format("activity poller %s", it), config.getDomain(), config.getTaskList());
-            poller.setSwf(config.getSWF());
+        for (int it = 1; it <= config().getActivityPoolSize(); it++) {
+            ActivityPoller poller = new ActivityPoller(format("activity poller %s", it), config().getDomain(), config().getTaskList());
+            poller.setSwf(config().getSWF());
             poller.addActivities(new ActivityPollerPool());
-            if (config.isRegisterActivities() && it == 1) {
+            if (config().isRegisterActivities() && it == 1) {
                 poller.registerSwfActivities();
             }
-            log.info(format("start: %s domain=%s taskList=%s", poller.getId(), config.getDomain(), config.getTaskList()));
+            log.info(format("start: %s domain=%s taskList=%s", poller.getId(), config().getDomain(), config().getTaskList()));
             service.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.SECONDS);
         }
 
@@ -44,7 +45,7 @@ public class ActivityPollerPool {
             public void run() {
                 log.info("Shutting down pool and exiting.");
                 try {
-                    config.getSWF().shutdown();
+                    config().getSWF().shutdown();
                 } finally {
                     service.shutdownNow();
                 }

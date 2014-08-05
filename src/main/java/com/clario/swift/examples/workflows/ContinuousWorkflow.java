@@ -38,11 +38,11 @@ public class ContinuousWorkflow extends Workflow {
     public static void main(String[] args) throws InterruptedException {
         try {
             Workflow workflow = new ContinuousWorkflow()
-                .withDomain(config.getDomain())
-                .withTaskList(config.getTaskList())
+                .withDomain(config().getDomain())
+                .withTaskList(config().getTaskList())
                 .withExecutionStartToCloseTimeout(DAYS, 365)
                 .withTaskStartToCloseTimeout(MINUTES, 1);
-            config.submit(workflow, WF_ID, "1");
+            config().submit(workflow, WF_ID, "1");
         } catch (WorkflowExecutionAlreadyStartedException ignore) {
             log.warn(WF_NAME, " is already running");
         }

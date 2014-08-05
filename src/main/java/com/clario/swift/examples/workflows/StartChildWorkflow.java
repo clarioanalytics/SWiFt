@@ -23,11 +23,11 @@ public class StartChildWorkflow extends Workflow {
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new StartChildWorkflow()
-            .withDomain(Config.config.getDomain())
-            .withTaskList(Config.config.getTaskList())
+            .withDomain(Config.config().getDomain())
+            .withTaskList(Config.config().getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30);
-        Config.config.submit(workflow, "100");
+        Config.config().submit(workflow, "100");
     }
 
     final RecordMarkerAction childWorkflowIdMarker = new RecordMarkerAction("childWorkflowId");

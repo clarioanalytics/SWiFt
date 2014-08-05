@@ -31,11 +31,11 @@ public class WaitForSignalWorkflow extends Workflow {
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
         Workflow workflow = new WaitForSignalWorkflow()
-            .withDomain(config.getDomain())
-            .withTaskList(config.getTaskList())
+            .withDomain(config().getDomain())
+            .withTaskList(config().getTaskList())
             .withExecutionStartToCloseTimeout(MINUTES, 30)
             .withTaskStartToCloseTimeout(MINUTES, 30);
-        config.submit(workflow, "100");
+        config().submit(workflow, "100");
     }
 
     private final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0")
