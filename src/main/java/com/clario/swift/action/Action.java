@@ -98,6 +98,8 @@ public abstract class Action<T extends Action> {
      * <p/>
      * {@link RetryPolicy#setAction} will be called with this instance and then
      * {@link RetryPolicy#validate}.
+     * <p/>
+     * Warning: do not share {@link RetryPolicy} instances across multiple actions!
      *
      * @param retryPolicy policy, by default there is no retry policy
      *
