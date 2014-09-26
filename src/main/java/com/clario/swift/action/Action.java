@@ -156,7 +156,9 @@ public abstract class Action<T extends Action> {
             case active:
                 break;
             case success:
-                if (completeWorkflowOnSuccess) {
+                if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(decisions)) {
+                    log.debug("success, retry timer started");
+                } else if (completeWorkflowOnSuccess) {
                     decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
                     log.debug("success, workflow complete: {}", getOutput());
                 } else {
@@ -164,12 +166,13 @@ public abstract class Action<T extends Action> {
                 }
                 break;
             case retry:
-                log.info("decide retry");
+                log.info("retry, restart action");
                 decisions.add(createInitiateActivityDecision());
                 break;
 
             case error:
                 if (retryPolicy != null && retryPolicy.decide(decisions)) {
+                    log.debug("error, retry timer started");
                     break;
                 }
                 if (failWorkflowOnError) {
@@ -193,7 +196,7 @@ public abstract class Action<T extends Action> {
         ActionEvent currentEvent = getCurrentEvent();
         if (currentEvent == null) {
             return initial;
-        } else if (retryPolicy != null && retryPolicy.isRetryTimerEvent(currentEvent)) {
+        } else if (retryPolicy != null && retryPolicy.isRetryActionEvent(currentEvent)) {
             return retry;
         } else {
             return currentEvent.getActionState();

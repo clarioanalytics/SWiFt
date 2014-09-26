@@ -41,6 +41,7 @@ public class RetryPolicy {
     protected Seconds initialRetryInterval = seconds(DEFAULT_INITIAL_RETRY_INTERVAL);
     protected Seconds maximumRetryInterval = seconds(MAX_VALUE);
     protected Seconds retryExpirationInterval = seconds(MAX_VALUE);
+    protected boolean retryOnSuccess = false;
 
     void setAction(Action<?> action) { this.action = action; }
 
@@ -104,6 +105,13 @@ public class RetryPolicy {
         return this;
     }
 
+    public RetryPolicy withRetryOnSuccess(boolean value) {
+        this.retryOnSuccess = value;
+        return this;
+    }
+
+    public boolean isRetryOnSuccess() { return retryOnSuccess; }
+
     /**
      * Called to validate the policy parameter settings and to ensure an action has been set.
      * <p/>
@@ -154,12 +162,13 @@ public class RetryPolicy {
     }
 
     /**
-     * Calculate if the current event represents a retry timer event.
+     * Calculate if the current event represents a retry event.
+     * A retry event indicates that the action should be retried.
      *
-     * @return true, if current event is a retry timer event
+     * @return true, if current event is a retry event
      * @throws IllegalStateException if no action set.
      */
-    boolean isRetryTimerEvent(ActionEvent currentEvent) {
+    boolean isRetryActionEvent(ActionEvent currentEvent) {
         assertActionSet();
         if (TimerFired == currentEvent.getType()) {
             Long eventId = currentEvent.getInitialEventId();
@@ -186,7 +195,7 @@ public class RetryPolicy {
         assertActionSet();
         Logger log = action.getLog();
         ActionEvent currentHistoryEvent = getCurrentHistoryEvent();
-        String reason = currentHistoryEvent.getData1();
+        String reason = SwiftUtil.defaultIfEmpty(currentHistoryEvent.getData1(), "");
         String details = SwiftUtil.defaultIfEmpty(currentHistoryEvent.getData2(), "");
         if (stopIfErrorMatchesRegEx != null) {
             if (reason.matches(stopIfErrorMatchesRegEx)) {
@@ -194,7 +203,7 @@ public class RetryPolicy {
                 return false;
             }
             if (details.matches(stopIfErrorMatchesRegEx)) {
-                log.info(format("%s no more attempts. matched details: %s", this, reason));
+                log.info(format("%s no more attempts. matched details: %s", this, details));
                 return false;
             }
         }
