@@ -8,7 +8,7 @@ import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
- * Send a SWF signal to a running workflow (or the current workflow).
+ * Send a SWF signal from one workflow to another running workflow (or itself).
  * <p/>
  * Signals, unlike SWF markers, trigger a decision task in SWF on the target workflow.
  *

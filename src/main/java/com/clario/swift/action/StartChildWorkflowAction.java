@@ -13,6 +13,9 @@ import static java.lang.String.format;
 
 /**
  * Start a child workflow from the current workflow.
+ * <p/>
+ * Child workflows are an SWF concept that allows for composition of smaller workflows into a larger workflow.
+ * The parent workflow pauses until the child workflow completes.
  *
  * @author George Coller
  * @see StartChildWorkflowExecutionDecisionAttributes

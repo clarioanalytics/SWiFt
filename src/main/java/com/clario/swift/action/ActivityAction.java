@@ -8,7 +8,7 @@ import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
 /**
- * Maps to a registered (or to-be registered) SWF Activity.
+ * Maps to a registered SWF Activity.
  *
  * @author George Coller
  */

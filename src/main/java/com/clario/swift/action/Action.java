@@ -43,7 +43,7 @@ public abstract class Action<T extends Action> {
      */
     public Action(String actionId) {
         this.actionId = assertSwfValue(assertMaxLength(actionId, MAX_ID_LENGTH));
-        log = LoggerFactory.getLogger(String.format("%s '%s'", getClass().getSimpleName(), getActionId()));
+        log = LoggerFactory.getLogger(format("%s '%s'", getClass().getSimpleName(), getActionId()));
     }
 
     /**
@@ -122,11 +122,19 @@ public abstract class Action<T extends Action> {
      * Return output of action.
      *
      * @return result of action, null if action produces no output
-     * @throws IllegalStateException if {@link #isSuccess()} is false.
+     * @throws IllegalStateException if activity did not complete successfully.
      */
     public String getOutput() {
         if (isSuccess()) {
             return getCurrentEvent().getData1();
+        } else if (retryPolicy.isRetryOnSuccess() && getState() == ActionState.retry) {
+            List<ActionEvent> completed = filterEvents(EventType.ActivityTaskCompleted);
+            if (completed.isEmpty()) {
+                // would only happen if a workflow's isContinuePollingForHistoryEvents method trimmed history
+                throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available");
+            } else {
+                return completed.get(0).getData1();
+            }
         } else {
             throw new IllegalStateException("method not available when action state is " + getState());
         }
@@ -237,6 +245,7 @@ public abstract class Action<T extends Action> {
      * @see WorkflowHistory#filterActionEvents
      */
     public List<ActionEvent> getEvents() {
+        assertWorkflowSet();
         return workflow.getWorkflowHistory().filterActionEvents(actionId);
     }
 
@@ -246,6 +255,7 @@ public abstract class Action<T extends Action> {
      * @see WorkflowHistory#filterEvents
      */
     public List<ActionEvent> filterEvents(EventType eventType) {
+        assertWorkflowSet();
         return workflow.getWorkflowHistory().filterEvents(actionId, eventType);
     }
 
@@ -272,5 +282,11 @@ public abstract class Action<T extends Action> {
     @Override
     public String toString() {
         return format("%s %s", getClass().getSimpleName(), getActionId());
+    }
+
+    private void assertWorkflowSet() {
+        if (workflow == null) {
+            throw new IllegalStateException(format("%s has no associated workflow. Ensure all actions used by a workflow are added to the workflow.", toString()));
+        }
     }
 }

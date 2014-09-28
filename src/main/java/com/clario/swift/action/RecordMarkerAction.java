@@ -16,6 +16,8 @@ import static com.clario.swift.SwiftUtil.assertMaxLength;
  * add an additional decision (another Action or {@link Workflow#createCompleteWorkflowExecutionDecision(String)}
  * or the workflow will get stuck.
  * <p/>
+ * If you want to record information and trigger another decision event consider using signals instead, see {@link SignalWorkflowAction}.
+ * <p/>
  * Example usage within a {@link Workflow} subclass:
  * <pre><code>
  private final RecordMarkerAction doOnceMarker = new RecordMarkerAction("doOnceMarker");

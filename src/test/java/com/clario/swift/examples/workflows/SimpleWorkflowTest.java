@@ -30,6 +30,7 @@ public class SimpleWorkflowTest {
     public void before() {
         decisions = new ArrayList<Decision>();
         mock.loadEvents(getClass(), "SimpleWorkflowHistory.json");
+        workflow.getWorkflowHistory().reset();
     }
 
     @Test

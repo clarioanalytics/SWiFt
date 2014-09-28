@@ -1,0 +1,540 @@
+{
+  "events": [
+    {
+      "eventId": 71,
+      "eventType": "WorkflowExecutionContinuedAsNew",
+      "workflowExecutionContinuedAsNewEventAttributes": {
+        "taskList": { "name": "default" },
+        "taskStartToCloseTimeout": "NONE",
+        "newExecutionRunId": "22K2rpH9Xoc4jYJ9eb+fHxRGa/J4j2MNh6nqSzGCYdJBQ=",
+        "childPolicy": "TERMINATE",
+        "decisionTaskCompletedEventId": 70,
+        "executionStartToCloseTimeout": "31536000",
+        "input": "12",
+        "workflowType": { "version": "1.0", "name": "Cron Workflow" },
+        "tagList": [ ]
+      },
+      "eventTimestamp": 1411933120.888
+    },
+    {
+      "eventId": 70,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 69, "executionContext": "georgecoller", "scheduledEventId": 68 },
+      "eventTimestamp": 1411933120.888
+    },
+    {
+      "eventId": 69,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 68, "identity": "decision poller 2" },
+      "eventTimestamp": 1411933120.473,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 68,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933120.418
+    },
+    {
+      "eventId": 67,
+      "eventType": "TimerFired",
+      "eventTimestamp": 1411933120.418,
+      "timerFiredEventAttributes": { "startedEventId": 66, "timerId": "echo" }
+    },
+    {
+      "eventId": 66,
+      "eventType": "TimerStarted",
+      "timerStartedEventAttributes": {
+        "control": "--  SWiFt Retry Control Value --",
+        "timerId": "echo",
+        "startToFireTimeout": "10",
+        "decisionTaskCompletedEventId": 65
+      },
+      "eventTimestamp": 1411933110.412
+    },
+    {
+      "eventId": 65,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 64, "executionContext": "georgecoller", "scheduledEventId": 63 },
+      "eventTimestamp": 1411933110.412
+    },
+    {
+      "eventId": 64,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 63, "identity": "decision poller 1" },
+      "eventTimestamp": 1411933110.291,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 63,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933110.232
+    },
+    {
+      "eventId": 62,
+      "eventType": "ActivityTaskCompleted",
+      "activityTaskCompletedEventAttributes": { "startedEventId": 61, "scheduledEventId": 60, "result": "11" },
+      "eventTimestamp": 1411933110.232
+    },
+    {
+      "activityTaskStartedEventAttributes": { "scheduledEventId": 60, "identity": "activity poller 1" },
+      "eventId": 61,
+      "eventTimestamp": 1411933110.158,
+      "eventType": "ActivityTaskStarted"
+    },
+    {
+      "activityTaskScheduledEventAttributes": {
+        "taskList": { "name": "default" },
+        "scheduleToCloseTimeout": "NONE",
+        "activityType": { "version": "1.0", "name": "Activity Echo" },
+        "heartbeatTimeout": "NONE",
+        "activityId": "echo",
+        "scheduleToStartTimeout": "NONE",
+        "decisionTaskCompletedEventId": 59,
+        "input": "11",
+        "startToCloseTimeout": "NONE"
+      },
+      "eventId": 60,
+      "eventTimestamp": 1411933110.104,
+      "eventType": "ActivityTaskScheduled"
+    },
+    {
+      "eventId": 59,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 58, "executionContext": "georgecoller", "scheduledEventId": 57 },
+      "eventTimestamp": 1411933110.104
+    },
+    {
+      "eventId": 58,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 57, "identity": "decision poller 2" },
+      "eventTimestamp": 1411933109.725,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 57,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933109.675
+    },
+    {
+      "eventId": 56,
+      "eventType": "TimerFired",
+      "eventTimestamp": 1411933109.675,
+      "timerFiredEventAttributes": { "startedEventId": 55, "timerId": "echo" }
+    },
+    {
+      "eventId": 55,
+      "eventType": "TimerStarted",
+      "timerStartedEventAttributes": {
+        "control": "--  SWiFt Retry Control Value --",
+        "timerId": "echo",
+        "startToFireTimeout": "10",
+        "decisionTaskCompletedEventId": 54
+      },
+      "eventTimestamp": 1411933099.667
+    },
+    {
+      "eventId": 54,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 53, "executionContext": "georgecoller", "scheduledEventId": 52 },
+      "eventTimestamp": 1411933099.667
+    },
+    {
+      "eventId": 53,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 52, "identity": "decision poller 1" },
+      "eventTimestamp": 1411933099.544,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 52,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933099.496
+    },
+    {
+      "eventId": 51,
+      "eventType": "ActivityTaskCompleted",
+      "activityTaskCompletedEventAttributes": { "startedEventId": 50, "scheduledEventId": 49, "result": "10" },
+      "eventTimestamp": 1411933099.496
+    },
+    {
+      "activityTaskStartedEventAttributes": { "scheduledEventId": 49, "identity": "activity poller 2" },
+      "eventId": 50,
+      "eventTimestamp": 1411933099.414,
+      "eventType": "ActivityTaskStarted"
+    },
+    {
+      "activityTaskScheduledEventAttributes": {
+        "taskList": { "name": "default" },
+        "scheduleToCloseTimeout": "NONE",
+        "activityType": { "version": "1.0", "name": "Activity Echo" },
+        "heartbeatTimeout": "NONE",
+        "activityId": "echo",
+        "scheduleToStartTimeout": "NONE",
+        "decisionTaskCompletedEventId": 48,
+        "input": "10",
+        "startToCloseTimeout": "NONE"
+      },
+      "eventId": 49,
+      "eventTimestamp": 1411933099.364,
+      "eventType": "ActivityTaskScheduled"
+    },
+    {
+      "eventId": 48,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 47, "executionContext": "georgecoller", "scheduledEventId": 46 },
+      "eventTimestamp": 1411933099.364
+    },
+    {
+      "eventId": 47,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 46, "identity": "decision poller 2" },
+      "eventTimestamp": 1411933098.939,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 46,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933098.897
+    },
+    {
+      "eventId": 45,
+      "eventType": "TimerFired",
+      "eventTimestamp": 1411933098.897,
+      "timerFiredEventAttributes": { "startedEventId": 44, "timerId": "echo" }
+    },
+    {
+      "eventId": 44,
+      "eventType": "TimerStarted",
+      "timerStartedEventAttributes": {
+        "control": "--  SWiFt Retry Control Value --",
+        "timerId": "echo",
+        "startToFireTimeout": "10",
+        "decisionTaskCompletedEventId": 43
+      },
+      "eventTimestamp": 1411933088.894
+    },
+    {
+      "eventId": 43,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 42, "executionContext": "georgecoller", "scheduledEventId": 41 },
+      "eventTimestamp": 1411933088.894
+    },
+    {
+      "eventId": 42,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 41, "identity": "decision poller 1" },
+      "eventTimestamp": 1411933088.779,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 41,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933088.735
+    },
+    {
+      "eventId": 40,
+      "eventType": "ActivityTaskCompleted",
+      "activityTaskCompletedEventAttributes": { "startedEventId": 39, "scheduledEventId": 38, "result": "9" },
+      "eventTimestamp": 1411933088.735
+    },
+    {
+      "activityTaskStartedEventAttributes": { "scheduledEventId": 38, "identity": "activity poller 1" },
+      "eventId": 39,
+      "eventTimestamp": 1411933088.651,
+      "eventType": "ActivityTaskStarted"
+    },
+    {
+      "activityTaskScheduledEventAttributes": {
+        "taskList": { "name": "default" },
+        "scheduleToCloseTimeout": "NONE",
+        "activityType": { "version": "1.0", "name": "Activity Echo" },
+        "heartbeatTimeout": "NONE",
+        "activityId": "echo",
+        "scheduleToStartTimeout": "NONE",
+        "decisionTaskCompletedEventId": 37,
+        "input": "9",
+        "startToCloseTimeout": "NONE"
+      },
+      "eventId": 38,
+      "eventTimestamp": 1411933088.595,
+      "eventType": "ActivityTaskScheduled"
+    },
+    {
+      "eventId": 37,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 36, "executionContext": "georgecoller", "scheduledEventId": 35 },
+      "eventTimestamp": 1411933088.595
+    },
+    {
+      "eventId": 36,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 35, "identity": "decision poller 2" },
+      "eventTimestamp": 1411933088.203,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 35,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933088.15
+    },
+    {
+      "eventId": 34,
+      "eventType": "TimerFired",
+      "eventTimestamp": 1411933088.15,
+      "timerFiredEventAttributes": { "startedEventId": 33, "timerId": "echo" }
+    },
+    {
+      "eventId": 33,
+      "eventType": "TimerStarted",
+      "timerStartedEventAttributes": {
+        "control": "--  SWiFt Retry Control Value --",
+        "timerId": "echo",
+        "startToFireTimeout": "10",
+        "decisionTaskCompletedEventId": 32
+      },
+      "eventTimestamp": 1411933078.145
+    },
+    {
+      "eventId": 32,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 31, "executionContext": "georgecoller", "scheduledEventId": 30 },
+      "eventTimestamp": 1411933078.145
+    },
+    {
+      "eventId": 31,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 30, "identity": "decision poller 1" },
+      "eventTimestamp": 1411933078.034,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 30,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933077.983
+    },
+    {
+      "eventId": 29,
+      "eventType": "ActivityTaskCompleted",
+      "activityTaskCompletedEventAttributes": { "startedEventId": 28, "scheduledEventId": 27, "result": "8" },
+      "eventTimestamp": 1411933077.983
+    },
+    {
+      "activityTaskStartedEventAttributes": { "scheduledEventId": 27, "identity": "activity poller 2" },
+      "eventId": 28,
+      "eventTimestamp": 1411933077.903,
+      "eventType": "ActivityTaskStarted"
+    },
+    {
+      "activityTaskScheduledEventAttributes": {
+        "taskList": { "name": "default" },
+        "scheduleToCloseTimeout": "NONE",
+        "activityType": { "version": "1.0", "name": "Activity Echo" },
+        "heartbeatTimeout": "NONE",
+        "activityId": "echo",
+        "scheduleToStartTimeout": "NONE",
+        "decisionTaskCompletedEventId": 26,
+        "input": "8",
+        "startToCloseTimeout": "NONE"
+      },
+      "eventId": 27,
+      "eventTimestamp": 1411933077.852,
+      "eventType": "ActivityTaskScheduled"
+    },
+    {
+      "eventId": 26,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 25, "executionContext": "georgecoller", "scheduledEventId": 24 },
+      "eventTimestamp": 1411933077.852
+    },
+    {
+      "eventId": 25,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 24, "identity": "decision poller 2" },
+      "eventTimestamp": 1411933077.438,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 24,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933077.386
+    },
+    {
+      "eventId": 23,
+      "eventType": "TimerFired",
+      "eventTimestamp": 1411933077.386,
+      "timerFiredEventAttributes": { "startedEventId": 22, "timerId": "echo" }
+    },
+    {
+      "eventId": 22,
+      "eventType": "TimerStarted",
+      "timerStartedEventAttributes": {
+        "control": "--  SWiFt Retry Control Value --",
+        "timerId": "echo",
+        "startToFireTimeout": "10",
+        "decisionTaskCompletedEventId": 21
+      },
+      "eventTimestamp": 1411933067.38
+    },
+    {
+      "eventId": 21,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 20, "executionContext": "georgecoller", "scheduledEventId": 19 },
+      "eventTimestamp": 1411933067.38
+    },
+    {
+      "eventId": 20,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 19, "identity": "decision poller 1" },
+      "eventTimestamp": 1411933067.268,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 19,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933067.22
+    },
+    {
+      "eventId": 18,
+      "eventType": "ActivityTaskCompleted",
+      "activityTaskCompletedEventAttributes": { "startedEventId": 17, "scheduledEventId": 16, "result": "7" },
+      "eventTimestamp": 1411933067.22
+    },
+    {
+      "activityTaskStartedEventAttributes": { "scheduledEventId": 16, "identity": "activity poller 1" },
+      "eventId": 17,
+      "eventTimestamp": 1411933067.144,
+      "eventType": "ActivityTaskStarted"
+    },
+    {
+      "activityTaskScheduledEventAttributes": {
+        "taskList": { "name": "default" },
+        "scheduleToCloseTimeout": "NONE",
+        "activityType": { "version": "1.0", "name": "Activity Echo" },
+        "heartbeatTimeout": "NONE",
+        "activityId": "echo",
+        "scheduleToStartTimeout": "NONE",
+        "decisionTaskCompletedEventId": 15,
+        "input": "7",
+        "startToCloseTimeout": "NONE"
+      },
+      "eventId": 16,
+      "eventTimestamp": 1411933067.096,
+      "eventType": "ActivityTaskScheduled"
+    },
+    {
+      "eventId": 15,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 14, "executionContext": "georgecoller", "scheduledEventId": 13 },
+      "eventTimestamp": 1411933067.096
+    },
+    {
+      "eventId": 14,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 13, "identity": "decision poller 2" },
+      "eventTimestamp": 1411933066.779,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 13,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933066.735
+    },
+    {
+      "eventId": 12,
+      "eventType": "TimerFired",
+      "eventTimestamp": 1411933066.735,
+      "timerFiredEventAttributes": { "startedEventId": 11, "timerId": "echo" }
+    },
+    {
+      "eventId": 11,
+      "eventType": "TimerStarted",
+      "timerStartedEventAttributes": {
+        "control": "--  SWiFt Retry Control Value --",
+        "timerId": "echo",
+        "startToFireTimeout": "10",
+        "decisionTaskCompletedEventId": 10
+      },
+      "eventTimestamp": 1411933056.728
+    },
+    {
+      "eventId": 10,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 9, "executionContext": "georgecoller", "scheduledEventId": 8 },
+      "eventTimestamp": 1411933056.728
+    },
+    {
+      "eventId": 9,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 8, "identity": "decision poller 1" },
+      "eventTimestamp": 1411933056.643,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 8,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933055.878
+    },
+    {
+      "eventId": 7,
+      "eventType": "ActivityTaskCompleted",
+      "activityTaskCompletedEventAttributes": { "startedEventId": 6, "scheduledEventId": 5, "result": "6" },
+      "eventTimestamp": 1411933055.878
+    },
+    {
+      "activityTaskStartedEventAttributes": { "scheduledEventId": 5, "identity": "activity poller 2" },
+      "eventId": 6,
+      "eventTimestamp": 1411933055.803,
+      "eventType": "ActivityTaskStarted"
+    },
+    {
+      "activityTaskScheduledEventAttributes": {
+        "taskList": { "name": "default" },
+        "scheduleToCloseTimeout": "NONE",
+        "activityType": { "version": "1.0", "name": "Activity Echo" },
+        "heartbeatTimeout": "NONE",
+        "activityId": "echo",
+        "scheduleToStartTimeout": "NONE",
+        "decisionTaskCompletedEventId": 4,
+        "input": "6",
+        "startToCloseTimeout": "NONE"
+      },
+      "eventId": 5,
+      "eventTimestamp": 1411933055.76,
+      "eventType": "ActivityTaskScheduled"
+    },
+    {
+      "eventId": 4,
+      "eventType": "DecisionTaskCompleted",
+      "decisionTaskCompletedEventAttributes": { "startedEventId": 3, "executionContext": "georgecoller", "scheduledEventId": 2 },
+      "eventTimestamp": 1411933055.76
+    },
+    {
+      "eventId": 3,
+      "decisionTaskStartedEventAttributes": { "scheduledEventId": 2, "identity": "decision poller 2" },
+      "eventTimestamp": 1411933055.66,
+      "eventType": "DecisionTaskStarted"
+    },
+    {
+      "eventId": 2,
+      "eventType": "DecisionTaskScheduled",
+      "decisionTaskScheduledEventAttributes": { "startToCloseTimeout": "NONE", "taskList": { "name": "default" } },
+      "eventTimestamp": 1411933055.536
+    },
+    {
+      "eventId": 1,
+      "eventType": "WorkflowExecutionStarted",
+      "workflowExecutionStartedEventAttributes": {
+        "taskList": { "name": "default" },
+        "parentInitiatedEventId": 0,
+        "taskStartToCloseTimeout": "NONE",
+        "executionStartToCloseTimeout": "31536000",
+        "childPolicy": "TERMINATE",
+        "continuedExecutionRunId": "22rhW5ZQCxoJ9dZWTweNl87WR8YAVwqwMG90Y7i5tnxDw=",
+        "input": "6",
+        "workflowType": { "version": "1.0", "name": "Cron Workflow" },
+        "tagList": [ ]
+      },
+      "eventTimestamp": 1411933055.536
+    }
+  ]
+}

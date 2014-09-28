@@ -10,8 +10,8 @@ import static java.lang.String.format;
  * Initiate a continue workflow as new action, which stops the current workflow and creates a new one with the same
  * {@link Workflow#workflowId}.
  * <p/>
- * Useful for creating on-going, "chron"-like, workflows.  Such workflows need to be terminated and restarted so that
- * the event history does not get too large.
+ * Useful for creating on-going cron-like workflows.  Such workflows need to be continued occasionally so that
+ * the event history does not exceed SWF's maximum allowed count.
  *
  * @author George Coller
  */

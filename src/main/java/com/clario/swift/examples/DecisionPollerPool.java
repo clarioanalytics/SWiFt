@@ -14,7 +14,7 @@ import static com.clario.swift.examples.Config.config;
 
 
 /**
- * Launch a pool of {@link DecisionPoller}.
+ * Launch a pool of {@link DecisionPoller} and register the example workflows on each poller instance.
  *
  * @author George Coller
  */
@@ -30,11 +30,12 @@ public class DecisionPollerPool {
 
             DecisionPoller poller = new DecisionPoller(pollerId, config().getDomain(), config().getTaskList(), executionContext);
             poller.setSwf(config().getSWF());
-            poller.addWorkflows(new ContinuousWorkflow());
+            poller.addWorkflows(new CronWorkflow());
             poller.addWorkflows(new PollingCheckpointWorkflow());
             poller.addWorkflows(new RetryActivityWorkflow());
             poller.addWorkflows(new SignalWaitForSignalWorkflow());
             poller.addWorkflows(new SimpleWorkflow());
+            poller.addWorkflows(new SplitJoinWorkflow());
             poller.addWorkflows(new StartChildWorkflow());
             poller.addWorkflows(new TimerWorkflow());
             poller.addWorkflows(new WaitForSignalWorkflow());

@@ -21,6 +21,7 @@ public class TimerWorkflowTest {
     public void before() {
         decisions = new ArrayList<Decision>();
         mock.loadEvents(getClass(), "TimerWorkflowHistory.json");
+        workflow.getWorkflowHistory().reset();
     }
 
     @Test

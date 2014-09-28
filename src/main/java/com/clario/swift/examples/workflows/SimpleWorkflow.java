@@ -5,6 +5,8 @@ import com.clario.swift.DecisionPoller;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.Action;
 import com.clario.swift.action.ActivityAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -20,7 +22,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * every time SWF creates a <code>DecisionTaskScheduled</code> event.
  * <p/>
  * Before each call to {@code decide} the workflow will call {@link Action#setWorkflow} with itself as the parameter,
- * which gives the action access to the workflow history, its current state, etc.
+ * which gives the action access to the workflow input and the action's current state.
  * <p/>
  * Alternatively, you could manually call {@link Action#setWorkflow} inside the <code>decide</code> method.
  * This is useful if your workflow creates actions on the fly.  {@link SignalWaitForSignalWorkflow} has such an example.
@@ -57,6 +59,7 @@ public class SimpleWorkflow extends Workflow {
 
     @Override
     public void decide(List<Decision> decisions) {
+        // Set a breakpoint below to watch the decisions list to see what gets added on each call to Workflow.decide()
         String input = getWorkflowInput();
 
         // Do step1 with workflow input, continue on when "Activity X" is complete
@@ -71,13 +74,9 @@ public class SimpleWorkflow extends Workflow {
 
                 // Do step3 with step2's output, complete the workflow when "Activity Z" is complete
                 step3.withInput(step2.getOutput())
-                    .withCompleteWorkflowOnSuccess() // this tells the action to create the complete workflow decision
+                    .withCompleteWorkflowOnSuccess() // this tells the action to add the complete workflow decision after the action completes
                     .decide(decisions);
             }
         }
-
-        // decide is called multiple times as a workflow progresses
-        // you can put a breakpoint or log statement here to see what has been
-        // decided by inspecting the decisions list.
     }
 }

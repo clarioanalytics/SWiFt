@@ -12,10 +12,7 @@ import java.io.FileNotFoundException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
 import static com.amazonaws.services.simpleworkflow.model.EventType.ActivityTaskCompleted;
@@ -199,6 +196,20 @@ public class MockWorkflowHistory {
         historyEvents = new ArrayList<HistoryEvent>();
         historyEvents.addAll(unmarshalDecisionTask(json).getEvents());
         sortHistoryEventsAscending(historyEvents);
+    }
+
+    public void resetTimestampsStartingAt(Date timestamp) {
+        Date firstTimestamp = null;
+
+        for (HistoryEvent historyEvent : historyEvents) {
+            if (firstTimestamp == null) {
+                firstTimestamp = historyEvent.getEventTimestamp();
+                historyEvent.setEventTimestamp(timestamp);
+            } else {
+                long millisBetween = historyEvent.getEventTimestamp().getTime() - firstTimestamp.getTime();
+                historyEvent.setEventTimestamp(new Date(timestamp.getTime() + millisBetween));
+            }
+        }
     }
 
     /**

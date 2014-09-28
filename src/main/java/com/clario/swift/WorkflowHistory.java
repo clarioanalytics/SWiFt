@@ -7,14 +7,12 @@ import com.clario.swift.action.ActionState;
 import java.util.*;
 
 /**
- * Container class for {@link ActionEvent} instances related to the current workflow.
+ * Used by {@link Workflow} to hold {@link ActionEvent}s for the current decision.
  * <p/>
- * Most of the heavy lifting comes from converting SWF {@link HistoryEvent} into a {@link ActionEvent} to
- * unify working with various SWF tasks like activities,timers, signals, starting child workflows.
+ * Most of the heavy lifting comes from converting each SWF {@link HistoryEvent} into a {@link ActionEvent} to
+ * unify working with various SWF tasks like activities, timers, signals, starting child workflows.
  * <p/>
  * This class will also find any un-recoverable workflow error events.
- * <p/>
- * This class is not thread-safe and is meant to be used by a single {@link DecisionPoller} / {@link Workflow} instance.
  *
  * @author George Coller
  * @see ActionEvent
@@ -122,6 +120,9 @@ public class WorkflowHistory {
 
     /**
      * If available return the input string given to this workflow when it was initiated on SWF.
+     * <p/>
+     * This value will not be available if a workflow's {@link Workflow#isContinuePollingForHistoryEvents()} is
+     * implemented, which may stop the poller from receiving all of a workflow run's history events.
      *
      * @return the input or null if not available
      * @throws java.lang.UnsupportedOperationException if workflow input is unavailable
@@ -131,6 +132,23 @@ public class WorkflowHistory {
             throw new UnsupportedOperationException("Workflow input unavailable");
         } else {
             return workflowExecutionStarted.getWorkflowExecutionStartedEventAttributes().getInput();
+        }
+    }
+
+    /**
+     * If available return the start date of the workflow when it was initiated on SWF.
+     * <p/>
+     * This value will not be available if a workflow's {@link Workflow#isContinuePollingForHistoryEvents()} is
+     * implemented, which may stop the poller from receiving all of a workflow run's history events.
+     *
+     * @return the workflow start date or null if not available
+     * @throws java.lang.UnsupportedOperationException if workflow start date is unavailable
+     */
+    public Date getWorkflowStartDate() {
+        if (workflowExecutionStarted == null) {
+            throw new UnsupportedOperationException("Workflow input unavailable");
+        } else {
+            return workflowExecutionStarted.getEventTimestamp();
         }
     }
 

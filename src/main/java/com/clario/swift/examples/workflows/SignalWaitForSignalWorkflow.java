@@ -17,7 +17,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
- * This example works with the {@link WaitForSignalWorkflow} to demonstrate how a
+ * This example works with the {@link WaitForSignalWorkflow} example to demonstrate how a
  * workflow can initiate a child workflow, send data to it via a signal, wait for the child to complete,
  * and then continue on.
  *
