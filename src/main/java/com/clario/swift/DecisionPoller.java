@@ -1,6 +1,7 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
+import com.clario.swift.examples.DecisionPollerPool;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -13,13 +14,13 @@ import static java.lang.String.format;
 
 
 /**
- * Poll for {@link DecisionTask} on a single domain and task list and ask a registered {@link Workflow} for next decisions.
+ * Poll for {@link DecisionTask} event on a single domain and task list and ask a registered {@link Workflow} for next decisions.
  * <p/>
- * Implements {@link Runnable} so that multiple instances of this class can be  scheduled to handle higher levels of activity tasks.
+ * Implements {@link Runnable} so that multiple instances of this class can be scheduled to handle higher levels of activity tasks.
  *
  * @author George Coller
- * @see com.clario.swift.BasePoller
- * @see com.clario.swift.examples.DecisionPollerPool StartDecisionPollers for example usage.
+ * @see BasePoller
+ * @see DecisionPollerPool DecisionPollerPool for example usage.
  */
 public class DecisionPoller extends BasePoller {
     private final Map<String, Workflow> workflows = new LinkedHashMap<String, Workflow>();
@@ -83,7 +84,7 @@ public class DecisionPoller extends BasePoller {
         while (decisionTask == null || decisionTask.getNextPageToken() != null) {
             decisionTask = swf.pollForDecisionTask(request);
             if (decisionTask.getTaskToken() == null) {
-                if (isLogTimeout()) { log.info("poll timeout"); } // occasionally, log a heartbeat for a poller.
+                if (isLogTimeout()) { log.info("poll timeout"); } // occasionally log a heartbeat for a timed-out poller.
                 if (workflow == null) { return; } // return immediately if not currently collecting events for a workflow decision
             } else {
                 if (workflow == null) {
@@ -147,6 +148,9 @@ public class DecisionPoller extends BasePoller {
         }
     }
 
+    /**
+     * Create a nice log message based on the {@link DecisionType} for the given decision.
+     */
     public static String logNiceDecision(Decision decision) {
         String decisionType = decision.getDecisionType();
         switch (DecisionType.valueOf(decision.getDecisionType())) {

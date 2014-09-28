@@ -12,7 +12,7 @@ import static com.clario.swift.ActionEvent.EventField.*;
 import static com.clario.swift.action.ActionState.*;
 
 /**
- * Wrap {@link HistoryEvent} instances to make working with them easier and provide a uniform API.
+ * Wrap SWF {@link HistoryEvent} instances to provide a uniform API across event types.
  * </p>
  * An instance will be assigned {@link ActionState#undefined} if the wrapped {@link HistoryEvent} does not
  * belong to an {@link Action}: Activity, Timer, Marker, Signal, Start Child, ContinueAsNew.
@@ -50,7 +50,7 @@ public class ActionEvent implements Comparable<ActionEvent> {
 
     /**
      * Unique identifier for an initiated {@link Action}.
-     *
+     * <p/>
      * Only available on initial events, so use {@link #isInitialEvent()} before calling this method.
      *
      * @return unique action identifier related to this event
@@ -73,6 +73,7 @@ public class ActionEvent implements Comparable<ActionEvent> {
 
     /**
      * Event ids are unique within a workflow history and are created in sequence.
+     *
      * @see HistoryEvent#eventId
      */
     public Long getEventId() { return getField(eventId, true); }
@@ -97,30 +98,31 @@ public class ActionEvent implements Comparable<ActionEvent> {
      * <p/>
      * The following table lists which data fields are returned by this method and {@link #getData2}:
      * <pre>{@code &nbsp;
-    Field                                    | Data 1      | Data 2
-    -----------------------------------------+-------------+--------
-    ActivityTaskScheduled                    | input       | control
-    ActivityTaskStarted                      | identity    | -
-    ActivityTaskCompleted                    | result      | -
-    ActivityTaskCanceled                     | details     | -
-    ActivityTaskFailed                       | reason      | details
-    ActivityTaskTimedOut                     | timeoutType | details
-    TimerStarted                             | control     | -
-    TimerFired                               | -           | -
-    StartTimerFailed                         | reason      | -
-    TimerCanceled                            | reason      | -
-    StartChildWorkflowExecutionInitiated     | input       | control
-    ChildWorkflowExecutionStarted            | runId       | -
-    ChildWorkflowExecutionCompleted          | result      | -
-    ChildWorkflowExecutionCanceled           | reason      | -
-    ChildWorkflowExecutionFailed             | reason      | details
-    ChildWorkflowExecutionTerminated         | reason      | -
-    ChildWorkflowExecutionTimedOut           | timeoutType | -
-    SignalExternalWorkflowExecutionInitiated | input       | control
-    ExternalWorkflowExecutionSignaled        | runId       | -
-    WorkflowExecutionSignaled                | input       | -
-    MarkerRecorded                           | details     | -
+     * Field                                    | Data 1      | Data 2
+     * -----------------------------------------+-------------+--------
+     * ActivityTaskScheduled                    | input       | control
+     * ActivityTaskStarted                      | identity    | -
+     * ActivityTaskCompleted                    | result      | -
+     * ActivityTaskCanceled                     | details     | -
+     * ActivityTaskFailed                       | reason      | details
+     * ActivityTaskTimedOut                     | timeoutType | details
+     * TimerStarted                             | control     | -
+     * TimerFired                               | -           | -
+     * StartTimerFailed                         | reason      | -
+     * TimerCanceled                            | reason      | -
+     * StartChildWorkflowExecutionInitiated     | input       | control
+     * ChildWorkflowExecutionStarted            | runId       | -
+     * ChildWorkflowExecutionCompleted          | result      | -
+     * ChildWorkflowExecutionCanceled           | reason      | -
+     * ChildWorkflowExecutionFailed             | reason      | details
+     * ChildWorkflowExecutionTerminated         | reason      | -
+     * ChildWorkflowExecutionTimedOut           | timeoutType | -
+     * SignalExternalWorkflowExecutionInitiated | input       | control
+     * ExternalWorkflowExecutionSignaled        | runId       | -
+     * WorkflowExecutionSignaled                | input       | -
+     * MarkerRecorded                           | details     | -
      * }</pre>
+     *
      * @return the primary data field for this event or null if it does not exist.
      * @see HistoryEvent
      */

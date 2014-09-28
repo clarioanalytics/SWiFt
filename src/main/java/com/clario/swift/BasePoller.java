@@ -10,13 +10,13 @@ import org.slf4j.LoggerFactory;
  * @author George Coller
  */
 public abstract class BasePoller implements Runnable {
-    private static final int LOG_POLL_EVERY_COUNT = 10;
     protected final Logger log;
     private final String id;
     protected final String taskList;
     protected final String domain;
     protected AmazonSimpleWorkflow swf;
     private int pollCount;
+    private int logPollEveryCount = 10;
 
     /**
      * @param id unique id for poller used for logging and recording in SWF
@@ -55,13 +55,29 @@ public abstract class BasePoller implements Runnable {
     protected abstract void poll();
 
     /**
-     * Avoid filling the log with 'timeout' messages by recording it every tenth time.
+     * Avoid filling the log with 'timeout' messages by recording it every Nth time.
+     * Default is every tenth time.
      */
     protected boolean isLogTimeout() {
         pollCount++;
-        return LOG_POLL_EVERY_COUNT % pollCount == 0;
+        return logPollEveryCount % pollCount == 0;
     }
 
+    /**
+     * Set how often a poller logs 'timeout' messages.
+     *
+     * @param count must be a positive integer
+     *
+     * @see #isLogTimeout()
+     */
+    public void setLogPollEveryCount(int count) {
+        if (count < 1) { throw new IllegalArgumentException("parameter count must be greater or equal to one"); }
+        this.logPollEveryCount = count;
+    }
+
+    /**
+     * Two pollers are equal if they have the same {@link #id} value.
+     */
     @Override
     public boolean equals(Object o) {
         return o == this || (o != null && o instanceof BasePoller && id.equals(((BasePoller) o).id));

@@ -138,7 +138,7 @@ public class ActivityPoller extends BasePoller {
      * Wraps a single method annotated with {@link ActivityMethod} and is registered on
      * the activity map.
      *
-     * This class also acts as the {@link ActivityContext} passed to an {@link ActivityMethod} annotated method.
+     * This class acts as the {@link ActivityContext} passed when calling an {@link ActivityMethod}.
      *
      * @see ActivityContext
      */

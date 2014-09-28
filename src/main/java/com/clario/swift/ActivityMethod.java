@@ -9,20 +9,20 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Mark a method as an activity method that can handle a registered SWF Activity Tasks.
+ * Mark a method as an activity method that can handle a registered SWF Activity Task.
  * Methods annotated with <code>ActivityMethod</code> must have the following signature:
  * <pre><code>
- * @ActivityMethod(name="doSomething", version="1.0")
+ * &#64;ActivityMethod(name="MyActivity", version="1.0")
  * Object methodName({@link ActivityContext} context) {...}
- *
+ * <p/>
  * or
- *
- * @ActivityMethod(name="doSomething", version="1.0")
+ * <p/>
+ * &#64;ActivityMethod(name="MyActivity", version="1.0")
  * void methodName({@link ActivityContext} context) {...}
  * </code></pre>
  * <p/>
  * If the return type is void or the method returns null an empty string will be recorded as the activity task result.
- * Otherwise the result will be recorded as the return value converted to a string using {@link #toString}.
+ * Otherwise the result will be recorded as the return value converted to a string using toString().
  * <p/>
  * Activities that throw exceptions will be recorded as an error on their related workflow.
  *
@@ -50,7 +50,7 @@ public @interface ActivityMethod {
 
     /**
      * Description of activity.
-     * Used when registering or submitting this activity.
+     * Used by {@link ActivityPoller#registerSwfActivities()} when registering the activity on a domain.
      *
      * @see RegisterActivityTypeRequest#description
      */
@@ -58,7 +58,7 @@ public @interface ActivityMethod {
 
     /**
      * Task list.
-     * Used when registering or submitting this activity.
+     * Used by {@link ActivityPoller#registerSwfActivities()} when registering the activity on a domain.
      *
      * @return defaults to 'default'
      */
@@ -70,7 +70,7 @@ public @interface ActivityMethod {
      * schedule ---> start ---> close
      * |_____________________________|
      * </pre>
-     * Used when registering or submitting this activity.
+     * Used by {@link ActivityPoller#registerSwfActivities()} when registering the activity on a domain.
      *
      * @see RegisterActivityTypeRequest#defaultTaskScheduleToCloseTimeout
      */
@@ -82,7 +82,7 @@ public @interface ActivityMethod {
      * schedule ---> start ---> close
      * |_________________|
      * </pre>
-     * Used when registering or submitting this activity.
+     * Used by {@link ActivityPoller#registerSwfActivities()} when registering the activity on a domain.
      *
      * @see RegisterActivityTypeRequest#defaultTaskScheduleToStartTimeout
      */
@@ -94,7 +94,7 @@ public @interface ActivityMethod {
      * schedule ---> start ---> close
      *              |_______________|
      * </pre>
-     * Used when registering or submitting this activity.
+     * Used by {@link ActivityPoller#registerSwfActivities()} when registering the activity on a domain.
      *
      * @see RegisterActivityTypeRequest#defaultTaskStartToCloseTimeout
      */
@@ -103,7 +103,7 @@ public @interface ActivityMethod {
 
     /**
      * Heartbeat timeout, default "NONE".
-     * Used when registering or submitting this activity.
+     * Used by {@link ActivityPoller#registerSwfActivities()} when registering the activity on a domain.
      *
      * @see RegisterActivityTypeRequest#defaultTaskHeartbeatTimeout
      */
