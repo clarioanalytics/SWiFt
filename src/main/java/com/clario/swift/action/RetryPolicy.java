@@ -15,8 +15,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
-import static com.amazonaws.services.simpleworkflow.model.EventType.TimerFired;
-import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
+import static com.amazonaws.services.simpleworkflow.model.EventType.*;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.pow;
 import static java.lang.String.format;
@@ -170,7 +169,7 @@ public class RetryPolicy {
      */
     boolean isRetryActionEvent(ActionEvent currentEvent) {
         assertActionSet();
-        if (TimerFired == currentEvent.getType()) {
+        if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
             Long eventId = currentEvent.getInitialEventId();
             for (ActionEvent event : getRetryTimerStartedEvents()) {
                 if (eventId.equals(event.getEventId())) {

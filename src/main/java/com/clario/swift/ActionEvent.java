@@ -121,6 +121,7 @@ public class ActionEvent implements Comparable<ActionEvent> {
      * ExternalWorkflowExecutionSignaled        | runId       | -
      * WorkflowExecutionSignaled                | input       | -
      * MarkerRecorded                           | details     | -
+     * DecisionTaskCompleted                    | context     | _
      * }</pre>
      *
      * @return the primary data field for this event or null if it does not exist.
@@ -351,6 +352,16 @@ public class ActionEvent implements Comparable<ActionEvent> {
                 map.put(dataField1, "details");
                 map.put(dataValue1, markerRecorded.getDetails());
                 break;
+
+            // Decision Task Completed
+            case DecisionTaskCompleted:
+                map.put(actionState, success);
+                map.put(isInitialEvent, false);
+                map.put(initialEventId, historyEvent.getDecisionTaskCompletedEventAttributes().getScheduledEventId());
+                map.put(dataField1, "context");
+                map.put(dataValue1, historyEvent.getDecisionTaskCompletedEventAttributes().getExecutionContext());
+                break;
+
             default:
                 map.put(actionState, ActionState.undefined);
         }

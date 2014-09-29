@@ -1,5 +1,6 @@
 package com.clario.swift.action;
 
+import com.amazonaws.services.simpleworkflow.model.CancelTimerDecisionAttributes;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.EventType;
@@ -35,6 +36,7 @@ public abstract class Action<T extends Action> {
     private RetryPolicy retryPolicy;
     private boolean failWorkflowOnError = true;
     private boolean completeWorkflowOnSuccess = false;
+    private boolean cancelActiveRetryTimer = false;
 
     /**
      * Each action requires a workflow-unique identifier.
@@ -119,6 +121,32 @@ public abstract class Action<T extends Action> {
     }
 
     /**
+     * Add a {@link DecisionType#CancelTimer} decision to the next call to {@link #decide}, which
+     * will cancel an active retry timer (if one is currently in progress) for this action.
+     * <p/>
+     * Useful as a way to cancel a long delay time and force the retry immediately.
+     * One scenario could be a workflow with an activity that runs every hour but allows for
+     * receiving an external signal that instead kicks off the activity immediately.
+     */
+    public void withCancelActiveRetryTimer() {
+        cancelActiveRetryTimer = true;
+    }
+
+    /**
+     * Create a {@link DecisionType#CancelTimer} decision that will cancel any active retry timer
+     * for this action.
+     *
+     * @see #withCancelActiveRetryTimer()
+     */
+    public Decision createCancelRetryTimerDecision() {
+        return new Decision()
+            .withDecisionType(DecisionType.CancelTimer)
+            .withCancelTimerDecisionAttributes(new CancelTimerDecisionAttributes()
+                    .withTimerId(getActionId())
+            );
+    }
+
+    /**
      * Return output of action.
      *
      * @return result of action, null if action produces no output
@@ -159,40 +187,46 @@ public abstract class Action<T extends Action> {
      * @see #withNoFailWorkflowOnError
      */
     public Action decide(List<Decision> decisions) {
-        switch (getState()) {
-            case initial:
-                decisions.add(createInitiateActivityDecision());
-                break;
-            case active:
-                break;
-            case success:
-                if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(decisions)) {
-                    log.debug("success, retry timer started");
-                } else if (completeWorkflowOnSuccess) {
-                    decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
-                    log.debug("success, workflow complete: {}", getOutput());
-                } else {
-                    log.debug("success: {}", getOutput());
-                }
-                break;
-            case retry:
-                log.info("retry, restart action");
-                decisions.add(createInitiateActivityDecision());
-                break;
-
-            case error:
-                if (retryPolicy != null && retryPolicy.decide(decisions)) {
-                    log.debug("error, retry timer started");
+        if (cancelActiveRetryTimer) {
+            decisions.add(createCancelRetryTimerDecision());
+            decisions.add(createInitiateActivityDecision());
+            cancelActiveRetryTimer = false;
+        } else {
+            switch (getState()) {
+                case initial:
+                    decisions.add(createInitiateActivityDecision());
                     break;
-                }
-                if (failWorkflowOnError) {
-                    ActionEvent event = getCurrentEvent();
-                    decisions.add(createFailWorkflowExecutionDecision(toString(), event.getData1(), event.getData2()));
-                }
+                case active:
+                    break;
+                case success:
+                    if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(decisions)) {
+                        log.debug("success, retry timer started");
+                    } else if (completeWorkflowOnSuccess) {
+                        decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
+                        log.debug("success, workflow complete: {}", getOutput());
+                    } else {
+                        log.debug("success: {}", getOutput());
+                    }
+                    break;
+                case retry:
+                    log.info("retry, restart action");
+                    decisions.add(createInitiateActivityDecision());
+                    break;
 
-                break;
-            default:
-                throw new IllegalStateException(format("%s unknown action state:%s", this, getState()));
+                case error:
+                    if (retryPolicy != null && retryPolicy.decide(decisions)) {
+                        log.debug("error, retry timer started");
+                        break;
+                    }
+                    if (failWorkflowOnError) {
+                        ActionEvent event = getCurrentEvent();
+                        decisions.add(createFailWorkflowExecutionDecision(toString(), event.getData1(), event.getData2()));
+                    }
+
+                    break;
+                default:
+                    throw new IllegalStateException(format("%s unknown action state:%s", this, getState()));
+            }
         }
         return this;
     }
@@ -256,7 +290,7 @@ public abstract class Action<T extends Action> {
      */
     public List<ActionEvent> filterEvents(EventType eventType) {
         assertWorkflowSet();
-        return workflow.getWorkflowHistory().filterEvents(actionId, eventType);
+        return workflow.getWorkflowHistory().filterEvents(actionId, eventType, false);
     }
 
     /**

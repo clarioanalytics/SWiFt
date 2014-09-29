@@ -21,6 +21,7 @@ import java.util.*;
 public class WorkflowHistory {
     private final LinkedList<ActionEvent> actionEvents = new LinkedList<ActionEvent>();
     private final List<HistoryEvent> errorEvents = new ArrayList<HistoryEvent>();
+    private HistoryEvent priorDecisionTaskCompleted;
     private HistoryEvent workflowExecutionStarted;
 
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
@@ -37,6 +38,12 @@ public class WorkflowHistory {
             switch (actionEvent.getType()) {
                 case WorkflowExecutionStarted:
                     workflowExecutionStarted = event;
+                    break;
+
+                case DecisionTaskCompleted:
+                    if (priorDecisionTaskCompleted == null) {
+                        priorDecisionTaskCompleted = event;
+                    }
                     break;
 
                 // Events that can't be recovered from, config or state problems, etc.
@@ -87,17 +94,19 @@ public class WorkflowHistory {
     }
 
     /**
-     * Filter events by either or both an action id and an event type.
+     * Filter events that match the given filter parameters.
      *
      * @param actionId optional, unique id of the action.
      * @param eventType optional, event type
+     * @param sinceLastDecision if true, return only events received since the last decision (or workflow start if no decisions have been made).
      *
      * @return list of matching events
      */
-    public List<ActionEvent> filterEvents(String actionId, EventType eventType) {
+    public List<ActionEvent> filterEvents(String actionId, EventType eventType, boolean sinceLastDecision) {
         List<ActionEvent> list = new ArrayList<ActionEvent>();
         for (ActionEvent event : actionId == null ? actionEvents : filterActionEvents(actionId)) {
-            if (eventType == null || event.getType() == eventType) {
+            Long eventId = sinceLastDecision ? getPriorDecisionEventId() : 0;
+            if ((eventType == null || event.getType() == eventType) && event.getEventId() > eventId) {
                 list.add(event);
             }
         }
@@ -105,17 +114,21 @@ public class WorkflowHistory {
     }
 
     /**
+     * @param sinceLastDecision if true, return only events received since the last decision (or workflow start if no decisions have been made).
+     *
      * @return events with type {@link EventType#MarkerRecorded} converted to a map of marker name, details entries.
      */
-    public List<ActionEvent> getMarkers() {
-        return filterEvents(null, EventType.MarkerRecorded);
+    public List<ActionEvent> getMarkers(boolean sinceLastDecision) {
+        return filterEvents(null, EventType.MarkerRecorded, sinceLastDecision);
     }
 
     /**
+     * @param sinceLastDecision if true, return only events received since the last decision (or workflow start if no decisions have been made).
+     *
      * @return events with type {@link EventType#WorkflowExecutionSignaled} converted to a map of signal name, input entries.
      */
-    public List<ActionEvent> getSignals() {
-        return filterEvents(null, EventType.WorkflowExecutionSignaled);
+    public List<ActionEvent> getSignals(boolean sinceLastDecision) {
+        return filterEvents(null, EventType.WorkflowExecutionSignaled, sinceLastDecision);
     }
 
     /**
@@ -151,6 +164,42 @@ public class WorkflowHistory {
             return workflowExecutionStarted.getEventTimestamp();
         }
     }
+
+    /**
+     * Return the date of the most recent completed decision or the workflow start date if none exists.
+     * </p>
+     * Useful for filtering events created since the last decision.
+     *
+     * @return date of most recent completed decision or workflow start date
+     * @see #getWorkflowStartDate()
+     */
+    public Date getPriorDecisionDate() {
+        if (priorDecisionTaskCompleted != null) {
+            return priorDecisionTaskCompleted.getEventTimestamp();
+        } else {
+            return getWorkflowStartDate();
+        }
+    }
+
+    /**
+     * Return the event Id of the most recent completed decision or the workflow start (0) if none exists.
+     * </p>
+     * Useful for filtering events created since the last decision.
+     *
+     * @return date of most recent completed decision or workflow start date
+     * @see #getWorkflowStartDate()
+     */
+    public Long getPriorDecisionEventId() {
+        if (priorDecisionTaskCompleted != null) {
+            return priorDecisionTaskCompleted.getEventId();
+        } else {
+            return 1L;
+        }
+    }
+
+    public HistoryEvent getPriorDecisionTaskCompleted() { return priorDecisionTaskCompleted; }
+
+    public HistoryEvent getWorkflowExecutionStarted() { return workflowExecutionStarted; }
 
     /**
      * Get any error events recorded for current SWF decision task.

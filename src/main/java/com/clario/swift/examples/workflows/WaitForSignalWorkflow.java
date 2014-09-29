@@ -52,7 +52,7 @@ public class WaitForSignalWorkflow extends Workflow {
     @Override
     public void decide(List<Decision> decisions) {
         // Wait until a signal is received, then do a activity
-        List<ActionEvent> signals = getWorkflowHistory().getSignals();
+        List<ActionEvent> signals = getWorkflowHistory().getSignals(false);
         if (signals.isEmpty()) {
             log.info("No signal received yet");
         } else {
