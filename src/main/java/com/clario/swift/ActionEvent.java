@@ -108,8 +108,8 @@ public class ActionEvent implements Comparable<ActionEvent> {
      * ActivityTaskTimedOut                     | timeoutType | details
      * TimerStarted                             | control     | -
      * TimerFired                               | -           | -
+     * TimerCanceled                            | _           | -
      * StartTimerFailed                         | reason      | -
-     * TimerCanceled                            | reason      | -
      * StartChildWorkflowExecutionInitiated     | input       | control
      * ChildWorkflowExecutionStarted            | runId       | -
      * ChildWorkflowExecutionCompleted          | result      | -
@@ -245,15 +245,17 @@ public class ActionEvent implements Comparable<ActionEvent> {
                 map.put(actionId, timerFired.getTimerId());
                 map.put(initialEventId, timerFired.getStartedEventId());
                 break;
+            case TimerCanceled:
+                // If this is a retry timer event the actionState is really 'retry' but we don't have the related TimerStarted.control field yet
+                map.put(actionState, success);
+                TimerCanceledEventAttributes timerCanceled = historyEvent.getTimerCanceledEventAttributes();
+                map.put(actionId, timerCanceled.getTimerId());
+                map.put(initialEventId, timerCanceled.getStartedEventId());
+                break;
             case StartTimerFailed:
                 map.put(actionState, error);
                 map.put(dataField1, "reason");
                 map.put(dataValue1, historyEvent.getStartTimerFailedEventAttributes().getCause());
-                break;
-            case TimerCanceled:
-                map.put(actionState, error);
-                map.put(dataField1, "reason");
-                map.put(dataValue1, "timer canceled");
                 break;
 
             // Child Workflows

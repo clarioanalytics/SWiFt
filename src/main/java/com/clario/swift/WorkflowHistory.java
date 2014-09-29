@@ -25,6 +25,8 @@ public class WorkflowHistory {
     private HistoryEvent workflowExecutionStarted;
 
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
+        priorDecisionTaskCompleted = null;
+
         // Note: historyEvents are sorted newest to oldest
         for (HistoryEvent event : historyEvents) {
 
