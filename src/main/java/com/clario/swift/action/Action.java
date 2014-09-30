@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
@@ -187,46 +188,47 @@ public abstract class Action<T extends Action> {
      * @see #withNoFailWorkflowOnError
      */
     public Action decide(List<Decision> decisions) {
-        if (cancelActiveRetryTimer) {
+        ActionState actionState = getState();
+        if (cancelActiveRetryTimer && TimerStarted == getCurrentEvent().getType()) {
             decisions.add(createCancelRetryTimerDecision());
-            decisions.add(createInitiateActivityDecision());
-            cancelActiveRetryTimer = false;
-        } else {
-            switch (getState()) {
-                case initial:
-                    decisions.add(createInitiateActivityDecision());
-                    break;
-                case active:
-                    break;
-                case success:
-                    if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(decisions)) {
-                        log.debug("success, retry timer started");
-                    } else if (completeWorkflowOnSuccess) {
-                        decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
-                        log.debug("success, workflow complete: {}", getOutput());
-                    } else {
-                        log.debug("success: {}", getOutput());
-                    }
-                    break;
-                case retry:
-                    log.info("retry, restart action");
-                    decisions.add(createInitiateActivityDecision());
-                    break;
+            actionState = ActionState.retry;
+        }
+        cancelActiveRetryTimer = false;
 
-                case error:
-                    if (retryPolicy != null && retryPolicy.decide(decisions)) {
-                        log.debug("error, retry timer started");
-                        break;
-                    }
-                    if (failWorkflowOnError) {
-                        ActionEvent event = getCurrentEvent();
-                        decisions.add(createFailWorkflowExecutionDecision(toString(), event.getData1(), event.getData2()));
-                    }
+        switch (actionState) {
+            case initial:
+                decisions.add(createInitiateActivityDecision());
+                break;
+            case active:
+                break;
+            case success:
+                if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(decisions)) {
+                    log.debug("success, retry timer started");
+                } else if (completeWorkflowOnSuccess) {
+                    decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
+                    log.debug("success, workflow complete: {}", getOutput());
+                } else {
+                    log.debug("success: {}", getOutput());
+                }
+                break;
+            case retry:
+                log.info("retry, restart action");
+                decisions.add(createInitiateActivityDecision());
+                break;
 
+            case error:
+                if (retryPolicy != null && retryPolicy.decide(decisions)) {
+                    log.debug("error, retry timer started");
                     break;
-                default:
-                    throw new IllegalStateException(format("%s unknown action state:%s", this, getState()));
-            }
+                }
+                if (failWorkflowOnError) {
+                    ActionEvent event = getCurrentEvent();
+                    decisions.add(createFailWorkflowExecutionDecision(toString(), event.getData1(), event.getData2()));
+                }
+
+                break;
+            default:
+                throw new IllegalStateException(format("%s unknown action state:%s", this, getState()));
         }
         return this;
     }
