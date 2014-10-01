@@ -24,6 +24,9 @@ public class WorkflowHistory {
     private HistoryEvent priorDecisionTaskCompleted;
     private HistoryEvent workflowExecutionStarted;
 
+    public WorkflowHistory() {
+    }
+
     public void addHistoryEvents(List<HistoryEvent> historyEvents) {
         priorDecisionTaskCompleted = null;
 
@@ -134,17 +137,16 @@ public class WorkflowHistory {
     }
 
     /**
-     * If available return the input string given to this workflow when it was initiated on SWF.
+     * If available, return the input string given to this workflow when it was initiated on SWF.
      * <p/>
      * This value will not be available if a workflow's {@link Workflow#isContinuePollingForHistoryEvents()} is
      * implemented, which may stop the poller from receiving all of a workflow run's history events.
      *
      * @return the input or null if not available
-     * @throws java.lang.UnsupportedOperationException if workflow input is unavailable
      */
     public String getWorkflowInput() {
         if (workflowExecutionStarted == null) {
-            throw new UnsupportedOperationException("Workflow input unavailable");
+            return null;
         } else {
             return workflowExecutionStarted.getWorkflowExecutionStartedEventAttributes().getInput();
         }
@@ -157,11 +159,10 @@ public class WorkflowHistory {
      * implemented, which may stop the poller from receiving all of a workflow run's history events.
      *
      * @return the workflow start date or null if not available
-     * @throws java.lang.UnsupportedOperationException if workflow start date is unavailable
      */
     public Date getWorkflowStartDate() {
         if (workflowExecutionStarted == null) {
-            throw new UnsupportedOperationException("Workflow input unavailable");
+            return null;
         } else {
             return workflowExecutionStarted.getEventTimestamp();
         }
