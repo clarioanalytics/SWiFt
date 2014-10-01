@@ -19,8 +19,8 @@ import java.util.*;
  * @see Workflow
  */
 public class WorkflowHistory {
-    private final LinkedList<ActionEvent> actionEvents = new LinkedList<ActionEvent>();
-    private final List<HistoryEvent> errorEvents = new ArrayList<HistoryEvent>();
+    private LinkedList<ActionEvent> actionEvents = new LinkedList<ActionEvent>();
+    private List<HistoryEvent> errorEvents = new ArrayList<HistoryEvent>();
     private HistoryEvent priorDecisionTaskCompleted;
     private HistoryEvent workflowExecutionStarted;
 
@@ -66,8 +66,8 @@ public class WorkflowHistory {
      * Reset instance to prepare for new set of history.
      */
     public void reset() {
-        actionEvents.clear();
-        errorEvents.clear();
+        actionEvents = new LinkedList<ActionEvent>();
+        errorEvents = new ArrayList<HistoryEvent>();
         workflowExecutionStarted = null;
     }
 
