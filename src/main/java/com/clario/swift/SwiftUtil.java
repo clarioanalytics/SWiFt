@@ -2,7 +2,6 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.RegisterWorkflowTypeRequest;
 import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -12,6 +11,8 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.joda.time.format.ISODateTimeFormat.dateTime;
 
 /**
  * Utility methods.
@@ -20,8 +21,9 @@ import static java.util.concurrent.TimeUnit.DAYS;
  */
 public class SwiftUtil {
     public static final String SWF_TIMEOUT_NONE = "NONE";
-    public static final String SWF_TIMEOUT_YEAR = Long.toString((DAYS.toSeconds(365)));
-    public static final DateTimeFormatter DATE_TIME_MILLIS_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
+    public static final String SWF_TIMEOUT_YEAR = valueOf((DAYS.toSeconds(365)));
+    public static final String SWF_TIMEOUT_DECISION_DEFAULT = valueOf(MINUTES.toSeconds(1));
+    public static final DateTimeFormatter DATE_TIME_MILLIS_FORMATTER = dateTime().withZoneUTC();
     public static final int MAX_NUMBER_TAGS = 5;
     public static final int MAX_RUN_ID_LENGTH = 64;
     public static final int MAX_VERSION_LENGTH = 64;

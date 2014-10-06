@@ -28,7 +28,7 @@ public abstract class Workflow {
     // Optional fields used for submitting workflow.
     private String description;
     private String executionStartToCloseTimeout = SWF_TIMEOUT_YEAR;
-    private String taskStartToCloseTimeout = SWF_TIMEOUT_NONE;
+    private String taskStartToCloseTimeout = SWF_TIMEOUT_DECISION_DEFAULT;
     private ChildPolicy childPolicy = ChildPolicy.TERMINATE; // sensible default
 
     // Set by poller
@@ -208,9 +208,11 @@ public abstract class Workflow {
     public String getExecutionStartToCloseTimeout() { return executionStartToCloseTimeout; }
 
     /**
-     * Specifies the maximum duration of decision tasks for this workflow execution.
+     * Specifies the maximum duration of <b>decision</b> tasks for this workflow execution.
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
-     * defaults to NONE.
+     * <p/>
+     * Defaults to one minute, which should be plenty of time deciders that don't need to
+     * connect to external services to make the next decision.
      *
      * @see StartWorkflowExecutionRequest#taskStartToCloseTimeout
      */
