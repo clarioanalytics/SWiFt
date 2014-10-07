@@ -7,6 +7,8 @@ import com.amazonaws.services.simpleworkflow.model.RespondActivityTaskFailedRequ
 import com.clario.swift.ActionEvent;
 import com.clario.swift.SwiftUtil;
 import org.joda.time.DateTime;
+import org.joda.time.Days;
+import org.joda.time.Hours;
 import org.joda.time.Seconds;
 import org.slf4j.Logger;
 
@@ -38,9 +40,11 @@ public class RetryPolicy {
     protected double backoffCoefficient = DEFAULT_BACKOFF_COEFFICIENT;
     protected int maximumAttempts = MAX_VALUE;
     protected Seconds initialRetryInterval = seconds(DEFAULT_INITIAL_RETRY_INTERVAL);
-    protected Seconds maximumRetryInterval = seconds(MAX_VALUE);
-    protected Seconds retryExpirationInterval = seconds(MAX_VALUE);
+    protected Seconds maximumRetryInterval = Hours.ONE.toStandardSeconds();
+    protected Seconds retryExpirationInterval = Days.days(365).toStandardSeconds();
+
     protected boolean retryOnSuccess = false;
+    protected Seconds retryOnSuccessInterval = Hours.ONE.toStandardSeconds();
 
     void setAction(Action<?> action) { this.action = action; }
 
@@ -58,7 +62,7 @@ public class RetryPolicy {
     /**
      * Stop retrying after this limit.
      *
-     * @param duration negative value sets no limit.  Default is no limit.
+     * @param duration must be greater than zero, defaults to 365 days.
      */
     public RetryPolicy withRetryExpirationInterval(TimeUnit unit, long duration) {
         this.retryExpirationInterval = calcSeconds(unit, duration);
@@ -68,7 +72,7 @@ public class RetryPolicy {
     /**
      * Limit the maximum delay time between retries.
      *
-     * @param duration negative value sets no limit.  Default is no limit.
+     * @param duration must be greater than zero, defaults to one hour.
      */
     public RetryPolicy withMaximumRetryInterval(TimeUnit unit, long duration) {
         this.maximumRetryInterval = calcSeconds(unit, duration);
@@ -78,7 +82,7 @@ public class RetryPolicy {
     /**
      * Set the maximum number of retry attempts before stopping.
      *
-     * @param maximumAttempts default is no maximum
+     * @param maximumAttempts number of attempts, if less than zero will set to default of no maximum attempt count.
      */
     public RetryPolicy withMaximumAttempts(int maximumAttempts) {
         this.maximumAttempts = maximumAttempts > 0 ? maximumAttempts : MAX_VALUE;
@@ -104,12 +108,31 @@ public class RetryPolicy {
         return this;
     }
 
+    /**
+     * Will make the related {@link Action} cron-like, waiting for an interval after each success before deciding to run it again.
+     * <p/>
+     * Use {@link #withRetryExpirationInterval} to set the interval to wait.
+     *
+     * @param value default is false.
+     *
+     * @see #withRetryOnSuccessInterval
+     */
     public RetryPolicy withRetryOnSuccess(boolean value) {
         this.retryOnSuccess = value;
         return this;
     }
 
     public boolean isRetryOnSuccess() { return retryOnSuccess; }
+
+    /**
+     * Set the interval to wait before deciding to run the action again.
+     *
+     * @param duration delay time before restarting the action, must be greater than zero, defaults to one hour.
+     */
+    public RetryPolicy withRetryOnSuccessInterval(TimeUnit unit, long duration) {
+        this.retryOnSuccessInterval = calcSeconds(unit, duration);
+        return this;
+    }
 
     /**
      * Called to validate the policy parameter settings and to ensure an action has been set.
@@ -260,7 +283,10 @@ public class RetryPolicy {
     }
 
     private static Seconds calcSeconds(TimeUnit unit, long duration) {
-        return seconds(duration > 0 ? (int) unit.toSeconds(duration) : MAX_VALUE);
+        if (duration <= 0) {
+            throw new IllegalArgumentException("Duration " + duration + " not a positive integer");
+        }
+        return seconds((int) unit.toSeconds(duration));
     }
 
     @Override
