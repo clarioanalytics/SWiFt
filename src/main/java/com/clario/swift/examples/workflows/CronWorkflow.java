@@ -77,7 +77,7 @@ public class CronWorkflow extends Workflow {
             log.info("increment echoCount=" + echoCount);
         }
 
-        int wfRuntimeMins = minutesBetween(new DateTime(getWorkflowHistory().getWorkflowStartDate()), DateTime.now()).getMinutes();
+        int wfRuntimeMins = minutesBetween(new DateTime(getWorkflowStartDate()), DateTime.now()).getMinutes();
         if (wfRuntimeMins >= CONTINUE_WORKFLOW_AFTER_MINUTES) {
             // workflow has run for over a minute.  continue as new preserving the current echoCount state
             log.info("continue as new workflow with echoCount=" + echoCount);

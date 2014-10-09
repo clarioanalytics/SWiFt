@@ -4,9 +4,13 @@ import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.Action;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.amazonaws.services.simpleworkflow.model.EventType.WorkflowExecutionStarted;
+import static com.clario.swift.EventList.byEventType;
 import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
@@ -22,8 +26,8 @@ public abstract class Workflow {
     protected final String name;
     protected final String version;
     protected final String key;
-    protected final WorkflowHistory workflowHistory;
     private final List<String> tags = new ArrayList<String>();
+    private List<Event> eventList = new ArrayList<Event>();
 
     // Optional fields used for submitting workflow.
     private String description;
@@ -41,7 +45,68 @@ public abstract class Workflow {
         this.name = assertSwfValue(assertMaxLength(name, MAX_NAME_LENGTH));
         this.version = assertSwfValue(assertMaxLength(version, MAX_VERSION_LENGTH));
         this.key = makeKey(name, version);
-        workflowHistory = new WorkflowHistory();
+    }
+
+    /**
+     * Add more events to this workflow.
+     * Called by {@link DecisionPoller} as it polls for the history for the current workflow to be decided.
+     * <p/>
+     * NOTE: Assumes the events are in descending order by {@link Event#getEventId()}.
+     *
+     * @param events events to add
+     */
+    public void addEvents(List<Event> events) {
+        eventList.addAll(events);
+    }
+
+    /**
+     * Reset instance to prepare for new set of history events.
+     */
+    public void reset() {
+        eventList = new LinkedList<Event>();
+    }
+
+    /**
+     * Convenience method that calls {@link #reset} then {@link #addEvents}.
+     * <p/>
+     * NOTE: Assumes the events are in descending order by {@link Event#getEventId()}.
+     */
+    public void replaceEvents(List<Event> events) {
+        reset();
+        addEvents(events);
+    }
+
+    /**
+     * If available, return the input string given to this workflow when it was initiated on SWF.
+     * <p/>
+     * This value will not be available if a workflow's {@link Workflow#isContinuePollingForHistoryEvents()} is
+     * implemented, which may stop the poller from receiving all of a workflow run's history events.
+     *
+     * @return the input or null if not available
+     */
+    public String getWorkflowInput() {
+        Event event = getEvents().select(byEventType(WorkflowExecutionStarted)).getFirst();
+        return event == null ? null : event.getData1();
+    }
+
+    /**
+     * If available return the start date of the workflow when it was initiated on SWF.
+     * <p/>
+     * This value will not be available if a workflow's {@link Workflow#isContinuePollingForHistoryEvents()} is
+     * implemented, which may stop the poller from receiving all of a workflow run's history events.
+     *
+     * @return the workflow start date or null if not available
+     */
+    public Date getWorkflowStartDate() {
+        Event event = getEvents().select(byEventType(WorkflowExecutionStarted)).getFirst();
+        return event == null ? null : event.getEventTimestamp().toDate();
+    }
+
+    /**
+     * @return {@link EventList} containing all {@link Event} for the current workflow.
+     */
+    public EventList getEvents() {
+        return new EventList(eventList);
     }
 
     /**
@@ -80,7 +145,7 @@ public abstract class Workflow {
      * Called by {@link DecisionPoller} to initialize workflow for a new decision task.
      */
     public void init() {
-        workflowHistory.reset();
+        eventList = new LinkedList<Event>();
     }
 
     public String getName() { return name; }
@@ -95,22 +160,7 @@ public abstract class Workflow {
     public String getKey() { return key; }
 
     /**
-     * @return this instance's history container
-     */
-    public WorkflowHistory getWorkflowHistory() { return workflowHistory; }
-
-
-    /**
-     * Add history events for current SWF decision task.
-     *
-     * @see WorkflowHistory#addHistoryEvents
-     */
-    public void addHistoryEvents(List<HistoryEvent> events) {
-        workflowHistory.addHistoryEvents(events);
-    }
-
-    /**
-     * The decision poller calls this method after each call to {@link #addHistoryEvents}
+     * The decision poller calls this method after each call to {@link #addEvents}
      * to see if it should continue polling for more history or if this workflow
      * currently has enough history to make its next set of decisions.
      * <p/>
@@ -125,15 +175,6 @@ public abstract class Workflow {
      */
     public boolean isContinuePollingForHistoryEvents() {
         return true;
-    }
-
-    /**
-     * Get input provided when current decision task's workflow was submitted.
-     *
-     * @see WorkflowHistory#getWorkflowInput()
-     */
-    public String getWorkflowInput() {
-        return workflowHistory.getWorkflowInput();
     }
 
     /** SWF domain */

@@ -1,15 +1,12 @@
 package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.amazonaws.services.simpleworkflow.model.DecisionType;
-import com.clario.swift.MockWorkflowHistory;
-import org.joda.time.DateTime;
+import com.clario.swift.EventList;
+import com.clario.swift.TestUtil;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.ScheduleActivityTask;
@@ -22,57 +19,54 @@ import static org.junit.Assert.assertEquals;
 public class CronWorkflowTest {
 
     private final CronWorkflow workflow = new CronWorkflow();
-    private final MockWorkflowHistory mock = new MockWorkflowHistory();
+    private EventList mock;
     private List<Decision> decisions;
 
     @Before
     public void before() {
         decisions = new ArrayList<Decision>();
-        mock.loadEvents(getClass(), "CronWorkflowHistory.json");
-        workflow.getWorkflowHistory().reset();
+        mock = TestUtil.loadActionEvents(getClass(), "CronWorkflowHistory.json");
+        workflow.reset();
     }
 
     @Test
     public void testWorkflowInputAndStartDate() {
-        Date wfStartTime = setWorkflowStartTimeNowMinus(1);
-        workflow.addHistoryEvents(mock.withStopAtDecisionTaskStarted(1).getEvents());
-        assertEquals("6", workflow.getWorkflowInput());
-        assertEquals(wfStartTime, workflow.getWorkflowHistory().getWorkflowStartDate());
+//        EventList events = mock.select(MockEventList.byBeforeDecisionTaskCompleted(1)).resetTimestampsStartingAt(1);
+//        events = TestUtil.resetTimestampsStartingAt(events, );
+//        Event last = events.getLast();
+//        List<Event> historyEvents = events;
+//        workflow.addEvents(historyEvents);
+//        assertEquals("6", workflow.getWorkflowInput());
+//        assertEquals(last.getEventTimestamp().toDate(), workflow.getWorkflowStartDate());
     }
 
     @Test
     public void testContinueAsNew() {
-        setWorkflowStartTimeNowMinus(60);
-        workflow.addHistoryEvents(mock.withStopAtDecisionTaskStarted(13).getEvents());
-        workflow.decide(decisions);
-        assertEquals(1, decisions.size());
-        Decision decision = decisions.get(0);
-        MockWorkflowHistory.assertEquals(decision, DecisionType.ContinueAsNewWorkflowExecution);
+//        workflow.addEvents(mock.select(byBeforeDecisionTaskCompleted(13))
+//                .resetTimestampsStartingAt(59)
+//        );
+//        workflow.decide(decisions);
+//        assertEquals(1, decisions.size());
+//        Decision decision = decisions.get(0);
+//        TestUtil.assertEquals(decision, DecisionType.ContinueAsNewWorkflowExecution);
     }
 
     @Test
     public void testCronStepAlternationBetweenActivityAndTimer() {
-        setWorkflowStartTimeNowMinus(59);
-
-        List<Integer> steps = Arrays.asList(1, 3, 5, 7, 9, 11);
-        int startCountAt = 6;
-        for (Integer step : steps) {
-            workflow.getWorkflowHistory().reset();
-            workflow.addHistoryEvents(mock.withStopAtDecisionTaskStarted(step).getEvents());
-            assertCurrentCount(String.valueOf(startCountAt));
-
-            step++;
-            workflow.getWorkflowHistory().reset();
-            workflow.addHistoryEvents(mock.withStopAtDecisionTaskStarted(step).getEvents());
-            assertTimerDecision();
-            startCountAt++;
-        }
-    }
-
-    private Date setWorkflowStartTimeNowMinus(int seconds) {
-        Date timestamp = DateTime.now().minusSeconds(seconds).toDate();
-        mock.resetTimestampsStartingAt(timestamp);
-        return timestamp;
+//        mock.resetTimestampsStartingAt(59);
+//        List<Integer> steps = Arrays.asList(1, 3, 5, 7, 9, 11);
+//        int startCountAt = 6;
+//        for (Integer step : steps) {
+//            workflow.reset();
+//            workflow.addEvents(mock.byBeforeDecisionTaskCompleted(step));
+//            assertCurrentCount(String.valueOf(startCountAt));
+//
+//            step++;
+//            workflow.reset();
+//            workflow.addEvents(mock.byBeforeDecisionTaskCompleted(step));
+//            assertTimerDecision();
+//            startCountAt++;
+//        }
     }
 
     private void assertTimerDecision() {
@@ -80,7 +74,7 @@ public class CronWorkflowTest {
         workflow.decide(decisions);
         assertEquals(1, decisions.size());
         Decision decision = decisions.get(0);
-        MockWorkflowHistory.assertEquals(decision, StartTimer);
+        TestUtil.assertEquals(decision, StartTimer);
         assertEquals("10", decision.getStartTimerDecisionAttributes().getStartToFireTimeout());
     }
 
@@ -89,7 +83,7 @@ public class CronWorkflowTest {
         workflow.decide(decisions);
         assertEquals(1, decisions.size());
         Decision decision = decisions.get(0);
-        MockWorkflowHistory.assertEquals(decision, ScheduleActivityTask);
+        TestUtil.assertEquals(decision, ScheduleActivityTask);
         assertEquals(workflow.echoActivity.getActionId(), decision.getScheduleActivityTaskDecisionAttributes().getActivityId());
         assertEquals(currentCount, decision.getScheduleActivityTaskDecisionAttributes().getInput());
     }

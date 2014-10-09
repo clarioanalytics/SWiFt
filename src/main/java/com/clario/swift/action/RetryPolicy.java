@@ -2,9 +2,9 @@ package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.RespondActivityTaskFailedRequest;
-import com.clario.swift.ActionEvent;
+import com.clario.swift.Event;
+import com.clario.swift.EventList;
 import com.clario.swift.SwiftUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -14,10 +14,9 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
-import static com.amazonaws.services.simpleworkflow.model.EventType.*;
+import static com.clario.swift.SwiftUtil.defaultIfNull;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.pow;
 import static java.lang.String.format;
@@ -35,7 +34,6 @@ public class RetryPolicy {
     public static final String RETRY_CONTROL_VALUE = "--  SWiFt Retry Control Value --";
     public static final int DEFAULT_INITIAL_RETRY_INTERVAL = 5;
     public static final double DEFAULT_BACKOFF_COEFFICIENT = 2.0;
-    private Action<?> action;
     protected String stopIfErrorMatchesRegEx = null;
     protected double backoffCoefficient = DEFAULT_BACKOFF_COEFFICIENT;
     protected int maximumAttempts = MAX_VALUE;
@@ -45,8 +43,6 @@ public class RetryPolicy {
 
     protected boolean retryOnSuccess = false;
     protected Seconds retryOnSuccessInterval = Hours.ONE.toStandardSeconds();
-
-    void setAction(Action<?> action) { this.action = action; }
 
     /**
      * Interval to wait before the initial retry.
@@ -147,60 +143,12 @@ public class RetryPolicy {
      * @see ExponentialRetryPolicy#validate
      */
     public void validate() {
-        assertActionSet();
         if (initialRetryInterval.isGreaterThan(maximumRetryInterval)) {
             throw new IllegalStateException("initialRetryInterval > maximumRetryInterval");
         }
         if (initialRetryInterval.isGreaterThan(retryExpirationInterval)) {
             throw new IllegalStateException("initialRetryInterval > retryExpirationInterval");
         }
-    }
-
-    /**
-     * Return any {@link EventType#TimerStarted} events that are retry events.
-     *
-     * @throws IllegalStateException if no action set.
-     */
-    List<ActionEvent> getRetryTimerStartedEvents() {
-        assertActionSet();
-        List<ActionEvent> events = action.filterEvents(TimerStarted);
-        ListIterator<ActionEvent> iter = events.listIterator();
-        while (iter.hasNext()) {
-            ActionEvent event = iter.next();
-            if (!RETRY_CONTROL_VALUE.equals(event.getData1())) {
-                iter.remove();
-            }
-        }
-        return events;
-    }
-
-    /**
-     * @return number of retries attempted for this policy's action
-     * @throws IllegalStateException if no action set.
-     */
-    public int getRetryCount() {
-        assertActionSet();
-        return getRetryTimerStartedEvents().size();
-    }
-
-    /**
-     * Calculate if the current event represents a retry event.
-     * A retry event indicates that the action should be retried.
-     *
-     * @return true, if current event is a retry event
-     * @throws IllegalStateException if no action set.
-     */
-    boolean isRetryActionEvent(ActionEvent currentEvent) {
-        assertActionSet();
-        if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
-            Long eventId = currentEvent.getInitialEventId();
-            for (ActionEvent event : getRetryTimerStartedEvents()) {
-                if (eventId.equals(event.getEventId())) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     /**
@@ -213,12 +161,13 @@ public class RetryPolicy {
      * @return true, if a retry decision was added, otherwise false
      * @throws IllegalStateException if no action set.
      */
-    public boolean decide(List<Decision> decisions) {
-        assertActionSet();
+    public boolean decide(Action<?> action, List<Decision> decisions) {
         Logger log = action.getLog();
-        ActionEvent currentHistoryEvent = getCurrentHistoryEvent();
-        String reason = SwiftUtil.defaultIfEmpty(currentHistoryEvent.getData1(), "");
-        String details = SwiftUtil.defaultIfEmpty(currentHistoryEvent.getData2(), "");
+        Event currentEvent = action.getCurrentEvent();
+        assert currentEvent != null : "Should always be a current event here in normal operation";
+
+        String reason = defaultIfNull(currentEvent.getData1(), "");
+        String details = defaultIfNull(currentEvent.getData2(), "");
         if (stopIfErrorMatchesRegEx != null) {
             if (reason.matches(stopIfErrorMatchesRegEx)) {
                 log.info(format("%s no more attempts. matched reason: %s", this, reason));
@@ -231,7 +180,7 @@ public class RetryPolicy {
         }
         String description = reason + (details.isEmpty() ? "" : "\n") + details;
 
-        int delaySeconds = nextRetryDelaySeconds();
+        int delaySeconds = nextRetryDelaySeconds(action);
         if (delaySeconds >= 0) {
             TimerAction timer = new TimerAction(action.getActionId())
                 .withStartToFireTimeout(TimeUnit.SECONDS, delaySeconds)
@@ -251,34 +200,22 @@ public class RetryPolicy {
      * @return interval in seconds, or less than zero to indicate no retry
      * @throws IllegalStateException if no action set.
      */
-    public int nextRetryDelaySeconds() {
-        List<ActionEvent> retryEvents = getRetryTimerStartedEvents();
-        int retryCount = retryEvents.size();
-        if (retryCount > maximumAttempts) {
+    public int nextRetryDelaySeconds(Action<?> action) {
+        EventList retryEvents = action.getRetryEvents();
+        if (retryEvents.size() > maximumAttempts) {
             return -1;
-        } else if (retryCount == 0) {
+        } else if (retryEvents.isEmpty()) {
             return initialRetryInterval.getSeconds();
         } else {
-            DateTime firstRetryDate = retryEvents.get(retryEvents.size() - 1).getEventTimestamp();
-            DateTime currentErrorDate = getCurrentHistoryEvent().getEventTimestamp();
+            DateTime firstRetryDate = retryEvents.getLast().getEventTimestamp();
+            DateTime currentErrorDate = action.getCurrentEvent().getEventTimestamp();
 
             Seconds secondsElapsed = secondsBetween(firstRetryDate, currentErrorDate);
-            Seconds interval = initialRetryInterval.multipliedBy((int) pow(backoffCoefficient, retryCount - 1));
+            Seconds interval = initialRetryInterval.multipliedBy((int) pow(backoffCoefficient, retryEvents.size()));
             if (interval.isGreaterThan(maximumRetryInterval)) {
                 interval = maximumRetryInterval;
             }
             return secondsElapsed.plus(interval).isGreaterThan(retryExpirationInterval) ? -1 : interval.getSeconds();
-        }
-    }
-
-    // Exposed for unit testing
-    protected ActionEvent getCurrentHistoryEvent() {
-        return action.getCurrentEvent();
-    }
-
-    private void assertActionSet() {
-        if (action == null) {
-            throw new IllegalStateException("Action must be set before calling method");
         }
     }
 

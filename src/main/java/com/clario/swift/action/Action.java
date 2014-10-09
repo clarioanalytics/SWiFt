@@ -3,21 +3,22 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.CancelTimerDecisionAttributes;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
-import com.amazonaws.services.simpleworkflow.model.EventType;
-import com.clario.swift.ActionEvent;
 import com.clario.swift.DecisionPoller;
+import com.clario.swift.Event;
+import com.clario.swift.EventList;
 import com.clario.swift.Workflow;
-import com.clario.swift.WorkflowHistory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
+import static com.amazonaws.services.simpleworkflow.model.EventType.*;
+import static com.clario.swift.Event.Field.isRetryTimerStarted;
+import static com.clario.swift.Event.State.*;
+import static com.clario.swift.EventList.*;
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
-import static com.clario.swift.action.ActionState.*;
 import static java.lang.String.format;
 
 /**
@@ -73,7 +74,7 @@ public abstract class Action<T extends Action> {
 
     /**
      * By default {@link #decide} adds a @link DecisionType#FailWorkflowExecution} decision
-     * if this action finishes in an {@link ActionState#error} state.
+     * if this action finishes in an {@link Event.State#ERROR} state.
      * <p/>
      * Calling this method deactivates that decision for use cases where a workflow can
      * continue even if this action fails.
@@ -85,7 +86,7 @@ public abstract class Action<T extends Action> {
 
     /**
      * Calling this will activate a {@link DecisionType#CompleteWorkflowExecution} decision
-     * if this action finishes in an {@link ActionState#success} state.
+     * if this action finishes in an {@link Event.State#SUCCESS} state.
      * <p/>
      * By default this behavior is deactivated but is useful to create final actions in a workflow.
      *
@@ -99,8 +100,7 @@ public abstract class Action<T extends Action> {
     /**
      * Adding a {@link RetryPolicy} marks this instance to be retried if the action errors.
      * <p/>
-     * {@link RetryPolicy#setAction} will be called with this instance and then
-     * {@link RetryPolicy#validate}.
+     * {@link RetryPolicy#validate} will be called to ensure retryPolicy is valid.
      * <p/>
      * Warning: do not share {@link RetryPolicy} instances across multiple actions!
      *
@@ -111,14 +111,28 @@ public abstract class Action<T extends Action> {
     public T withRetryPolicy(RetryPolicy retryPolicy) {
         this.retryPolicy = retryPolicy;
         if (retryPolicy != null) {
-            this.retryPolicy.setAction(this);
             this.retryPolicy.validate();
         }
         return thisObject();
     }
 
     public int getRetryCount() {
-        return retryPolicy == null ? 0 : retryPolicy.getRetryCount();
+        return getRetryEvents().size();
+    }
+
+    EventList getRetryEvents() {
+        assertWorkflowSet();
+        return workflow.getEvents()
+            .select(byActionId(actionId),
+                byEventFieldsEquals(createFieldMap(isRetryTimerStarted, true)));
+    }
+
+    boolean isCurrentEventRetryEvent(Event currentEvent) {
+        if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
+            Long eventId = currentEvent.getInitialEventId();
+            return getRetryEvents().select(byEventIdRange(eventId, eventId)).isNotEmpty();
+        }
+        return false;
     }
 
     /**
@@ -156,11 +170,10 @@ public abstract class Action<T extends Action> {
     public String getOutput() {
         if (isSuccess()) {
             return getCurrentEvent().getData1();
-        } else if (retryPolicy.isRetryOnSuccess() && getState() == ActionState.retry) {
-            List<ActionEvent> completed = filterEvents(EventType.ActivityTaskCompleted);
+        } else if (retryPolicy.isRetryOnSuccess() && getState() == RETRY) {
+            List<Event> completed = getEvents().select(byEventType(ActivityTaskCompleted));
             if (completed.isEmpty()) {
-                // would only happen if a workflow's isContinuePollingForHistoryEvents method trimmed history
-                throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available");
+                throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
             } else {
                 return completed.get(0).getData1();
             }
@@ -170,16 +183,16 @@ public abstract class Action<T extends Action> {
     }
 
     /**
-     * Make a decision based on the current {@link ActionState} of an action.
+     * Make a decision based on the current {@link Event.State} of an action.
      * <p/>
-     * Default implementation if {@link ActionState} is:
+     * Default implementation if {@link Event.State} is:
      * <ul>
-     * <li>{@link ActionState#initial}: add decision returned by {@link #createInitiateActivityDecision()}</li>
-     * <li>{@link ActionState#retry}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
-     * <li>{@link ActionState#active}: no decisions are added for in-progress actions</li>
-     * <li>{@link ActionState#success}: if {@link #withNoFailWorkflowOnError()} has previously been called
+     * <li>{@link Event.State#INITIAL}: add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link Event.State#RETRY}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link Event.State#ACTIVE}: no decisions are added for in-progress actions</li>
+     * <li>{@link Event.State#SUCCESS}: if {@link #withNoFailWorkflowOnError()} has previously been called
      * add decision returned by {@link Workflow#createCompleteWorkflowExecutionDecision}</li>
-     * <li>{@link ActionState#error}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
+     * <li>{@link Event.State#ERROR}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
      * unless {@link #withNoFailWorkflowOnError} has previously been called on the activity</li>
      * </ul>
      *
@@ -188,21 +201,21 @@ public abstract class Action<T extends Action> {
      * @see #withNoFailWorkflowOnError
      */
     public Action decide(List<Decision> decisions) {
-        ActionState actionState = getState();
+        Event.State state = getState();
         if (cancelActiveRetryTimer && TimerStarted == getCurrentEvent().getType()) {
             decisions.add(createCancelRetryTimerDecision());
-            actionState = ActionState.retry;
+            state = RETRY;
         }
         cancelActiveRetryTimer = false;
 
-        switch (actionState) {
-            case initial:
+        switch (state) {
+            case INITIAL:
                 decisions.add(createInitiateActivityDecision());
                 break;
-            case active:
+            case ACTIVE:
                 break;
-            case success:
-                if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(decisions)) {
+            case SUCCESS:
+                if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(this, decisions)) {
                     log.debug("success, retry timer started");
                 } else if (completeWorkflowOnSuccess) {
                     decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
@@ -211,18 +224,18 @@ public abstract class Action<T extends Action> {
                     log.debug("success: {}", getOutput());
                 }
                 break;
-            case retry:
+            case RETRY:
                 log.info("retry, restart action");
                 decisions.add(createInitiateActivityDecision());
                 break;
 
-            case error:
-                if (retryPolicy != null && retryPolicy.decide(decisions)) {
+            case ERROR:
+                if (retryPolicy != null && retryPolicy.decide(this, decisions)) {
                     log.debug("error, retry timer started");
                     break;
                 }
                 if (failWorkflowOnError) {
-                    ActionEvent event = getCurrentEvent();
+                    Event event = getCurrentEvent();
                     decisions.add(createFailWorkflowExecutionDecision(toString(), event.getData1(), event.getData2()));
                 }
 
@@ -236,63 +249,47 @@ public abstract class Action<T extends Action> {
 
     /**
      * @return current state for this action.
-     * @see ActionState for details on how state is calculated
+     * @see Event.State for details on how state is calculated
      */
-    public ActionState getState() {
-        ActionEvent currentEvent = getCurrentEvent();
+    public Event.State getState() {
+        Event currentEvent = getCurrentEvent();
         if (currentEvent == null) {
-            return initial;
-        } else if (retryPolicy != null && retryPolicy.isRetryActionEvent(currentEvent)) {
-            return retry;
+            return INITIAL;
+        } else if (retryPolicy != null && isCurrentEventRetryEvent(currentEvent)) {
+            return RETRY;
         } else {
             return currentEvent.getActionState();
         }
     }
 
     /**
-     * Return if action completed with state {@link ActionState#success}.
+     * Return if action completed with state {@link Event.State#SUCCESS}.
      * Can be used in workflows to simply flow logic.  See Swift example workflows.
      */
-    public boolean isSuccess() { return success == getState(); }
+    public boolean isSuccess() { return SUCCESS == getState(); }
 
 
     /**
      * @return true, if this instance is in it's initial state.
      */
-    public boolean isInitial() { return initial == getState(); }
+    public boolean isInitial() { return INITIAL == getState(); }
 
     /**
-     * Most recently polled {@link com.clario.swift.ActionEvent} for this action
+     * Most recently polled {@link Event} for this action
      * or null if none exists (action is in an initial state).
      *
      * @return most recent history event polled for this action.
      */
-    public ActionEvent getCurrentEvent() {
-        List<ActionEvent> events = getEvents();
-        return events.isEmpty() ? null : events.get(0);
+    public Event getCurrentEvent() {
+        return getEvents().getFirst();
     }
 
     /**
-     * Return the list of available history events polled for this action.
-     * <p/>
-     * The list is sorted by {@link com.clario.swift.ActionEvent#getEventTimestamp()} in descending order (most recent events first).
-     *
-     * @return list of events or empty list.
-     * @see WorkflowHistory#filterActionEvents
+     * @return {@link EventList} of available history events related to this action.
      */
-    public List<ActionEvent> getEvents() {
+    public EventList getEvents() {
         assertWorkflowSet();
-        return workflow.getWorkflowHistory().filterActionEvents(actionId);
-    }
-
-    /**
-     * Filter this action's events by event type.
-     *
-     * @see WorkflowHistory#filterEvents
-     */
-    public List<ActionEvent> filterEvents(EventType eventType) {
-        assertWorkflowSet();
-        return workflow.getWorkflowHistory().filterEvents(actionId, eventType, false);
+        return workflow.getEvents().select(byActionId(actionId));
     }
 
     /**

@@ -7,8 +7,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
-import static com.clario.swift.SwiftUtil.SWF_TIMEOUT_NONE;
-import static com.clario.swift.SwiftUtil.SWF_TIMEOUT_YEAR;
+import static com.clario.swift.SwiftUtil.*;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -23,7 +22,7 @@ public class TestDefaultValues {
 
             }
         };
-        assertEquals(SWF_TIMEOUT_NONE, w.getTaskStartToCloseTimeout());
+        assertEquals(SWF_TIMEOUT_DECISION_DEFAULT, w.getTaskStartToCloseTimeout());
         assertEquals(SWF_TIMEOUT_YEAR, w.getExecutionStartToCloseTimeout());
         assertEquals(TERMINATE, w.getChildPolicy());
         assertEquals("Mock Workflow-1", w.getKey());

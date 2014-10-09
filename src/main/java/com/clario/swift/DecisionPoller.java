@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.clario.swift.EventList.convert;
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static java.lang.String.format;
@@ -95,7 +96,7 @@ public class DecisionPoller extends BasePoller {
                         .withRunId(decisionTask.getWorkflowExecution().getRunId());
                     workflow.init();
                 }
-                workflow.addHistoryEvents(decisionTask.getEvents());
+                workflow.addEvents(convert(decisionTask.getEvents()));
 
                 if (workflow.isContinuePollingForHistoryEvents()) {
                     request.setNextPageToken(decisionTask.getNextPageToken());
@@ -110,7 +111,7 @@ public class DecisionPoller extends BasePoller {
         String runId = decisionTask.getWorkflowExecution().getRunId();
 
         List<Decision> decisions = new ArrayList<Decision>();
-        List<HistoryEvent> workflowErrors = workflow.getWorkflowHistory().getErrorEvents();
+        List<Event> workflowErrors = workflow.getEvents().select(EventList.byEventState(Event.State.CRITICAL));
 
         if (workflowErrors.isEmpty()) {
             try {

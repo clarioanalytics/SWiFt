@@ -47,7 +47,7 @@ public class PollingCheckpointWorkflow extends Workflow {
     @Override
     public boolean isContinuePollingForHistoryEvents() {
         // if step2 is completed, we don't need event history for step1 or doOnceMarkerActions, we can go directly to step3
-        log.info("number of events: {}", getWorkflowHistory().getActionEvents().size());
+        log.info("number of events: {}", getEvents().size());
         log.info("step2.isSuccess: {}", step2.isSuccess());
         return !step2.isSuccess();
     }
@@ -72,7 +72,7 @@ public class PollingCheckpointWorkflow extends Workflow {
             }
         } else {
             // probably more like 98 or so but certainly not more than a thousand, which proves we've shortcut the history polling.
-            assert workflowHistory.getActionEvents().size() < 200;
+            assert getEvents().size() < 200;
             step3.withCompleteWorkflowOnSuccess().decide(decisions);
         }
     }

@@ -2,7 +2,7 @@ package com.clario.swift.action;
 
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.*;
-import com.clario.swift.ActionEvent;
+import com.clario.swift.Event;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -137,7 +137,7 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see #getState
      */
     public String getChildRunId() {
-        for (ActionEvent event : getEvents()) {
+        for (Event event : getEvents()) {
             if (event.getType() == EventType.ChildWorkflowExecutionStarted) {
                 return event.getData1();
             }
