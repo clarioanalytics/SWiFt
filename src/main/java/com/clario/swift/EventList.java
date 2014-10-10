@@ -3,7 +3,7 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.clario.swift.action.Action;
-import com.clario.swift.retry.RetryPolicy;
+import com.clario.swift.action.RetryPolicy;
 
 import java.util.*;
 

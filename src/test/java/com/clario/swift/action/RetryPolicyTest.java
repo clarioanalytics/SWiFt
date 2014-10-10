@@ -1,4 +1,4 @@
-package com.clario.swift.retry;
+package com.clario.swift.action;
 
 import com.clario.swift.EventList;
 import org.junit.Before;
@@ -7,16 +7,16 @@ import org.junit.Test;
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
 import static com.clario.swift.TestUtil.byUpToDecision;
 import static com.clario.swift.TestUtil.loadActionEvents;
-import static com.clario.swift.retry.ExponentialBackoffRetryPolicy.DEFAULT_INITIAL_RETRY_INTERVAL;
-import static com.clario.swift.retry.RetryPolicyTest.RetryWorkflowStep.*;
+import static com.clario.swift.action.RetryPolicy.DEFAULT_INITIAL_RETRY_INTERVAL;
+import static com.clario.swift.action.RetryPolicyTest.RetryWorkflowStep.*;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.*;
 
 public class RetryPolicyTest {
 
-    private EventList retryWorkflowEvents = loadActionEvents(ExponentialBackoffRetryPolicy.class, "RetryWorkflowHistory.json");
-    private final String control = "ExponentialBackoffRetryPolicy_1412976830265";
+    private EventList retryWorkflowEvents = loadActionEvents(RetryPolicy.class, "RetryWorkflowHistory.json");
+    private final String control = "RetryPolicy_1412976830265";
 
     enum RetryWorkflowStep {
         no_decisions,
@@ -32,22 +32,22 @@ public class RetryPolicyTest {
         activity_succeeded,
     }
 
-    ExponentialBackoffRetryPolicy retry;
+    RetryPolicy retry;
 
     @Before
     public void before() {
-        retry = new ExponentialBackoffRetryPolicy();
+        retry = new RetryPolicy();
         retry.setControl(control);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testValidateMaxRetryExpirationIntervalLTInitial() {
-        new ExponentialBackoffRetryPolicy().withRetryExpirationInterval(SECONDS, 4).validate();
+        new RetryPolicy().withRetryExpirationInterval(SECONDS, 4).validate();
     }
 
     @Test(expected = IllegalStateException.class)
     public void testValidateMaxRetryIntervalLTInitial() {
-        new ExponentialBackoffRetryPolicy().withMaximumRetryInterval(SECONDS, 4).validate();
+        new RetryPolicy().withMaximumRetryInterval(SECONDS, 4).validate();
     }
 
 

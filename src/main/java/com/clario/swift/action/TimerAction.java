@@ -4,7 +4,6 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
 import com.clario.swift.Event;
-import com.clario.swift.retry.RetryPolicy;
 
 import java.util.concurrent.TimeUnit;
 

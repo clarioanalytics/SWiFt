@@ -7,7 +7,6 @@ import com.clario.swift.DecisionPoller;
 import com.clario.swift.Event;
 import com.clario.swift.EventList;
 import com.clario.swift.Workflow;
-import com.clario.swift.retry.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +36,7 @@ public abstract class Action<T extends Action> {
 
     private Workflow workflow;
     private RetryPolicy errorRetryPolicy;
-    private RetryPolicy repeatActionRetryPolicy;
+    private RetryPolicy successRetryPolicy;
     private boolean failWorkflowOnError = true;
     private boolean completeWorkflowOnSuccess = false;
     private boolean cancelActiveRetryTimer = false;
@@ -118,9 +117,9 @@ public abstract class Action<T extends Action> {
      * NOTE: unsupported on {@link TimerAction}.
      */
     public T withOnSuccessRetryPolicy(RetryPolicy retryPolicy) {
-        this.repeatActionRetryPolicy = retryPolicy;
+        this.successRetryPolicy = retryPolicy;
         if (retryPolicy != null) {
-            this.repeatActionRetryPolicy.validate();
+            this.successRetryPolicy.validate();
         }
         return thisObject();
     }
@@ -160,7 +159,7 @@ public abstract class Action<T extends Action> {
     public String getOutput() {
         if (isSuccess()) {
             return getCurrentEvent().getData1();
-        } else if (repeatActionRetryPolicy != null && getState() == RETRY) {
+        } else if (successRetryPolicy != null && getState() == RETRY) {
             List<Event> completed = getEvents().select(byEventType(ActivityTaskCompleted));
             if (completed.isEmpty()) {
                 throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
@@ -207,11 +206,11 @@ public abstract class Action<T extends Action> {
             case ACTIVE:
                 break;
             case SUCCESS:
-                if (repeatActionRetryPolicy != null) {
-                    if (repeatActionRetryPolicy.testResultMatches(currentEvent.getData1())) {
+                if (successRetryPolicy != null) {
+                    if (successRetryPolicy.testResultMatches(currentEvent.getData1())) {
                         log.info(format("%s no more repeats. matched output: %s", this, getOutput()));
                     } else {
-                        Decision decision = repeatActionRetryPolicy.calcNextDecision(getActionId(), getEvents());
+                        Decision decision = successRetryPolicy.calcNextDecision(getActionId(), getEvents());
                         if (decision != null) {
                             decisions.add(decision);
                             log.info("success, start timer delay: {} ", decision);

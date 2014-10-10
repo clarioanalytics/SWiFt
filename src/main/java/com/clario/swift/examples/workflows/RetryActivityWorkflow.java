@@ -5,8 +5,7 @@ import com.clario.swift.SwiftUtil;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 import com.clario.swift.action.RecordMarkerAction;
-import com.clario.swift.retry.ExponentialBackoffRetryPolicy;
-import com.clario.swift.retry.RetryPolicy;
+import com.clario.swift.action.RetryPolicy;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +21,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  * depending on the configurable policy settings.
  *
  * @author George Coller
- * @see ExponentialBackoffRetryPolicy
+ * @see RetryPolicy
  */
 public class RetryActivityWorkflow extends Workflow {
     private static final Logger log = LoggerFactory.getLogger(RetryActivityWorkflow.class);
@@ -38,7 +37,7 @@ public class RetryActivityWorkflow extends Workflow {
     }
 
     // RetryPolicy subclasses should be thread-safe so we can share them
-    private static final RetryPolicy RETRY_POLICY = new ExponentialBackoffRetryPolicy()
+    private static final RetryPolicy RETRY_POLICY = new RetryPolicy()
         .withInitialRetryInterval(TimeUnit.SECONDS, 5)
         .withMaximumRetryInterval(TimeUnit.MINUTES, 1)
         .withRetryExpirationInterval(TimeUnit.HOURS, 1)
