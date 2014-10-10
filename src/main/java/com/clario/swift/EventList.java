@@ -3,10 +3,12 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.clario.swift.action.Action;
+import com.clario.swift.retry.RetryPolicy;
 
 import java.util.*;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.DecisionTaskCompleted;
+import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
 import static java.lang.String.format;
 import static java.util.Arrays.copyOfRange;
 
@@ -106,13 +108,26 @@ public class EventList extends AbstractList<Event> {
     }
 
     // Specific methods for common selections
-    public EventList selectByActionId(String actionId) {return select(byActionId(actionId));}
+    public EventList selectActionId(String actionId) {return select(byActionId(actionId));}
 
-    public EventList selectByEventType(EventType eventType) {return select(byEventType(eventType));}
+    public EventList selectEventType(EventType eventType) {return select(byEventType(eventType));}
 
-    public EventList selectByEventState(Event.State state) {return select(byEventState(state));}
+    public EventList selectEventState(Event.State state) {return select(byEventState(state));}
 
-    public EventList selectBySinceLastDecision() {return select(bySinceLastDecision());}
+    public EventList selectSinceLastDecision() {return select(bySinceLastDecision());}
+
+    /**
+     * @param control optional, limit to a single policy's {@link RetryPolicy#getControl()} value.
+     *
+     * @return number of times a given {@link RetryPolicy}s timer has been started.
+     */
+    public EventList selectRetryCount(final String control) {
+        return select(new SelectFunction() {
+            public boolean select(Event event, int index, EventList eventList) {
+                return TimerStarted == event.getType() && (control == null || control.equals(event.getData1()));
+            }
+        });
+    }
 
     /**
      * Select events related to an {@link Action}.

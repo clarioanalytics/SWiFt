@@ -10,7 +10,6 @@ import java.util.Map;
 
 import static com.clario.swift.Event.Field.*;
 import static com.clario.swift.Event.State.*;
-import static com.clario.swift.action.RetryPolicy.RETRY_CONTROL_VALUE;
 
 /**
  * Wraps an SWF {@link HistoryEvent} to provide and uniform API for selecting and working with events.
@@ -50,15 +49,14 @@ public class Event implements Comparable<Event> {
         INFO
     }
 
-
     /**
-     * Enumeration of {@link HistoryEvent} fields mapped to each {@Event}.
+     * Enumeration of {@link HistoryEvent} fields mapped to each {@link Event}.
      * <p/>
      * Like {@link State}, {@link Field} unifies concepts across different {@link HistoryEvent} types
      * to make working with them more uniform and easy.
      */
     public static enum Field {
-        eventId, eventType, timestamp, actionId, state, initialEventId, dataField1, dataValue1, dataField2, dataValue2, isInitialAction, isRetryTimerStarted
+        eventId, eventType, timestamp, actionId, state, initialEventId, dataField1, dataValue1, dataField2, dataValue2, isInitialAction
     }
 
     private final HistoryEvent historyEvent;
@@ -287,7 +285,6 @@ public class Event implements Comparable<Event> {
                 map.put(actionId, timerStarted.getTimerId());
                 map.put(dataField1, "control");
                 map.put(dataValue1, timerStarted.getControl());
-                map.put(isRetryTimerStarted, RETRY_CONTROL_VALUE.equals(timerStarted.getControl()));
                 break;
             case TimerFired:
                 // If this is a retry timer event the actionState is really 'retry' but we don't have the related TimerStarted.control field yet

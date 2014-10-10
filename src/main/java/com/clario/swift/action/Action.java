@@ -7,15 +7,16 @@ import com.clario.swift.DecisionPoller;
 import com.clario.swift.Event;
 import com.clario.swift.EventList;
 import com.clario.swift.Workflow;
+import com.clario.swift.retry.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.Event.Field.isRetryTimerStarted;
 import static com.clario.swift.Event.State.*;
-import static com.clario.swift.EventList.*;
+import static com.clario.swift.EventList.byActionId;
+import static com.clario.swift.EventList.byEventType;
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
@@ -35,7 +36,8 @@ public abstract class Action<T extends Action> {
     private final String actionId;
 
     private Workflow workflow;
-    private RetryPolicy retryPolicy;
+    private RetryPolicy errorRetryPolicy;
+    private RetryPolicy repeatActionRetryPolicy;
     private boolean failWorkflowOnError = true;
     private boolean completeWorkflowOnSuccess = false;
     private boolean cancelActiveRetryTimer = false;
@@ -98,41 +100,29 @@ public abstract class Action<T extends Action> {
     }
 
     /**
-     * Adding a {@link RetryPolicy} marks this instance to be retried if the action errors.
+     * Sets this instance to be retried if the action errors using the given {@link RetryPolicy}.
      * <p/>
-     * {@link RetryPolicy#validate} will be called to ensure retryPolicy is valid.
-     * <p/>
-     * Warning: do not share {@link RetryPolicy} instances across multiple actions!
-     *
-     * @param retryPolicy policy, by default there is no retry policy
-     *
-     * @throws IllegalStateException if policy is not valid
+     * NOTE: unsupported on {@link TimerAction}.
      */
-    public T withRetryPolicy(RetryPolicy retryPolicy) {
-        this.retryPolicy = retryPolicy;
+    public T withOnErrorRetryPolicy(RetryPolicy retryPolicy) {
+        this.errorRetryPolicy = retryPolicy;
         if (retryPolicy != null) {
-            this.retryPolicy.validate();
+            this.errorRetryPolicy.validate();
         }
         return thisObject();
     }
 
-    public int getRetryCount() {
-        return getRetryEvents().size();
-    }
-
-    EventList getRetryEvents() {
-        assertWorkflowSet();
-        return workflow.getEvents()
-            .select(byActionId(actionId),
-                byEventFieldsEquals(createFieldMap(isRetryTimerStarted, true)));
-    }
-
-    boolean isCurrentEventRetryEvent(Event currentEvent) {
-        if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
-            Long eventId = currentEvent.getInitialEventId();
-            return getRetryEvents().select(byEventIdRange(eventId, eventId)).isNotEmpty();
+    /**
+     * Sets this instance to be rescheduled after each successful completion after a delay determined by the given {@link RetryPolicy}.
+     * <p/>
+     * NOTE: unsupported on {@link TimerAction}.
+     */
+    public T withOnSuccessRetryPolicy(RetryPolicy retryPolicy) {
+        this.repeatActionRetryPolicy = retryPolicy;
+        if (retryPolicy != null) {
+            this.repeatActionRetryPolicy.validate();
         }
-        return false;
+        return thisObject();
     }
 
     /**
@@ -170,7 +160,7 @@ public abstract class Action<T extends Action> {
     public String getOutput() {
         if (isSuccess()) {
             return getCurrentEvent().getData1();
-        } else if (retryPolicy.isRetryOnSuccess() && getState() == RETRY) {
+        } else if (repeatActionRetryPolicy != null && getState() == RETRY) {
             List<Event> completed = getEvents().select(byEventType(ActivityTaskCompleted));
             if (completed.isEmpty()) {
                 throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
@@ -202,7 +192,9 @@ public abstract class Action<T extends Action> {
      */
     public Action decide(List<Decision> decisions) {
         Event.State state = getState();
-        if (cancelActiveRetryTimer && TimerStarted == getCurrentEvent().getType()) {
+        Event currentEvent = getCurrentEvent();
+
+        if (cancelActiveRetryTimer && TimerStarted == currentEvent.getType()) {
             decisions.add(createCancelRetryTimerDecision());
             state = RETRY;
         }
@@ -215,13 +207,23 @@ public abstract class Action<T extends Action> {
             case ACTIVE:
                 break;
             case SUCCESS:
-                if (retryPolicy != null && retryPolicy.isRetryOnSuccess() && retryPolicy.decide(this, decisions)) {
-                    log.debug("success, retry timer started");
+                if (repeatActionRetryPolicy != null) {
+                    if (repeatActionRetryPolicy.testResultMatches(currentEvent.getData1())) {
+                        log.info(format("%s no more repeats. matched output: %s", this, getOutput()));
+                    } else {
+                        Decision decision = repeatActionRetryPolicy.calcNextDecision(getActionId(), getEvents());
+                        if (decision != null) {
+                            decisions.add(decision);
+                            log.info("success, start timer delay: {} ", decision);
+                        } else {
+                            log.info("success, no more attempts: output={}", currentEvent.getData1());
+                        }
+                    }
                 } else if (completeWorkflowOnSuccess) {
                     decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
-                    log.debug("success, workflow complete: {}", getOutput());
+                    log.info("success, workflow complete: {}", getOutput());
                 } else {
-                    log.debug("success: {}", getOutput());
+                    log.info("success: {}", getOutput());
                 }
                 break;
             case RETRY:
@@ -230,22 +232,30 @@ public abstract class Action<T extends Action> {
                 break;
 
             case ERROR:
-                if (retryPolicy != null && retryPolicy.decide(this, decisions)) {
-                    log.debug("error, retry timer started");
-                    break;
+                boolean checkFailWorkflowOnError = true;
+                if (errorRetryPolicy != null) {
+                    if (errorRetryPolicy.testResultMatches(currentEvent.getData1(), currentEvent.getData2())) {
+                        log.info(format("%s no more attempts. matched error reason or details: %s %s", this, currentEvent.getData1(), currentEvent.getData2()));
+                    } else {
+                        Decision decision = errorRetryPolicy.calcNextDecision(getActionId(), getEvents());
+                        if (decision != null) {
+                            decisions.add(decision);
+                            checkFailWorkflowOnError = false;
+                            log.info("error, start timer delay: {} ", decision);
+                        } else {
+                            log.info("error, no more attempts: error={} detail={}", currentEvent.getData1(), currentEvent.getData2());
+                        }
+                    }
                 }
-                if (failWorkflowOnError) {
-                    Event event = getCurrentEvent();
-                    decisions.add(createFailWorkflowExecutionDecision(toString(), event.getData1(), event.getData2()));
+                if (checkFailWorkflowOnError && failWorkflowOnError) {
+                    decisions.add(createFailWorkflowExecutionDecision(toString(), currentEvent.getData1(), currentEvent.getData2()));
                 }
-
                 break;
             default:
                 throw new IllegalStateException(format("%s unknown action state:%s", this, getState()));
         }
         return this;
     }
-
 
     /**
      * @return current state for this action.
@@ -255,7 +265,7 @@ public abstract class Action<T extends Action> {
         Event currentEvent = getCurrentEvent();
         if (currentEvent == null) {
             return INITIAL;
-        } else if (retryPolicy != null && isCurrentEventRetryEvent(currentEvent)) {
+        } else if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
             return RETRY;
         } else {
             return currentEvent.getActionState();
@@ -297,9 +307,7 @@ public abstract class Action<T extends Action> {
      */
     public abstract Decision createInitiateActivityDecision();
 
-    Logger getLog() {
-        return log;
-    }
+    Logger getLog() { return log; }
 
     /** Two actions are considered equal if their id is equal. */
     @Override

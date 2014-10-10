@@ -122,7 +122,7 @@
             "eventId": 45,
             "eventType": "TimerStarted",
             "timerStartedEventAttributes": {
-                "control": "--  SWiFt Retry Control Value --",
+                "control": "ExponentialBackoffRetryPolicy_1412976830265",
                 "timerId": "step1",
                 "startToFireTimeout": "20",
                 "decisionTaskCompletedEventId": 44
@@ -243,7 +243,7 @@
             "eventId": 34,
             "eventType": "TimerStarted",
             "timerStartedEventAttributes": {
-                "control": "--  SWiFt Retry Control Value --",
+                "control": "ExponentialBackoffRetryPolicy_1412976830265",
                 "timerId": "step1",
                 "startToFireTimeout": "10",
                 "decisionTaskCompletedEventId": 33
@@ -364,7 +364,7 @@
             "eventId": 23,
             "eventType": "TimerStarted",
             "timerStartedEventAttributes": {
-                "control": "--  SWiFt Retry Control Value --",
+                "control": "ExponentialBackoffRetryPolicy_1412976830265",
                 "timerId": "step1",
                 "startToFireTimeout": "5",
                 "decisionTaskCompletedEventId": 22
@@ -485,7 +485,7 @@
             "eventId": 12,
             "eventType": "TimerStarted",
             "timerStartedEventAttributes": {
-                "control": "--  SWiFt Retry Control Value --",
+                "control": "ExponentialBackoffRetryPolicy_1412976830265",
                 "timerId": "step1",
                 "startToFireTimeout": "5",
                 "decisionTaskCompletedEventId": 11

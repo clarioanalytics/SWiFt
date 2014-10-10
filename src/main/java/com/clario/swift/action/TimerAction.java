@@ -3,9 +3,13 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
+import com.clario.swift.Event;
+import com.clario.swift.retry.RetryPolicy;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.amazonaws.services.simpleworkflow.model.DecisionType.StartTimer;
+import static com.clario.swift.Event.State.INITIAL;
 import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
@@ -48,14 +52,50 @@ public class TimerAction extends Action<TimerAction> {
     public String getControl() { return control; }
 
     /**
+     * @throws UnsupportedOperationException
+     */
+    @Override public TimerAction withOnErrorRetryPolicy(RetryPolicy retryPolicy) {
+        throw new UnsupportedOperationException(String.format("RetryPolicy methods unsupported on %ss", getClass().getSimpleName()));
+    }
+
+    /**
+     * @throws UnsupportedOperationException
+     */
+    @Override public TimerAction withOnSuccessRetryPolicy(RetryPolicy retryPolicy) {
+        throw new UnsupportedOperationException(String.format("RetryPolicy methods unsupported on %ss", getClass().getSimpleName()));
+    }
+
+    /**
+     * @throws UnsupportedOperationException
+     */
+    @Override public void withCancelActiveRetryTimer() {
+        throw new UnsupportedOperationException(String.format("RetryPolicy methods unsupported on %ss", getClass().getSimpleName()));
+    }
+
+    /**
+     * Don't allow {@link Event.State#RETRY} to be returned.
+     */
+    @Override public Event.State getState() {
+        Event currentEvent = getCurrentEvent();
+        return currentEvent == null ? INITIAL : currentEvent.getActionState();
+    }
+
+    /**
      * @return a decision of type {@link DecisionType#StartTimer}.
      */
     @Override
     public Decision createInitiateActivityDecision() {
+        return createStartTimerDecision(getActionId(), startToFireTimeout, control);
+    }
+
+    /**
+     * Create SWF {@link DecisionType#StartTimer} {@link Decision}.
+     */
+    public static Decision createStartTimerDecision(String timerId, String startToFireTimeout, String control) {
         return new Decision()
-            .withDecisionType(DecisionType.StartTimer)
+            .withDecisionType(StartTimer)
             .withStartTimerDecisionAttributes(new StartTimerDecisionAttributes()
-                .withTimerId(getActionId())
+                .withTimerId(timerId)
                 .withStartToFireTimeout(startToFireTimeout)
                 .withControl(trimToMaxLength(control, MAX_CONTROL_LENGTH)));
     }
