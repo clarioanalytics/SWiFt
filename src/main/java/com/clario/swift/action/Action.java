@@ -107,6 +107,7 @@ public abstract class Action<T extends Action> {
         this.errorRetryPolicy = retryPolicy;
         if (retryPolicy != null) {
             this.errorRetryPolicy.validate();
+            assertRetryPolicySettings();
         }
         return thisObject();
     }
@@ -120,8 +121,15 @@ public abstract class Action<T extends Action> {
         this.successRetryPolicy = retryPolicy;
         if (retryPolicy != null) {
             this.successRetryPolicy.validate();
+            assertRetryPolicySettings();
         }
         return thisObject();
+    }
+
+    private void assertRetryPolicySettings() {
+        if (errorRetryPolicy != null && successRetryPolicy != null && successRetryPolicy.getControl().equals(errorRetryPolicy.getControl())) {
+            throw new IllegalStateException("Assignment of same RetryPolicy instance to an Action on success and on error not allowed");
+        }
     }
 
     /**
@@ -279,9 +287,14 @@ public abstract class Action<T extends Action> {
 
 
     /**
-     * @return true, if this instance is in it's initial state.
+     * @return true if this instance is in it's initial state.
      */
     public boolean isInitial() { return INITIAL == getState(); }
+
+    /**
+     * @return true if the action completed with state {@link Event.State#ERROR}.
+     */
+    public boolean isError() { return ERROR == getState(); }
 
     /**
      * Most recently polled {@link Event} for this action

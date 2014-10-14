@@ -124,7 +124,7 @@ public class EventList extends AbstractList<Event> {
     public EventList selectRetryCount(final String control) {
         return select(new SelectFunction() {
             public boolean select(Event event, int index, EventList eventList) {
-                return TimerStarted == event.getType() && (control == null || control.equals(event.getData1()));
+                return TimerStarted == event.getType() && control.equals(event.getData1());
             }
         });
     }

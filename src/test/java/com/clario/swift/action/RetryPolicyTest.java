@@ -168,6 +168,13 @@ public class RetryPolicyTest {
         assertEquals("expect 20 after limiting retry interval", 20, retry.nextRetryDelaySeconds(events));
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testExceptionIfAssignedToBothFailAndSuccess() {
+        Action act = new ActivityAction("mock");
+        act.withOnErrorRetryPolicy(retry);
+        act.withOnSuccessRetryPolicy(retry);
+    }
+
     private EventList selectWorkflowEvents(RetryWorkflowStep step) {
         return retryWorkflowEvents.select(byUpToDecision(step.ordinal()));
     }
