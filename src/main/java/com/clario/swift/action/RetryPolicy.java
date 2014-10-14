@@ -3,6 +3,7 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.flow.interceptors.ExponentialRetryPolicy;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
+import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
 import com.clario.swift.EventList;
 import com.clario.swift.SwiftUtil;
@@ -14,6 +15,7 @@ import org.joda.time.Seconds;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.clario.swift.SwiftUtil.calcTimeoutOrNone;
 import static com.clario.swift.action.TimerAction.createStartTimerDecision;
@@ -32,13 +34,22 @@ import static org.joda.time.Seconds.secondsBetween;
  * <p/>
  * Retries are handled by issuing an SWF {@link DecisionType#StartTimer} {@link Decision} with
  * {@link StartTimerDecisionAttributes#getTimerId()} equal to the action's {@link Action#getActionId()}
+ * and {@link StartTimerDecisionAttributes#getControl()} equal to this instance's {@link #getControl()} value.
  * which means that {@link EventList#selectActionId(String)} returns both action and timer events.
+ * <p/>
+ * Retry polices can be registered to retry both when an {@link Action} succeeds (for cron-like actions) and when
+ * it errors.  The only caveot is that the <code>RetryPolicy</code> instance that is registered on {@link Action#withOnSuccessRetryPolicy(RetryPolicy)}
+ * have a different control value than the one registered on {@link Action#withOnErrorRetryPolicy(RetryPolicy)}.
+ * This is because the action needs to differentiate between each retry policy's timer events.
+ * <p/>
+ * An <code>RetryPolicy</code> instance itself is thread-safe and can be reused across many {@link Action} instances.
  *
  * @author George Coller
  */
 public class RetryPolicy {
     public static final int DEFAULT_INITIAL_RETRY_INTERVAL = 5;
     public static final double DEFAULT_BACKOFF_COEFFICIENT = 2.0;
+    public static final AtomicInteger counter = new AtomicInteger();
     protected double backoffCoefficient = DEFAULT_BACKOFF_COEFFICIENT;
     protected int maximumAttempts = MAX_VALUE;
     protected Seconds initialRetryInterval = seconds(DEFAULT_INITIAL_RETRY_INTERVAL);
@@ -47,14 +58,22 @@ public class RetryPolicy {
     protected String control;
     private String matchesRegEx;
 
+    /**
+     * Create a new instance with a calculated control value.
+     */
     public RetryPolicy() {
-        this.control = format("%s_%d", getClass().getSimpleName(), System.currentTimeMillis());
+        this(format("%s_%d", RetryPolicy.class.getSimpleName(), counter.incrementAndGet()));
     }
 
     /**
-     * @param control manually set control value for unit testing.
+     * Create a new instance with a defined control value.
+     * <p/>
+     * The control value is used to match {@link EventType#TimerStarted} records that were issued
+     * from this instance.
+     *
+     * @param control custom control value
      */
-    protected void setControl(String control) {
+    public RetryPolicy(String control) {
         this.control = control;
     }
 

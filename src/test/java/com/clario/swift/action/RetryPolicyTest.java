@@ -36,8 +36,7 @@ public class RetryPolicyTest {
 
     @Before
     public void before() {
-        retry = new RetryPolicy();
-        retry.setControl(control);
+        retry = new RetryPolicy(control);
     }
 
     @Test(expected = IllegalStateException.class)
