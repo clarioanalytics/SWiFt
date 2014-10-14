@@ -51,6 +51,35 @@ public class TimerAction extends Action<TimerAction> {
     public String getControl() { return control; }
 
     /**
+     * @throws UnsupportedOperationException
+     */
+    @Override public TimerAction withOnErrorRetryPolicy(RetryPolicy retryPolicy) {
+        throw new UnsupportedOperationException(String.format("RetryPolicy methods unsupported on %ss", getClass().getSimpleName()));
+    }
+
+    /**
+     * @throws UnsupportedOperationException
+     */
+    @Override public TimerAction withOnSuccessRetryPolicy(RetryPolicy retryPolicy) {
+        throw new UnsupportedOperationException(String.format("RetryPolicy methods unsupported on %ss", getClass().getSimpleName()));
+    }
+
+    /**
+     * @throws UnsupportedOperationException
+     */
+    @Override public void withCancelActiveRetryTimer() {
+        throw new UnsupportedOperationException(String.format("RetryPolicy methods unsupported on %ss", getClass().getSimpleName()));
+    }
+
+    /**
+     * Don't allow {@link Event.State#RETRY} to be returned.
+     */
+    @Override public Event.State getState() {
+        Event currentEvent = getCurrentEvent();
+        return currentEvent == null ? INITIAL : currentEvent.getActionState();
+    }
+
+    /**
      * @return a decision of type {@link DecisionType#StartTimer}.
      */
     @Override
