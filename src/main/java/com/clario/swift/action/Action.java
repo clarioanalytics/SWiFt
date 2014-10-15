@@ -4,21 +4,22 @@ import com.amazonaws.services.simpleworkflow.model.CancelTimerDecisionAttributes
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.clario.swift.DecisionPoller;
-import com.clario.swift.Event;
 import com.clario.swift.EventList;
 import com.clario.swift.Workflow;
+import com.clario.swift.event.ActivityTaskCompletedEvent;
+import com.clario.swift.event.Event;
+import com.clario.swift.event.EventState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.Event.State.*;
 import static com.clario.swift.EventList.byActionId;
-import static com.clario.swift.EventList.byEventType;
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
+import static com.clario.swift.event.EventState.*;
 import static java.lang.String.format;
 
 /**
@@ -75,7 +76,7 @@ public abstract class Action<T extends Action> {
 
     /**
      * By default {@link #decide} adds a @link DecisionType#FailWorkflowExecution} decision
-     * if this action finishes in an {@link Event.State#ERROR} state.
+     * if this action finishes in an {@link EventState#ERROR} state.
      * <p/>
      * Calling this method deactivates that decision for use cases where a workflow can
      * continue even if this action fails.
@@ -87,7 +88,7 @@ public abstract class Action<T extends Action> {
 
     /**
      * Calling this will activate a {@link DecisionType#CompleteWorkflowExecution} decision
-     * if this action finishes in an {@link Event.State#SUCCESS} state.
+     * if this action finishes in an {@link EventState#SUCCESS} state.
      * <p/>
      * By default this behavior is deactivated but is useful to create final actions in a workflow.
      *
@@ -168,11 +169,11 @@ public abstract class Action<T extends Action> {
         if (isSuccess()) {
             return getCurrentEvent().getData1();
         } else if (successRetryPolicy != null && getState() == RETRY) {
-            List<Event> completed = getEvents().select(byEventType(ActivityTaskCompleted));
-            if (completed.isEmpty()) {
+            ActivityTaskCompletedEvent completed = getEvents().selectEventType(ActivityTaskCompleted).getFirst();
+            if (completed == null) {
                 throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
             } else {
-                return completed.get(0).getData1();
+                return completed.getResult();
             }
         } else {
             throw new IllegalStateException("method not available when action state is " + getState());
@@ -180,16 +181,16 @@ public abstract class Action<T extends Action> {
     }
 
     /**
-     * Make a decision based on the current {@link Event.State} of an action.
+     * Make a decision based on the current {@link EventState} of an action.
      * <p/>
-     * Default implementation if {@link Event.State} is:
+     * Default implementation if {@link EventState} is:
      * <ul>
-     * <li>{@link Event.State#INITIAL}: add decision returned by {@link #createInitiateActivityDecision()}</li>
-     * <li>{@link Event.State#RETRY}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
-     * <li>{@link Event.State#ACTIVE}: no decisions are added for in-progress actions</li>
-     * <li>{@link Event.State#SUCCESS}: if {@link #withNoFailWorkflowOnError()} has previously been called
+     * <li>{@link EventState#INITIAL}: add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link EventState#RETRY}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link EventState#ACTIVE}: no decisions are added for in-progress actions</li>
+     * <li>{@link EventState#SUCCESS}: if {@link #withNoFailWorkflowOnError()} has previously been called
      * add decision returned by {@link Workflow#createCompleteWorkflowExecutionDecision}</li>
-     * <li>{@link Event.State#ERROR}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
+     * <li>{@link EventState#ERROR}: add decision returned by {@link Workflow#createFailWorkflowExecutionDecision}
      * unless {@link #withNoFailWorkflowOnError} has previously been called on the activity</li>
      * </ul>
      *
@@ -198,16 +199,16 @@ public abstract class Action<T extends Action> {
      * @see #withNoFailWorkflowOnError
      */
     public Action decide(List<Decision> decisions) {
-        Event.State state = getState();
+        EventState eventState = getState();
         Event currentEvent = getCurrentEvent();
 
         if (cancelActiveRetryTimer && TimerStarted == currentEvent.getType()) {
             decisions.add(createCancelRetryTimerDecision());
-            state = RETRY;
+            eventState = RETRY;
         }
         cancelActiveRetryTimer = false;
 
-        switch (state) {
+        switch (eventState) {
             case INITIAL:
                 decisions.add(createInitiateActivityDecision());
                 break;
@@ -266,21 +267,21 @@ public abstract class Action<T extends Action> {
 
     /**
      * @return current state for this action.
-     * @see Event.State for details on how state is calculated
+     * @see EventState for details on how state is calculated
      */
-    public Event.State getState() {
+    public EventState getState() {
         Event currentEvent = getCurrentEvent();
         if (currentEvent == null) {
             return INITIAL;
         } else if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
             return RETRY;
         } else {
-            return currentEvent.getActionState();
+            return currentEvent.getState();
         }
     }
 
     /**
-     * Return if action completed with state {@link Event.State#SUCCESS}.
+     * Return if action completed with state {@link EventState#SUCCESS}.
      * Can be used in workflows to simply flow logic.  See Swift example workflows.
      */
     public boolean isSuccess() { return SUCCESS == getState(); }
@@ -292,7 +293,7 @@ public abstract class Action<T extends Action> {
     public boolean isInitial() { return INITIAL == getState(); }
 
     /**
-     * @return true if the action completed with state {@link Event.State#ERROR}.
+     * @return true if the action completed with state {@link EventState#ERROR}.
      */
     public boolean isError() { return ERROR == getState(); }
 
@@ -302,7 +303,8 @@ public abstract class Action<T extends Action> {
      *
      * @return most recent history event polled for this action.
      */
-    public Event getCurrentEvent() {
+    @SuppressWarnings("unchecked")
+    public <E extends Event> E getCurrentEvent() {
         return getEvents().getFirst();
     }
 

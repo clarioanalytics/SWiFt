@@ -5,6 +5,7 @@ import com.amazonaws.services.simpleworkflow.model.transform.DecisionTaskJsonUnm
 import com.amazonaws.transform.JsonUnmarshallerContext;
 import com.amazonaws.transform.Unmarshaller;
 import com.clario.swift.action.ActivityAction;
+import com.clario.swift.event.Event;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 
@@ -58,7 +59,7 @@ public class TestUtil {
                         .withScheduledEventId(actionEvent.getHistoryEvent().getActivityTaskCompletedEventAttributes().getScheduledEventId())
                         .withStartedEventId(actionEvent.getHistoryEvent().getActivityTaskCompletedEventAttributes().getStartedEventId()));
 
-                historyEvents.add(i, new Event(historyEvent));
+                historyEvents.add(i, Event.create(historyEvent));
                 break;
             }
         }
@@ -246,7 +247,7 @@ public class TestUtil {
                         .withScheduledEventId(event.getHistoryEvent().getActivityTaskCompletedEventAttributes().getScheduledEventId())
                         .withStartedEventId(event.getHistoryEvent().getActivityTaskCompletedEventAttributes().getStartedEventId()));
 
-                converted.add(new Event(historyEvent));
+                converted.add(Event.create(historyEvent));
             } else {
                 converted.add(event);
             }

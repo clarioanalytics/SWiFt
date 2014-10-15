@@ -1,15 +1,15 @@
 package com.clario.swift;
 
+import com.clario.swift.event.Event;
+import com.clario.swift.event.EventState;
+import com.clario.swift.event.MarkerRecordedEvent;
+import com.clario.swift.event.WorkflowExecutionSignaledEvent;
 import org.junit.Test;
 
-import java.util.Map;
-
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.Event.Field;
 import static com.clario.swift.EventList.*;
 import static com.clario.swift.TestUtil.loadActionEvents;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 public class EventListTest {
 
@@ -48,29 +48,29 @@ public class EventListTest {
     @Test
     public void testByActionState() {
         EventList events = loadEventList("SimpleWorkflowHistory.json")
-            .select(byEventState(Event.State.ACTIVE));
+            .select(byEventState(EventState.ACTIVE));
         assertEquals(6, events.size());
-        for (Event historyEvent : events) {
-            assertEquals(Event.State.ACTIVE, historyEvent.getActionState());
+        for (Event event : events) {
+            assertEquals(EventState.ACTIVE, event.getState());
         }
     }
 
     @Test
     public void testGetMarkers() {
-        EventList markers = loadEventList("RetryWorkflowHistory.json")
-            .select(byEventType(MarkerRecorded));
+        EventList markers = loadEventList("RetryWorkflowHistory.json").selectEventType(MarkerRecorded);
         assertEquals(1, markers.size());
-        assertEquals("failUntilTime", markers.get(0).getActionId());
-        assertEquals("1398724533227", markers.get(0).getData1());
+        MarkerRecordedEvent event = markers.getFirst();
+        assertEquals("failUntilTime", event.getActionId());
+        assertEquals("1398724533227", event.getDetails());
     }
 
     @Test
     public void testGetSignalsAll() {
-        EventList signals = loadEventList("WaitForSignalWorkflow.json")
-            .select(byEventType(WorkflowExecutionSignaled));
+        EventList signals = loadEventList("WaitForSignalWorkflow.json").selectEventType(WorkflowExecutionSignaled);
         assertEquals(1, signals.size());
-        assertEquals("Boo", signals.get(0).getActionId());
-        assertEquals("99", signals.get(0).getData1());
+        WorkflowExecutionSignaledEvent event = signals.getFirst();
+        assertEquals("Boo", event.getActionId());
+        assertEquals("99", event.getInput());
     }
 
     @Test
@@ -81,8 +81,9 @@ public class EventListTest {
                 byEventType(WorkflowExecutionSignaled));
 
         assertEquals(1, signals.size());
-        assertEquals("Boo", signals.get(0).getActionId());
-        assertEquals("99", signals.get(0).getData1());
+        WorkflowExecutionSignaledEvent event = signals.getFirst();
+        assertEquals("Boo", event.getActionId());
+        assertEquals("99", event.getInput());
     }
 
     @Test
@@ -97,19 +98,8 @@ public class EventListTest {
     @Test
     public void testGetErrorEvents() {
         EventList events = loadEventList("ScheduleActivityTaskFailed.json")
-            .select(byEventState(Event.State.CRITICAL));
+            .select(byEventState(EventState.CRITICAL));
         assertEquals(1, events.size());
-    }
-
-    @Test
-    public void testCreateMap() {
-        Map<Field, Object> map = createFieldMap(Field.dataField1, "data1",
-            Field.dataField2, null,
-            Field.eventId, 99L);
-        assertEquals(3, map.size());
-        assertEquals("data1", map.get(Field.dataField1));
-        assertNull(map.get(Field.dataField2));
-        assertEquals(99L, map.get(Field.eventId));
     }
 
     private EventList loadEventList(String fileName) {

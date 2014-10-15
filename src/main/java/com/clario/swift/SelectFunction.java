@@ -1,5 +1,7 @@
 package com.clario.swift;
 
+import com.clario.swift.event.Event;
+
 /**
  * Interface provided for writing selection functions that can be used with {@link EventList#select}.
  *

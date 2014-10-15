@@ -1,0 +1,44 @@
+package com.clario.swift.event;
+
+import com.amazonaws.services.simpleworkflow.model.*;
+
+/**
+ * @author George Coller
+ */
+public class StartChildWorkflowExecutionFailedEvent extends Event {
+
+    protected StartChildWorkflowExecutionFailedEvent(HistoryEvent historyEvent) {
+        super(historyEvent);
+    }
+
+    @Override public EventState getState() { return EventState.CRITICAL; }
+
+    @Override public EventCategory getCategory() { return EventCategory.WORKFLOW; }
+
+    @Override public Long getInitialEventId() { return getEventId(); }
+
+    @Override public boolean isInitialAction() { return false; }
+
+    @Override public String getActionId() { return null; }
+
+    @Override public String getData1() { return getCause(); }
+
+    @Override public String getData2() { return getControl(); }
+
+    public StartChildWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getStartChildWorkflowExecutionFailedEventAttributes();}
+
+    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+
+    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+
+    public String getCause() { return getAttributes().getCause(); }
+
+    public String getWorkflowId() { return getAttributes().getWorkflowId(); }
+
+    public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+
+    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+
+    public String getControl() { return getAttributes().getControl(); }
+
+}

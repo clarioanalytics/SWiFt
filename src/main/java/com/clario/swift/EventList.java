@@ -4,12 +4,17 @@ import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.clario.swift.action.Action;
 import com.clario.swift.action.RetryPolicy;
+import com.clario.swift.event.Event;
+import com.clario.swift.event.EventState;
+import com.clario.swift.event.TimerStartedEvent;
 
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.DecisionTaskCompleted;
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
-import static java.lang.String.format;
 import static java.util.Arrays.copyOfRange;
 
 /**
@@ -34,13 +39,16 @@ public class EventList extends AbstractList<Event> {
     public static EventList convert(List<HistoryEvent> historyEvents) {
         List<Event> actionEvents = new ArrayList<Event>(historyEvents.size());
         for (HistoryEvent historyEvent : historyEvents) {
-            actionEvents.add(new Event(historyEvent));
+            actionEvents.add(Event.create(historyEvent));
         }
         return new EventList(actionEvents);
     }
 
     @Override
     public Event get(int index) { return eventList.get(index); }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Event> T getAs(int index) { return (T) get(index); }
 
     @Override
     public int size() { return eventList.size(); }
@@ -53,15 +61,17 @@ public class EventList extends AbstractList<Event> {
     /**
      * @return first item in this list or null if list is empty.
      */
-    public Event getFirst() {
-        return eventList.isEmpty() ? null : eventList.get(0);
+    @SuppressWarnings("unchecked")
+    public <T extends Event> T getFirst() {
+        return eventList.isEmpty() ? null : (T) eventList.get(0);
     }
 
     /**
      * @return last item in this list or null if list is empty.
      */
-    public Event getLast() {
-        return eventList.isEmpty() ? null : eventList.get(eventList.size() - 1);
+    @SuppressWarnings("unchecked")
+    public <T extends Event> T getLast() {
+        return eventList.isEmpty() ? null : (T) eventList.get(eventList.size() - 1);
     }
 
     /**
@@ -112,7 +122,7 @@ public class EventList extends AbstractList<Event> {
 
     public EventList selectEventType(EventType eventType) {return select(byEventType(eventType));}
 
-    public EventList selectEventState(Event.State state) {return select(byEventState(state));}
+    public EventList selectEventState(EventState eventState) {return select(byEventState(eventState));}
 
     public EventList selectSinceLastDecision() {return select(bySinceLastDecision());}
 
@@ -124,7 +134,7 @@ public class EventList extends AbstractList<Event> {
     public EventList selectRetryCount(final String control) {
         return select(new SelectFunction() {
             public boolean select(Event event, int index, EventList eventList) {
-                return TimerStarted == event.getType() && control.equals(event.getData1());
+                return TimerStarted == event.getType() && control.equals(((TimerStartedEvent) event).getControl());
             }
         });
     }
@@ -165,12 +175,12 @@ public class EventList extends AbstractList<Event> {
     }
 
     /**
-     * Select events by {@link Event.State}.
+     * Select events by {@link EventState}.
      */
-    public static SelectFunction byEventState(final Event.State state) {
+    public static SelectFunction byEventState(final EventState eventState) {
         return new SelectFunction() {
             public boolean select(Event event, int index, EventList eventList) {
-                return event.getActionState() == state;
+                return event.getState() == eventState;
             }
         };
     }
@@ -209,55 +219,5 @@ public class EventList extends AbstractList<Event> {
                 return event.getEventId() >= startEventId && event.getEventId() <= endEventId;
             }
         };
-    }
-
-    /**
-     * Select events where all field values are equal to the ones in a provided field/value map.
-     * <p/>
-     * Note: null is allowed as a value in the map and will match null event fields.
-     *
-     * @param map of {@link Event.Field} / value. See {@link #createFieldMap} for an easy way to create this map.
-     */
-    public static SelectFunction byEventFieldsEquals(final Map<Event.Field, Object> map) {
-        return new SelectFunction() {
-            public boolean select(Event event, int index, EventList eventList) {
-                for (Map.Entry<Event.Field, Object> entry : map.entrySet()) {
-                    Object actionEventValue = event.getField(entry.getKey(), false);
-                    Object entryValue = entry.getValue();
-                    if (entryValue == null ? actionEventValue != null : !entryValue.equals(actionEventValue)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        };
-    }
-
-    /**
-     * Convenience method for creating {@link Event.Field} / value maps.
-     * <pre>
-     * Example usage:
-     * <code>
-     * Map map = createFieldMap(Event.Field1, Value1, Event.Field2, Value2, ...)
-     * </code></pre>
-     *
-     * @see #byEventFieldsEquals(Map)
-     */
-    public static Map<Event.Field, Object> createFieldMap(Event.Field field, Object value, Object... fieldObject) {
-        Map<Event.Field, Object> map = new HashMap<Event.Field, Object>();
-        map.put(field, value);
-        if (fieldObject.length > 0) {
-            if (fieldObject.length % 2 > 0) {
-                throw new IllegalArgumentException("Even number of fieldObject values required");
-            }
-            for (int i = 0; i < fieldObject.length; i += 2) {
-                Object f = fieldObject[i];
-                if (f == null || !f.getClass().equals(Event.Field.class)) {
-                    throw new IllegalArgumentException(format("Parameter fieldObject[%d]=%s is not expected type %s", i, f, Event.Field.class.getSimpleName()));
-                }
-                map.put((Event.Field) f, fieldObject[i + 1]);
-            }
-        }
-        return map;
     }
 }

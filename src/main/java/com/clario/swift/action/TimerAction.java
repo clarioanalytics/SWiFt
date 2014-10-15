@@ -3,12 +3,13 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
-import com.clario.swift.Event;
+import com.clario.swift.event.Event;
+import com.clario.swift.event.EventState;
 
 import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.StartTimer;
-import static com.clario.swift.Event.State.INITIAL;
+import static com.clario.swift.event.EventState.INITIAL;
 import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
@@ -72,11 +73,11 @@ public class TimerAction extends Action<TimerAction> {
     }
 
     /**
-     * Don't allow {@link Event.State#RETRY} to be returned.
+     * Don't allow {@link EventState#RETRY} to be returned.
      */
-    @Override public Event.State getState() {
+    @Override public EventState getState() {
         Event currentEvent = getCurrentEvent();
-        return currentEvent == null ? INITIAL : currentEvent.getActionState();
+        return currentEvent == null ? INITIAL : currentEvent.getState();
     }
 
     /**

@@ -1,6 +1,8 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
+import com.clario.swift.event.Event;
+import com.clario.swift.event.EventState;
 import com.clario.swift.examples.DecisionPollerPool;
 
 import java.util.ArrayList;
@@ -111,7 +113,7 @@ public class DecisionPoller extends BasePoller {
         String runId = decisionTask.getWorkflowExecution().getRunId();
 
         List<Decision> decisions = new ArrayList<Decision>();
-        List<Event> workflowErrors = workflow.getEvents().select(EventList.byEventState(Event.State.CRITICAL));
+        List<Event> workflowErrors = workflow.getEvents().selectEventState(EventState.CRITICAL);
 
         if (workflowErrors.isEmpty()) {
             try {

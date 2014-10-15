@@ -2,6 +2,8 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.Action;
+import com.clario.swift.event.Event;
+import com.clario.swift.event.WorkflowExecutionStartedEvent;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -85,8 +87,8 @@ public abstract class Workflow {
      * @return the input or null if not available
      */
     public String getWorkflowInput() {
-        Event event = getEvents().select(byEventType(WorkflowExecutionStarted)).getFirst();
-        return event == null ? null : event.getData1();
+        WorkflowExecutionStartedEvent event = getEvents().selectEventType(WorkflowExecutionStarted).getFirst();
+        return event == null ? null : event.getInput();
     }
 
     /**

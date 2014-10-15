@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
 import static com.clario.swift.SwiftUtil.defaultIfEmpty;
@@ -52,12 +51,12 @@ public class CronWorkflow extends Workflow {
     public static final int CONTINUE_WORKFLOW_AFTER_MINUTES = 1;
 
     // Define a policy that returns 10 seconds
-    private final RetryPolicy repeatEvery10Seconds5Times = new RetryPolicy()
-        .withFixedRetryInterval(TimeUnit.SECONDS, 10)
-        .withMaximumAttempts(5);
+    private static final RetryPolicy repeatEvery10Seconds20Times = new RetryPolicy()
+        .withFixedRetryInterval(SECONDS, 10)
+        .withMaximumAttempts(20);
 
     final ActivityAction echoActivity = new ActivityAction("echo", "Activity Echo", "1.0")
-        .withOnSuccessRetryPolicy(repeatEvery10Seconds5Times);
+        .withOnSuccessRetryPolicy(repeatEvery10Seconds20Times);
 
     final ContinueAsNewAction continueAsNewAction = new ContinueAsNewAction("continue");
 

@@ -1,16 +1,15 @@
 package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.amazonaws.services.simpleworkflow.model.EventType;
-import com.clario.swift.Event;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
+import com.clario.swift.event.WorkflowExecutionSignaledEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static com.clario.swift.EventList.byEventType;
+import static com.amazonaws.services.simpleworkflow.model.EventType.WorkflowExecutionSignaled;
 import static com.clario.swift.examples.Config.config;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
@@ -54,16 +53,16 @@ public class WaitForSignalWorkflow extends Workflow {
     @Override
     public void decide(List<Decision> decisions) {
         // Wait until a signal is received, then do a activity
-        List<Event> signals = getEvents().select(byEventType(EventType.WorkflowExecutionSignaled));
-        if (signals.isEmpty()) {
+        WorkflowExecutionSignaledEvent signal = getEvents().selectEventType(WorkflowExecutionSignaled).getFirst();
+
+        if (signal == null) {
             log.info("No signal received yet");
         } else {
-            Event signalEvent = signals.get(0);
-            String input = signalEvent.getData1();
+            String input = signal.getInput();
 
             if (step1.isInitial()) {
                 // Only log the first time
-                log.info("Signal '{}' received with value {}", signalEvent.getActionId(), input);
+                log.info("Signal '{}' received with value {}", signal.getActionId(), input);
             }
 
             if (step1

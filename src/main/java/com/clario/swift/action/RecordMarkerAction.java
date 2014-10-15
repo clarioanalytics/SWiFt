@@ -3,6 +3,7 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.RecordMarkerDecisionAttributes;
 import com.clario.swift.Workflow;
+import com.clario.swift.event.MarkerRecordedEvent;
 
 import static com.clario.swift.SwiftUtil.MAX_INPUT_LENGTH;
 import static com.clario.swift.SwiftUtil.assertMaxLength;
@@ -20,27 +21,26 @@ import static com.clario.swift.SwiftUtil.assertMaxLength;
  * <p/>
  * Example usage within a {@link Workflow} subclass:
  * <pre><code>
- private final RecordMarkerAction doOnceMarker = new RecordMarkerAction("doOnceMarker");
-
- ...
-
- public StartChildWorkflow() {
-     ....
-
-     addActions(doOnceMarker);
- }
-
- public void decide(List<Decision> decisions) {
-     if (doOnceMarker.isInitial()) {
-         String markerInput = ... // result of some run-once code
-
-         doOnceMarker
-              .withDetails(markerInput)
-              .decide(decisions)
-     }
- }
+ * private final RecordMarkerAction doOnceMarker = new RecordMarkerAction("doOnceMarker");
+ * <p/>
+ * ...
+ * <p/>
+ * public StartChildWorkflow() {
+ * ....
+ * <p/>
+ * addActions(doOnceMarker);
+ * }
+ * <p/>
+ * public void decide(List<Decision> decisions) {
+ * if (doOnceMarker.isInitial()) {
+ * String markerInput = ... // result of some run-once code
+ * <p/>
+ * doOnceMarker
+ * .withDetails(markerInput)
+ * .decide(decisions)
+ * }
+ * }
  * </code></pre>
- *
  *
  * @author George Coller
  * @see com.clario.swift.examples.workflows Example workflows for usage ideas.
@@ -64,7 +64,8 @@ public class RecordMarkerAction extends Action<RecordMarkerAction> {
     @Override
     public String getOutput() {
         if (isSuccess()) {
-            return getCurrentEvent().getData1();
+            MarkerRecordedEvent event = getCurrentEvent();
+            return event.getDetails();
         } else {
             return details;
         }
