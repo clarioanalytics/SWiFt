@@ -21,25 +21,26 @@ public class StartChildWorkflowExecutionInitiatedEvent extends Event {
 
     @Override public String getActionId() { return getWorkflowId(); }
 
-    @Override public String getInput() {  return getInput(); } 
-    @Override public String getControl() {  return getControl(); } 
-
     public StartChildWorkflowExecutionInitiatedEventAttributes getAttributes() {return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowId(); }
 
-    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+    public  String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
-    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+    public  String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
 
-    public String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
+    public @Override  String getControl() { return getAttributes().getControl(); }
 
-    public String getTaskList() { return getAttributes().getTaskList().getName(); }
+    public @Override  String getInput() { return getAttributes().getInput(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
 
-    public String getChildPolicy() { return getAttributes().getChildPolicy(); }
+    public  String getTaskList() { return getAttributes().getTaskList().getName(); }
 
-    public String getTaskStartToCloseTimeout() { return getAttributes().getTaskStartToCloseTimeout(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+
+    public  String getChildPolicy() { return getAttributes().getChildPolicy(); }
+
+    public  String getTaskStartToCloseTimeout() { return getAttributes().getTaskStartToCloseTimeout(); }
 
 }

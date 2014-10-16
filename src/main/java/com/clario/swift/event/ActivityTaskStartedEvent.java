@@ -21,11 +21,10 @@ public class ActivityTaskStartedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public ActivityTaskStartedEventAttributes getAttributes() {return historyEvent.getActivityTaskStartedEventAttributes();}
 
-    public String getIdentity() { return getAttributes().getIdentity(); }
+    public  String getIdentity() { return getAttributes().getIdentity(); }
 
-    public Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+    public  Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
 
 }

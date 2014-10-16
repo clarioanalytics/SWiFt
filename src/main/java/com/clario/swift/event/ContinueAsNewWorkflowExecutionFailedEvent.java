@@ -21,12 +21,14 @@ public class ContinueAsNewWorkflowExecutionFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "ContinueAsNewWorkflowExecutionFailed"; }
+
+    @Override public String getDetails() {  return getCause(); }
 
     public ContinueAsNewWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getContinueAsNewWorkflowExecutionFailedEventAttributes();}
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

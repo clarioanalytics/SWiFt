@@ -45,16 +45,30 @@ public abstract class Action<T extends Action> {
     //
     // COMMON GETTERS ACROSS ACTIONS
     //
-//    public abstract String getInput();
-//
-//    public abstract String getControl();
-//
-//    public abstract String getOutput();
-//
-//    public abstract String getErrorReason();
-//
-//    public abstract String getErrorDetails();
+    public String getInput() { return getCurrentEvent().getInput(); }
 
+    public String getControl() { return getCurrentEvent().getControl(); }
+
+    /**
+     * Return output of action.
+     *
+     * @return result of action, null if action produces no output
+     * @throws IllegalStateException if activity did not complete successfully.
+     */
+    public String getOutput() {
+        if (isSuccess()) {
+            return getCurrentEvent().getOutput();
+        } else if (successRetryPolicy != null && getState() == RETRY) {
+            ActivityTaskCompletedEvent completed = getEvents().selectEventType(ActivityTaskCompleted).getFirst();
+            if (completed == null) {
+                throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
+            } else {
+                return completed.getOutput();
+            }
+        } else {
+            throw new IllegalStateException("method not available when action state is " + getState());
+        }
+    }
 
     /**
      * Each action requires a workflow-unique identifier.
@@ -173,26 +187,6 @@ public abstract class Action<T extends Action> {
             );
     }
 
-    /**
-     * Return output of action.
-     *
-     * @return result of action, null if action produces no output
-     * @throws IllegalStateException if activity did not complete successfully.
-     */
-    public String getOutput() {
-        if (isSuccess()) {
-            return getCurrentEvent().getOutput();
-        } else if (successRetryPolicy != null && getState() == RETRY) {
-            ActivityTaskCompletedEvent completed = getEvents().selectEventType(ActivityTaskCompleted).getFirst();
-            if (completed == null) {
-                throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
-            } else {
-                return completed.getResult();
-            }
-        } else {
-            throw new IllegalStateException("method not available when action state is " + getState());
-        }
-    }
 
     /**
      * Make a decision based on the current {@link EventState} of an action.

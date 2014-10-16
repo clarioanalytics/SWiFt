@@ -1,11 +1,9 @@
 package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.model.*;
-import com.clario.swift.event.ActivityTaskScheduledEvent;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.amazonaws.services.simpleworkflow.model.EventType.ActivityTaskScheduled;
 import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
 
@@ -194,35 +192,12 @@ public class ActivityAction extends Action<ActivityAction> {
 
 
     public String getInput() {
-        if (isInitial()) {
-            return input;
-        } else {
-            ActivityTaskScheduledEvent event = getEvents().selectEventType(ActivityTaskScheduled).getFirst();
-            return event.getInput();
-        }
+        return isInitial() ? input : super.getInput();
     }
 
     public String getControl() {
-        if (isInitial()) {
-            return control;
-        } else {
-            ActivityTaskScheduledEvent event = getEvents().selectEventType(ActivityTaskScheduled).getFirst();
-            return event.getControl();
-        }
+        return isInitial() ? control : super.getControl();
     }
-
-    public String getErrorReason() {
-        if (isError()) {
-            ActivityTaskScheduledEvent event = getEvents().selectEventType(ActivityTaskScheduled).getFirst();
-            return event.getControl();
-        }
-        return null;
-    }
-
-    public String getErrorDetails() {
-        return null;
-    }
-
 
     /**
      * @return decision of type {@link DecisionType#ScheduleActivityTask}

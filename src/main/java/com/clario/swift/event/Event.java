@@ -13,13 +13,9 @@ public abstract class Event implements Comparable<Event> {
 
     protected final HistoryEvent historyEvent;
 
-    protected Event(HistoryEvent historyEvent) {
-        this.historyEvent = historyEvent;
-    }
+    protected Event(HistoryEvent historyEvent) { this.historyEvent = historyEvent; }
 
-    public static Event create(HistoryEvent historyEvent) {
-        return EventFactory.create(historyEvent);
-    }
+    public static Event create(HistoryEvent historyEvent) { return EventFactory.create(historyEvent); }
 
     public HistoryEvent getHistoryEvent() { return historyEvent; }
 
@@ -49,18 +45,12 @@ public abstract class Event implements Comparable<Event> {
 
     public String getDetails() { throw new UnsupportedOperationException(format("%s error details not available", getClass().getSimpleName())); }
 
-    /**
-     * Two events are consider equal if they share the same {@link #getEventId()}.
-     */
     public boolean equals(Object o) {
-        return this == o || o instanceof Event && getEventId().equals(((Event) o).getEventId());
+        return o != null && getClass().equals(o.getClass()) && historyEvent.equals(o);
     }
 
-    /**
-     * @return hashCode of this event's eventId.
-     */
     public int hashCode() {
-        return getEventId().hashCode();
+        return historyEvent.hashCode();
     }
 
     @Override

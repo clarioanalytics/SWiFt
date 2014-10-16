@@ -21,13 +21,12 @@ public class ExternalWorkflowExecutionCancelRequestedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public ExternalWorkflowExecutionCancelRequestedEventAttributes getAttributes() {return historyEvent.getExternalWorkflowExecutionCancelRequestedEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
 
-    public String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
+    public  String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
 
-    public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+    public  Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
 
 }

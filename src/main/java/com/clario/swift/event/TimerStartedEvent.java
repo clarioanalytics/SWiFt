@@ -21,15 +21,16 @@ public class TimerStartedEvent extends Event {
 
     @Override public String getActionId() { return getTimerId(); }
 
-    @Override public String getInput() {  return null; } 
-    @Override public String getControl() {  return getControl(); } 
+    @Override public String getInput() {  return "TimerStarted"; }
 
     public TimerStartedEventAttributes getAttributes() {return historyEvent.getTimerStartedEventAttributes();}
 
-    public String getTimerId() { return getAttributes().getTimerId(); }
+    public  String getTimerId() { return getAttributes().getTimerId(); }
 
-    public String getStartToFireTimeout() { return getAttributes().getStartToFireTimeout(); }
+    public @Override  String getControl() { return getAttributes().getControl(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  String getStartToFireTimeout() { return getAttributes().getStartToFireTimeout(); }
+
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

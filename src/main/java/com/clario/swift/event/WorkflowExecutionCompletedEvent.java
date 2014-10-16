@@ -21,11 +21,10 @@ public class WorkflowExecutionCompletedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public WorkflowExecutionCompletedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionCompletedEventAttributes();}
 
-    public String getResult() { return getAttributes().getResult(); }
+    public  String getResult() { return getAttributes().getResult(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

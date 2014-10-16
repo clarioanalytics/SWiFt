@@ -15,27 +15,30 @@ public class StartChildWorkflowExecutionFailedEvent extends Event {
 
     @Override public EventCategory getCategory() { return EventCategory.ACTION; }
 
-    @Override public Long getInitialEventId() { return getEventId(); }
+    @Override public Long getInitialEventId() { return getInitiatedEventId(); }
 
     @Override public boolean isInitialAction() { return false; }
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getControl() {  return getControl(); } 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "StartChildWorkflowExecutionFailed"; }
+
+    @Override public String getDetails() {  return getCause(); }
 
     public StartChildWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getStartChildWorkflowExecutionFailedEventAttributes();}
 
-    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+    public  String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
-    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+    public  String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public String getWorkflowId() { return getAttributes().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowId(); }
 
-    public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+    public  Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+
+    public @Override  String getControl() { return getAttributes().getControl(); }
 
 }

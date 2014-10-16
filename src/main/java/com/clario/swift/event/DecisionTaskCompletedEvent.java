@@ -21,14 +21,14 @@ public class DecisionTaskCompletedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getOutput() {  return getExecutionContext(); } 
+    @Override public String getOutput() {  return getExecutionContext(); }
 
     public DecisionTaskCompletedEventAttributes getAttributes() {return historyEvent.getDecisionTaskCompletedEventAttributes();}
 
-    public String getExecutionContext() { return getAttributes().getExecutionContext(); }
+    public  String getExecutionContext() { return getAttributes().getExecutionContext(); }
 
-    public Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+    public  Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

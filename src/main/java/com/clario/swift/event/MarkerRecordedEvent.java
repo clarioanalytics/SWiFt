@@ -1,6 +1,7 @@
 package com.clario.swift.event;
 
-import com.amazonaws.services.simpleworkflow.model.*;
+import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
+import com.amazonaws.services.simpleworkflow.model.MarkerRecordedEventAttributes;
 
 /**
  * @author George Coller
@@ -21,13 +22,13 @@ public class MarkerRecordedEvent extends Event {
 
     @Override public String getActionId() { return getMarkerName(); }
 
-    @Override public String getOutput() {  return getDetails(); } 
+    @Override public String getOutput() { return getDetails(); }
 
     public MarkerRecordedEventAttributes getAttributes() {return historyEvent.getMarkerRecordedEventAttributes();}
 
     public String getMarkerName() { return getAttributes().getMarkerName(); }
 
-    public String getDetails() { return getAttributes().getDetails(); }
+    public @Override String getDetails() { return getAttributes().getDetails(); }
 
     public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 

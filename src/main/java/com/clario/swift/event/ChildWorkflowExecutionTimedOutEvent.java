@@ -21,22 +21,24 @@ public class ChildWorkflowExecutionTimedOutEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "ChildWorkflowExecutionTimedOut"; }
+
+    @Override public String getDetails() {  return getTimeoutType(); }
 
     public ChildWorkflowExecutionTimedOutEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionTimedOutEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
 
-    public String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
+    public  String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
 
-    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+    public  String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
-    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+    public  String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
 
-    public String getTimeoutType() { return getAttributes().getTimeoutType(); }
+    public  String getTimeoutType() { return getAttributes().getTimeoutType(); }
 
-    public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+    public  Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

@@ -21,13 +21,12 @@ public class DecisionTaskTimedOutEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public DecisionTaskTimedOutEventAttributes getAttributes() {return historyEvent.getDecisionTaskTimedOutEventAttributes();}
 
-    public String getTimeoutType() { return getAttributes().getTimeoutType(); }
+    public  String getTimeoutType() { return getAttributes().getTimeoutType(); }
 
-    public Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+    public  Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

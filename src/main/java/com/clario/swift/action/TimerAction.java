@@ -9,8 +9,8 @@ import com.clario.swift.event.EventState;
 import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.StartTimer;
-import static com.clario.swift.event.EventState.INITIAL;
 import static com.clario.swift.SwiftUtil.*;
+import static com.clario.swift.event.EventState.INITIAL;
 import static java.lang.String.format;
 
 /**
@@ -49,7 +49,10 @@ public class TimerAction extends Action<TimerAction> {
         return this;
     }
 
-    public String getControl() { return control; }
+    @Override
+    public String getControl() {
+        return isInitial() ? control : super.getControl();
+    }
 
     /**
      * @throws UnsupportedOperationException

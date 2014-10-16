@@ -21,11 +21,10 @@ public class WorkflowExecutionTimedOutEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public WorkflowExecutionTimedOutEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionTimedOutEventAttributes();}
 
-    public String getTimeoutType() { return getAttributes().getTimeoutType(); }
+    public  String getTimeoutType() { return getAttributes().getTimeoutType(); }
 
-    public String getChildPolicy() { return getAttributes().getChildPolicy(); }
+    public  String getChildPolicy() { return getAttributes().getChildPolicy(); }
 
 }

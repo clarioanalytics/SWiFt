@@ -21,22 +21,22 @@ public class ChildWorkflowExecutionFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return getReason(); } 
-
     public ChildWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionFailedEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
 
-    public String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
+    public  String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
 
-    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+    public  String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
-    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+    public  String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
 
-    public String getDetails() { return getAttributes().getDetails(); }
+    public @Override  String getReason() { return getAttributes().getReason(); }
 
-    public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+    public @Override  String getDetails() { return getAttributes().getDetails(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

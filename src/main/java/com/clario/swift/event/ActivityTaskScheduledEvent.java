@@ -21,27 +21,28 @@ public class ActivityTaskScheduledEvent extends Event {
 
     @Override public String getActionId() { return getActivityId(); }
 
-    @Override public String getInput() {  return getInput(); } 
-    @Override public String getControl() {  return getControl(); } 
-
     public ActivityTaskScheduledEventAttributes getAttributes() {return historyEvent.getActivityTaskScheduledEventAttributes();}
 
-    public String getActivityTypeName() { return getAttributes().getActivityType().getName(); }
+    public  String getActivityTypeName() { return getAttributes().getActivityType().getName(); }
 
-    public String getActivityTypeVersion() { return getAttributes().getActivityType().getVersion(); }
+    public  String getActivityTypeVersion() { return getAttributes().getActivityType().getVersion(); }
 
-    public String getActivityId() { return getAttributes().getActivityId(); }
+    public  String getActivityId() { return getAttributes().getActivityId(); }
 
-    public String getScheduleToStartTimeout() { return getAttributes().getScheduleToStartTimeout(); }
+    public @Override  String getInput() { return getAttributes().getInput(); }
 
-    public String getScheduleToCloseTimeout() { return getAttributes().getScheduleToCloseTimeout(); }
+    public @Override  String getControl() { return getAttributes().getControl(); }
 
-    public String getStartToCloseTimeout() { return getAttributes().getStartToCloseTimeout(); }
+    public  String getScheduleToStartTimeout() { return getAttributes().getScheduleToStartTimeout(); }
 
-    public String getTaskList() { return getAttributes().getTaskList().getName(); }
+    public  String getScheduleToCloseTimeout() { return getAttributes().getScheduleToCloseTimeout(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  String getStartToCloseTimeout() { return getAttributes().getStartToCloseTimeout(); }
 
-    public String getHeartbeatTimeout() { return getAttributes().getHeartbeatTimeout(); }
+    public  String getTaskList() { return getAttributes().getTaskList().getName(); }
+
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+
+    public  String getHeartbeatTimeout() { return getAttributes().getHeartbeatTimeout(); }
 
 }

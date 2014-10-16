@@ -11,9 +11,9 @@ public class ScheduleActivityTaskFailedEvent extends Event {
         super(historyEvent);
     }
 
-    @Override public EventState getState() { return EventState.CRITICAL; }
+    @Override public EventState getState() { return EventState.ERROR; }
 
-    @Override public EventCategory getCategory() { return EventCategory.WORKFLOW; }
+    @Override public EventCategory getCategory() { return EventCategory.ACTION; }
 
     @Override public Long getInitialEventId() { return getEventId(); }
 
@@ -21,18 +21,20 @@ public class ScheduleActivityTaskFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "ScheduleActivityTaskFailed"; }
+
+    @Override public String getDetails() {  return getCause(); }
 
     public ScheduleActivityTaskFailedEventAttributes getAttributes() {return historyEvent.getScheduleActivityTaskFailedEventAttributes();}
 
-    public String getActivityTypeName() { return getAttributes().getActivityType().getName(); }
+    public  String getActivityTypeName() { return getAttributes().getActivityType().getName(); }
 
-    public String getActivityTypeVersion() { return getAttributes().getActivityType().getVersion(); }
+    public  String getActivityTypeVersion() { return getAttributes().getActivityType().getVersion(); }
 
-    public String getActivityId() { return getAttributes().getActivityId(); }
+    public  String getActivityId() { return getAttributes().getActivityId(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

@@ -21,14 +21,14 @@ public class ActivityTaskFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return getReason(); } 
-
     public ActivityTaskFailedEventAttributes getAttributes() {return historyEvent.getActivityTaskFailedEventAttributes();}
 
-    public String getDetails() { return getAttributes().getDetails(); }
+    public @Override  String getReason() { return getAttributes().getReason(); }
 
-    public Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+    public @Override  String getDetails() { return getAttributes().getDetails(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

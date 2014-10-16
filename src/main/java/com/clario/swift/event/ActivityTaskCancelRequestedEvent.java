@@ -21,11 +21,10 @@ public class ActivityTaskCancelRequestedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public ActivityTaskCancelRequestedEventAttributes getAttributes() {return historyEvent.getActivityTaskCancelRequestedEventAttributes();}
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
-    public String getActivityId() { return getAttributes().getActivityId(); }
+    public  String getActivityId() { return getAttributes().getActivityId(); }
 
 }

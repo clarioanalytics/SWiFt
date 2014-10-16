@@ -21,14 +21,14 @@ public class ActivityTaskCompletedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getOutput() {  return getResult(); } 
+    @Override public String getOutput() {  return getResult(); }
 
     public ActivityTaskCompletedEventAttributes getAttributes() {return historyEvent.getActivityTaskCompletedEventAttributes();}
 
-    public String getResult() { return getAttributes().getResult(); }
+    public  String getResult() { return getAttributes().getResult(); }
 
-    public Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+    public  Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

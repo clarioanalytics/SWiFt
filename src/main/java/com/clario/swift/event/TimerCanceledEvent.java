@@ -21,14 +21,14 @@ public class TimerCanceledEvent extends Event {
 
     @Override public String getActionId() { return getTimerId(); }
 
-    @Override public String getOutput() {  return null; } 
+    @Override public String getOutput() {  return "TimerCanceled"; }
 
     public TimerCanceledEventAttributes getAttributes() {return historyEvent.getTimerCanceledEventAttributes();}
 
-    public String getTimerId() { return getAttributes().getTimerId(); }
+    public  String getTimerId() { return getAttributes().getTimerId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

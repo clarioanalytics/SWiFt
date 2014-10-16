@@ -21,14 +21,14 @@ public class ExternalWorkflowExecutionSignaledEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getOutput() {  return getRunId(); } 
+    @Override public String getOutput() {  return getRunId(); }
 
     public ExternalWorkflowExecutionSignaledEventAttributes getAttributes() {return historyEvent.getExternalWorkflowExecutionSignaledEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
 
-    public String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
+    public  String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
 
-    public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+    public  Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
 
 }

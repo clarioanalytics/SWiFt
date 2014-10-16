@@ -21,23 +21,24 @@ public class WorkflowExecutionContinuedAsNewEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public WorkflowExecutionContinuedAsNewEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionContinuedAsNewEventAttributes();}
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public @Override  String getInput() { return getAttributes().getInput(); }
 
-    public String getNewExecutionRunId() { return getAttributes().getNewExecutionRunId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
-    public String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
+    public  String getNewExecutionRunId() { return getAttributes().getNewExecutionRunId(); }
 
-    public String getTaskList() { return getAttributes().getTaskList().getName(); }
+    public  String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
 
-    public String getTaskStartToCloseTimeout() { return getAttributes().getTaskStartToCloseTimeout(); }
+    public  String getTaskList() { return getAttributes().getTaskList().getName(); }
 
-    public String getChildPolicy() { return getAttributes().getChildPolicy(); }
+    public  String getTaskStartToCloseTimeout() { return getAttributes().getTaskStartToCloseTimeout(); }
 
-    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+    public  String getChildPolicy() { return getAttributes().getChildPolicy(); }
 
-    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+    public  String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+
+    public  String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
 
 }

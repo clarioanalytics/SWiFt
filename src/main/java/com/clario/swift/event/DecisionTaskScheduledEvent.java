@@ -21,11 +21,10 @@ public class DecisionTaskScheduledEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public DecisionTaskScheduledEventAttributes getAttributes() {return historyEvent.getDecisionTaskScheduledEventAttributes();}
 
-    public String getTaskList() { return getAttributes().getTaskList().getName(); }
+    public  String getTaskList() { return getAttributes().getTaskList().getName(); }
 
-    public String getStartToCloseTimeout() { return getAttributes().getStartToCloseTimeout(); }
+    public  String getStartToCloseTimeout() { return getAttributes().getStartToCloseTimeout(); }
 
 }

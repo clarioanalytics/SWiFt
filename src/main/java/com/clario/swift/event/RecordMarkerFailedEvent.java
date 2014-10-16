@@ -21,14 +21,16 @@ public class RecordMarkerFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "RecordMarkerFailed"; }
+
+    @Override public String getDetails() {  return getCause(); }
 
     public RecordMarkerFailedEventAttributes getAttributes() {return historyEvent.getRecordMarkerFailedEventAttributes();}
 
-    public String getMarkerName() { return getAttributes().getMarkerName(); }
+    public  String getMarkerName() { return getAttributes().getMarkerName(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

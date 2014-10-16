@@ -21,12 +21,12 @@ public class TimerFiredEvent extends Event {
 
     @Override public String getActionId() { return getTimerId(); }
 
-    @Override public String getOutput() {  return null; } 
+    @Override public String getOutput() {  return "TimerFired"; }
 
     public TimerFiredEventAttributes getAttributes() {return historyEvent.getTimerFiredEventAttributes();}
 
-    public String getTimerId() { return getAttributes().getTimerId(); }
+    public  String getTimerId() { return getAttributes().getTimerId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

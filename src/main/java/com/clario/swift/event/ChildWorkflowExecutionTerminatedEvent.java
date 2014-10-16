@@ -21,20 +21,20 @@ public class ChildWorkflowExecutionTerminatedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "ChildWorkflowExecutionTerminated"; }
 
     public ChildWorkflowExecutionTerminatedEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionTerminatedEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowExecution().getWorkflowId(); }
 
-    public String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
+    public  String getRunId() { return getAttributes().getWorkflowExecution().getRunId(); }
 
-    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+    public  String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
-    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+    public  String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
 
-    public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
+    public  Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
 }

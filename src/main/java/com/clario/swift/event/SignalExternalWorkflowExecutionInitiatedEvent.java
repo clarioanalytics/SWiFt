@@ -21,17 +21,18 @@ public class SignalExternalWorkflowExecutionInitiatedEvent extends Event {
 
     @Override public String getActionId() { return getSignalName(); }
 
-    @Override public String getInput() {  return getInput(); } 
-    @Override public String getControl() {  return getControl(); } 
-
     public SignalExternalWorkflowExecutionInitiatedEventAttributes getAttributes() {return historyEvent.getSignalExternalWorkflowExecutionInitiatedEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getWorkflowId(); }
 
-    public String getRunId() { return getAttributes().getRunId(); }
+    public  String getRunId() { return getAttributes().getRunId(); }
 
-    public String getSignalName() { return getAttributes().getSignalName(); }
+    public  String getSignalName() { return getAttributes().getSignalName(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public @Override  String getInput() { return getAttributes().getInput(); }
+
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+
+    public @Override  String getControl() { return getAttributes().getControl(); }
 
 }

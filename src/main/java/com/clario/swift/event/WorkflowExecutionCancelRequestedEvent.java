@@ -21,16 +21,18 @@ public class WorkflowExecutionCancelRequestedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "WorkflowExecutionCancelRequested"; }
+
+    @Override public String getDetails() {  return getCause(); }
 
     public WorkflowExecutionCancelRequestedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionCancelRequestedEventAttributes();}
 
-    public String getWorkflowId() { return getAttributes().getExternalWorkflowExecution().getWorkflowId(); }
+    public  String getWorkflowId() { return getAttributes().getExternalWorkflowExecution().getWorkflowId(); }
 
-    public String getRunId() { return getAttributes().getExternalWorkflowExecution().getRunId(); }
+    public  String getRunId() { return getAttributes().getExternalWorkflowExecution().getRunId(); }
 
-    public Long getExternalInitiatedEventId() { return getAttributes().getExternalInitiatedEventId(); }
+    public  Long getExternalInitiatedEventId() { return getAttributes().getExternalInitiatedEventId(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
 }

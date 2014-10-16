@@ -21,16 +21,16 @@ public class ActivityTaskTimedOutEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return getTimeoutType(); } 
+    @Override public String getReason() {  return getTimeoutType(); }
 
     public ActivityTaskTimedOutEventAttributes getAttributes() {return historyEvent.getActivityTaskTimedOutEventAttributes();}
 
-    public String getTimeoutType() { return getAttributes().getTimeoutType(); }
+    public  String getTimeoutType() { return getAttributes().getTimeoutType(); }
 
-    public Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+    public  Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
-    public String getDetails() { return getAttributes().getDetails(); }
+    public @Override  String getDetails() { return getAttributes().getDetails(); }
 
 }

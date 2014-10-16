@@ -21,28 +21,30 @@ public class WorkflowExecutionStartedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getOutput() {  return getInput(); } 
+    @Override public String getOutput() {  return getInput(); }
 
     public WorkflowExecutionStartedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionStartedEventAttributes();}
 
-    public String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
+    public @Override  String getInput() { return getAttributes().getInput(); }
 
-    public String getTaskStartToCloseTimeout() { return getAttributes().getTaskStartToCloseTimeout(); }
+    public  String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
 
-    public String getChildPolicy() { return getAttributes().getChildPolicy(); }
+    public  String getTaskStartToCloseTimeout() { return getAttributes().getTaskStartToCloseTimeout(); }
 
-    public String getTaskList() { return getAttributes().getTaskList().getName(); }
+    public  String getChildPolicy() { return getAttributes().getChildPolicy(); }
 
-    public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
+    public  String getTaskList() { return getAttributes().getTaskList().getName(); }
 
-    public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
+    public  String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
-    public String getContinuedExecutionRunId() { return getAttributes().getContinuedExecutionRunId(); }
+    public  String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
 
-    public String getWorkflowId() { return getAttributes().getParentWorkflowExecution().getWorkflowId(); }
+    public  String getContinuedExecutionRunId() { return getAttributes().getContinuedExecutionRunId(); }
 
-    public String getRunId() { return getAttributes().getParentWorkflowExecution().getRunId(); }
+    public  String getWorkflowId() { return getAttributes().getParentWorkflowExecution().getWorkflowId(); }
 
-    public Long getParentInitiatedEventId() { return getAttributes().getParentInitiatedEventId(); }
+    public  String getRunId() { return getAttributes().getParentWorkflowExecution().getRunId(); }
+
+    public  Long getParentInitiatedEventId() { return getAttributes().getParentInitiatedEventId(); }
 
 }

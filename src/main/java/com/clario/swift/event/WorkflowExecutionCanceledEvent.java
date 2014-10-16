@@ -21,11 +21,10 @@ public class WorkflowExecutionCanceledEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public WorkflowExecutionCanceledEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionCanceledEventAttributes();}
 
-    public String getDetails() { return getAttributes().getDetails(); }
+    public @Override  String getDetails() { return getAttributes().getDetails(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

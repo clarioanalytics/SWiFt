@@ -54,6 +54,11 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
         return this;
     }
 
+    @Override
+    public String getInput() {
+        return isInitial() ? input : super.getInput();
+    }
+
     /**
      * Optional data attached to the signal.
      *
@@ -62,6 +67,11 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
     public SignalWorkflowAction withControl(String control) {
         this.control = assertMaxLength(control, MAX_CONTROL_LENGTH);
         return this;
+    }
+
+    @Override
+    public String getControl() {
+        return isInitial() ? control : super.getControl();
     }
 
     /**

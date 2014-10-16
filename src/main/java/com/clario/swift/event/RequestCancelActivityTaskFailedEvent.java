@@ -21,13 +21,12 @@ public class RequestCancelActivityTaskFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public RequestCancelActivityTaskFailedEventAttributes getAttributes() {return historyEvent.getRequestCancelActivityTaskFailedEventAttributes();}
 
-    public String getActivityId() { return getAttributes().getActivityId(); }
+    public  String getActivityId() { return getAttributes().getActivityId(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

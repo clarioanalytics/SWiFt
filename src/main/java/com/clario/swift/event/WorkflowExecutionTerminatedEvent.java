@@ -21,13 +21,14 @@ public class WorkflowExecutionTerminatedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public WorkflowExecutionTerminatedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionTerminatedEventAttributes();}
 
-    public String getDetails() { return getAttributes().getDetails(); }
+    public @Override  String getReason() { return getAttributes().getReason(); }
 
-    public String getChildPolicy() { return getAttributes().getChildPolicy(); }
+    public @Override  String getDetails() { return getAttributes().getDetails(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getChildPolicy() { return getAttributes().getChildPolicy(); }
+
+    public  String getCause() { return getAttributes().getCause(); }
 
 }

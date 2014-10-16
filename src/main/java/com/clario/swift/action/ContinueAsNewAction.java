@@ -33,6 +33,10 @@ public class ContinueAsNewAction extends Action<ContinueAsNewAction> {
         return this;
     }
 
+    public String getInput() {
+        return isInitial() ? input : super.getInput();
+    }
+
     @Override
     public Decision createInitiateActivityDecision() {
         Workflow workflow = getWorkflow();

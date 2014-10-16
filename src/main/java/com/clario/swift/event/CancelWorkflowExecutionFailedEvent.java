@@ -21,12 +21,14 @@ public class CancelWorkflowExecutionFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "CancelWorkflowExecutionFailed"; }
+
+    @Override public String getDetails() {  return getCause(); }
 
     public CancelWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getCancelWorkflowExecutionFailedEventAttributes();}
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

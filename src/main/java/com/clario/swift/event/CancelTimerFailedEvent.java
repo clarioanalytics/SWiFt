@@ -21,13 +21,12 @@ public class CancelTimerFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-
     public CancelTimerFailedEventAttributes getAttributes() {return historyEvent.getCancelTimerFailedEventAttributes();}
 
-    public String getTimerId() { return getAttributes().getTimerId(); }
+    public  String getTimerId() { return getAttributes().getTimerId(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }

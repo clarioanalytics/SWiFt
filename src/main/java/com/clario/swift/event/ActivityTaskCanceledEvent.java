@@ -21,16 +21,16 @@ public class ActivityTaskCanceledEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "ActivityTaskCanceled"; }
 
     public ActivityTaskCanceledEventAttributes getAttributes() {return historyEvent.getActivityTaskCanceledEventAttributes();}
 
-    public String getDetails() { return getAttributes().getDetails(); }
+    public @Override  String getDetails() { return getAttributes().getDetails(); }
 
-    public Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
+    public  Long getScheduledEventId() { return getAttributes().getScheduledEventId(); }
 
-    public Long getStartedEventId() { return getAttributes().getStartedEventId(); }
+    public  Long getStartedEventId() { return getAttributes().getStartedEventId(); }
 
-    public Long getLatestCancelRequestedEventId() { return getAttributes().getLatestCancelRequestedEventId(); }
+    public  Long getLatestCancelRequestedEventId() { return getAttributes().getLatestCancelRequestedEventId(); }
 
 }

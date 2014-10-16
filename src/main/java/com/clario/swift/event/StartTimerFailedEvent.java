@@ -21,14 +21,16 @@ public class StartTimerFailedEvent extends Event {
 
     @Override public String getActionId() { return getTimerId(); }
 
-    @Override public String getReason() {  return null; } 
+    @Override public String getReason() {  return "StartTimerFailed"; }
+
+    @Override public String getDetails() {  return getCause(); }
 
     public StartTimerFailedEventAttributes getAttributes() {return historyEvent.getStartTimerFailedEventAttributes();}
 
-    public String getTimerId() { return getAttributes().getTimerId(); }
+    public  String getTimerId() { return getAttributes().getTimerId(); }
 
-    public String getCause() { return getAttributes().getCause(); }
+    public  String getCause() { return getAttributes().getCause(); }
 
-    public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
+    public  Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 
 }
