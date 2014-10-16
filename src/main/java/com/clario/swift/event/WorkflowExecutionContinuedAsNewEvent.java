@@ -21,13 +21,8 @@ public class WorkflowExecutionContinuedAsNewEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return null; }
-
-    @Override public String getData2() { return null; }
 
     public WorkflowExecutionContinuedAsNewEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionContinuedAsNewEventAttributes();}
-
-    public String getInput() { return getAttributes().getInput(); }
 
     public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
 

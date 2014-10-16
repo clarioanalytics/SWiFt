@@ -21,9 +21,7 @@ public class ChildWorkflowExecutionFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getReason(); }
-
-    @Override public String getData2() { return getDetails(); }
+    @Override public String getReason() {  return getReason(); } 
 
     public ChildWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionFailedEventAttributes();}
 
@@ -34,8 +32,6 @@ public class ChildWorkflowExecutionFailedEvent extends Event {
     public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
     public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
-
-    public String getReason() { return getAttributes().getReason(); }
 
     public String getDetails() { return getAttributes().getDetails(); }
 

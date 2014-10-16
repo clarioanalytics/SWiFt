@@ -11,9 +11,9 @@ public class StartChildWorkflowExecutionFailedEvent extends Event {
         super(historyEvent);
     }
 
-    @Override public EventState getState() { return EventState.CRITICAL; }
+    @Override public EventState getState() { return EventState.ERROR; }
 
-    @Override public EventCategory getCategory() { return EventCategory.WORKFLOW; }
+    @Override public EventCategory getCategory() { return EventCategory.ACTION; }
 
     @Override public Long getInitialEventId() { return getEventId(); }
 
@@ -21,9 +21,8 @@ public class StartChildWorkflowExecutionFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getCause(); }
-
-    @Override public String getData2() { return getControl(); }
+    @Override public String getControl() {  return getControl(); } 
+    @Override public String getReason() {  return null; } 
 
     public StartChildWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getStartChildWorkflowExecutionFailedEventAttributes();}
 
@@ -38,7 +37,5 @@ public class StartChildWorkflowExecutionFailedEvent extends Event {
     public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
 
     public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
-
-    public String getControl() { return getAttributes().getControl(); }
 
 }

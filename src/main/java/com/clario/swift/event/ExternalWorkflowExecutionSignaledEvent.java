@@ -21,9 +21,7 @@ public class ExternalWorkflowExecutionSignaledEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getRunId(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getOutput() {  return getRunId(); } 
 
     public ExternalWorkflowExecutionSignaledEventAttributes getAttributes() {return historyEvent.getExternalWorkflowExecutionSignaledEventAttributes();}
 

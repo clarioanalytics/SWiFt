@@ -11,9 +11,9 @@ public class RecordMarkerFailedEvent extends Event {
         super(historyEvent);
     }
 
-    @Override public EventState getState() { return EventState.INFO; }
+    @Override public EventState getState() { return EventState.ERROR; }
 
-    @Override public EventCategory getCategory() { return EventCategory.EXTERNAL; }
+    @Override public EventCategory getCategory() { return EventCategory.ACTION; }
 
     @Override public Long getInitialEventId() { return getEventId(); }
 
@@ -21,9 +21,7 @@ public class RecordMarkerFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return null; }
-
-    @Override public String getData2() { return null; }
+    @Override public String getReason() {  return null; } 
 
     public RecordMarkerFailedEventAttributes getAttributes() {return historyEvent.getRecordMarkerFailedEventAttributes();}
 

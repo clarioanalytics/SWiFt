@@ -21,9 +21,7 @@ public class ChildWorkflowExecutionCompletedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getResult(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getOutput() {  return getResult(); } 
 
     public ChildWorkflowExecutionCompletedEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionCompletedEventAttributes();}
 

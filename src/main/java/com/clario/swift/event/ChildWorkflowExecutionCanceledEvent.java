@@ -21,9 +21,7 @@ public class ChildWorkflowExecutionCanceledEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getDetails(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getReason() {  return null; } 
 
     public ChildWorkflowExecutionCanceledEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionCanceledEventAttributes();}
 

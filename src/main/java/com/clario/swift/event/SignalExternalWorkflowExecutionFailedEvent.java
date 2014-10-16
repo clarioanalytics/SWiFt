@@ -21,9 +21,8 @@ public class SignalExternalWorkflowExecutionFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getCause(); }
-
-    @Override public String getData2() { return getControl(); }
+    @Override public String getControl() {  return getControl(); } 
+    @Override public String getReason() {  return null; } 
 
     public SignalExternalWorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getSignalExternalWorkflowExecutionFailedEventAttributes();}
 
@@ -36,7 +35,5 @@ public class SignalExternalWorkflowExecutionFailedEvent extends Event {
     public Long getInitiatedEventId() { return getAttributes().getInitiatedEventId(); }
 
     public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
-
-    public String getControl() { return getAttributes().getControl(); }
 
 }

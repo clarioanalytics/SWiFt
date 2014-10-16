@@ -21,9 +21,6 @@ public class ChildWorkflowExecutionStartedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getRunId(); }
-
-    @Override public String getData2() { return null; }
 
     public ChildWorkflowExecutionStartedEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionStartedEventAttributes();}
 

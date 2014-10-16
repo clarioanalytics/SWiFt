@@ -70,7 +70,7 @@ public class EventListTest {
         assertEquals(1, signals.size());
         WorkflowExecutionSignaledEvent event = signals.getFirst();
         assertEquals("Boo", event.getActionId());
-        assertEquals("99", event.getInput());
+        assertEquals("99", event.getOutput());
     }
 
     @Test
@@ -83,7 +83,7 @@ public class EventListTest {
         assertEquals(1, signals.size());
         WorkflowExecutionSignaledEvent event = signals.getFirst();
         assertEquals("Boo", event.getActionId());
-        assertEquals("99", event.getInput());
+        assertEquals("99", event.getOutput());
     }
 
     @Test

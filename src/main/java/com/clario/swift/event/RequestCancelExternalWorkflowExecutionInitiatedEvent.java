@@ -21,9 +21,7 @@ public class RequestCancelExternalWorkflowExecutionInitiatedEvent extends Event 
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return null; }
-
-    @Override public String getData2() { return null; }
+    @Override public String getControl() {  return getControl(); } 
 
     public RequestCancelExternalWorkflowExecutionInitiatedEventAttributes getAttributes() {return historyEvent.getRequestCancelExternalWorkflowExecutionInitiatedEventAttributes();}
 
@@ -32,7 +30,5 @@ public class RequestCancelExternalWorkflowExecutionInitiatedEvent extends Event 
     public String getRunId() { return getAttributes().getRunId(); }
 
     public Long getDecisionTaskCompletedEventId() { return getAttributes().getDecisionTaskCompletedEventId(); }
-
-    public String getControl() { return getAttributes().getControl(); }
 
 }

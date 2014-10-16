@@ -21,13 +21,9 @@ public class WorkflowExecutionStartedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getInput(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getOutput() {  return getInput(); } 
 
     public WorkflowExecutionStartedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionStartedEventAttributes();}
-
-    public String getInput() { return getAttributes().getInput(); }
 
     public String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
 

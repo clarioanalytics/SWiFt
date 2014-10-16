@@ -21,9 +21,7 @@ public class DecisionTaskCompletedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getExecutionContext(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getOutput() {  return getExecutionContext(); } 
 
     public DecisionTaskCompletedEventAttributes getAttributes() {return historyEvent.getDecisionTaskCompletedEventAttributes();}
 

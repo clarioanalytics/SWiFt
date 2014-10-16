@@ -4,6 +4,8 @@ import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import org.joda.time.DateTime;
 
+import static java.lang.String.format;
+
 /**
  * @author George Coller
  */
@@ -37,48 +39,15 @@ public abstract class Event implements Comparable<Event> {
 
     public abstract String getActionId();
 
-    /**
-     * Access primary data field for this event.
-     * <p/>
-     * Each SWF event type may have one or several 'data' fields, for example the field 'input' on
-     * an event with type <code>ActivityTaskScheduled</code> contains the input for that activity.
-     * <p/>
-     * Events that will have populate data fields:
-     * <pre>{@code &nbsp;
-     * EventType                                | Data 1      | Data 2
-     * -----------------------------------------+-------------+--------
-     * ActivityTaskScheduled                    | input       | control
-     * ActivityTaskStarted                      | identity    | -
-     * ActivityTaskCompleted                    | result      | -
-     * ActivityTaskCanceled                     | details     | -
-     * ActivityTaskFailed                       | reason      | details
-     * ActivityTaskTimedOut                     | timeoutType | details
-     * TimerStarted                             | control     | -
-     * StartTimerFailed                         | cause       | -
-     * StartChildWorkflowExecutionInitiated     | input       | control
-     * ChildWorkflowExecutionStarted            | WorkflowExecutionRunId | -
-     * ChildWorkflowExecutionCompleted          | result      | -
-     * ChildWorkflowExecutionCanceled           | details     | -
-     * ChildWorkflowExecutionFailed             | reason      | details
-     * ChildWorkflowExecutionTimedOut           | timeoutType | -
-     * SignalExternalWorkflowExecutionInitiated | input       | control
-     * ExternalWorkflowExecutionSignaled        | runId       | -
-     * WorkflowExecutionSignaled                | input       | -
-     * MarkerRecorded                           | details     | -
-     * DecisionTaskCompleted                    | context     | _
-     * WorkflowExecutionStarted                 | input       | _
-     * WorkflowExecutionCancelRequested         | cause       | _
-     * ScheduleActivityTaskFailed               | cause       | activityId
-     * StartChildWorkflowExecutionFailed        | cause       | control
-     * SignalExternalWorkflowExecutionFailed    | cause       | control
-     * }</pre>
-     *
-     * @return the primary data field for this event or null if it does not exist.
-     * @see HistoryEvent
-     */
-    public abstract String getData1();
+    public String getInput() { throw new UnsupportedOperationException(format("%s input not available", getClass().getSimpleName())); }
 
-    public abstract String getData2();
+    public String getOutput() { throw new UnsupportedOperationException(format("%s output not available", getClass().getSimpleName())); }
+
+    public String getControl() { throw new UnsupportedOperationException(format("%s control not available", getClass().getSimpleName())); }
+
+    public String getReason() { throw new UnsupportedOperationException(format("%s error reason not available", getClass().getSimpleName())); }
+
+    public String getDetails() { throw new UnsupportedOperationException(format("%s error details not available", getClass().getSimpleName())); }
 
     /**
      * Two events are consider equal if they share the same {@link #getEventId()}.
@@ -96,7 +65,7 @@ public abstract class Event implements Comparable<Event> {
 
     @Override
     public String toString() {
-        return String.format("%s: %s, %s, %s, %s", getType(), getEventId(), getInitialEventId(), getActionId(), getEventTimestamp());
+        return format("%s: %s, %s, %s, %s", getType(), getEventId(), getInitialEventId(), getActionId(), getEventTimestamp());
     }
 
     /**

@@ -21,13 +21,9 @@ public class ActivityTaskFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getReason(); }
-
-    @Override public String getData2() { return getDetails(); }
+    @Override public String getReason() {  return getReason(); } 
 
     public ActivityTaskFailedEventAttributes getAttributes() {return historyEvent.getActivityTaskFailedEventAttributes();}
-
-    public String getReason() { return getAttributes().getReason(); }
 
     public String getDetails() { return getAttributes().getDetails(); }
 

@@ -21,9 +21,8 @@ public class StartChildWorkflowExecutionInitiatedEvent extends Event {
 
     @Override public String getActionId() { return getWorkflowId(); }
 
-    @Override public String getData1() { return getInput(); }
-
-    @Override public String getData2() { return getControl(); }
+    @Override public String getInput() {  return getInput(); } 
+    @Override public String getControl() {  return getControl(); } 
 
     public StartChildWorkflowExecutionInitiatedEventAttributes getAttributes() {return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes();}
 
@@ -32,10 +31,6 @@ public class StartChildWorkflowExecutionInitiatedEvent extends Event {
     public String getWorkflowName() { return getAttributes().getWorkflowType().getName(); }
 
     public String getWorkflowVersion() { return getAttributes().getWorkflowType().getVersion(); }
-
-    public String getControl() { return getAttributes().getControl(); }
-
-    public String getInput() { return getAttributes().getInput(); }
 
     public String getExecutionStartToCloseTimeout() { return getAttributes().getExecutionStartToCloseTimeout(); }
 

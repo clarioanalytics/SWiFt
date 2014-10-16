@@ -42,6 +42,20 @@ public abstract class Action<T extends Action> {
     private boolean completeWorkflowOnSuccess = false;
     private boolean cancelActiveRetryTimer = false;
 
+    //
+    // COMMON GETTERS ACROSS ACTIONS
+    //
+//    public abstract String getInput();
+//
+//    public abstract String getControl();
+//
+//    public abstract String getOutput();
+//
+//    public abstract String getErrorReason();
+//
+//    public abstract String getErrorDetails();
+
+
     /**
      * Each action requires a workflow-unique identifier.
      *
@@ -167,7 +181,7 @@ public abstract class Action<T extends Action> {
      */
     public String getOutput() {
         if (isSuccess()) {
-            return getCurrentEvent().getData1();
+            return getCurrentEvent().getOutput();
         } else if (successRetryPolicy != null && getState() == RETRY) {
             ActivityTaskCompletedEvent completed = getEvents().selectEventType(ActivityTaskCompleted).getFirst();
             if (completed == null) {
@@ -216,7 +230,7 @@ public abstract class Action<T extends Action> {
                 break;
             case SUCCESS:
                 if (successRetryPolicy != null) {
-                    if (successRetryPolicy.testResultMatches(currentEvent.getData1())) {
+                    if (successRetryPolicy.testResultMatches(currentEvent.getOutput())) {
                         log.info(format("%s no more repeats. matched output: %s", this, getOutput()));
                     } else {
                         Decision decision = successRetryPolicy.calcNextDecision(getActionId(), getEvents());
@@ -224,7 +238,7 @@ public abstract class Action<T extends Action> {
                             decisions.add(decision);
                             log.info("success, start timer delay: {} ", decision);
                         } else {
-                            log.info("success, no more attempts: output={}", currentEvent.getData1());
+                            log.info("success, no more attempts: output={}", currentEvent.getOutput());
                         }
                     }
                 } else if (completeWorkflowOnSuccess) {
@@ -242,8 +256,8 @@ public abstract class Action<T extends Action> {
             case ERROR:
                 boolean checkFailWorkflowOnError = true;
                 if (errorRetryPolicy != null) {
-                    if (errorRetryPolicy.testResultMatches(currentEvent.getData1(), currentEvent.getData2())) {
-                        log.info(format("%s no more attempts. matched error reason or details: %s %s", this, currentEvent.getData1(), currentEvent.getData2()));
+                    if (errorRetryPolicy.testResultMatches(currentEvent.getReason(), currentEvent.getDetails())) {
+                        log.info(format("%s no more attempts. matched error reason or details: %s %s", this, currentEvent.getReason(), currentEvent.getDetails()));
                     } else {
                         Decision decision = errorRetryPolicy.calcNextDecision(getActionId(), getEvents());
                         if (decision != null) {
@@ -251,12 +265,12 @@ public abstract class Action<T extends Action> {
                             checkFailWorkflowOnError = false;
                             log.info("error, start timer delay: {} ", decision);
                         } else {
-                            log.info("error, no more attempts: error={} detail={}", currentEvent.getData1(), currentEvent.getData2());
+                            log.info("error, no more attempts: error={} detail={}", currentEvent.getReason(), currentEvent.getDetails());
                         }
                     }
                 }
                 if (checkFailWorkflowOnError && failWorkflowOnError) {
-                    decisions.add(createFailWorkflowExecutionDecision(toString(), currentEvent.getData1(), currentEvent.getData2()));
+                    decisions.add(createFailWorkflowExecutionDecision(toString(), currentEvent.getReason(), currentEvent.getDetails()));
                 }
                 break;
             default:

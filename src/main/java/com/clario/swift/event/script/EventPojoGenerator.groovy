@@ -24,8 +24,15 @@ public class EventPojoGenerator {
         return str ? str[0].capitalize() + str.substring(1) : str
     }
 
-    public static String makeGetter(String str) {
-        return str ? "get${capitalize(str)}()" : null
+    public static String makeGetter(Object o) {
+        if (o instanceof String) {
+            String str = o;
+            return str ? "get${capitalize(str)}()" : null
+        } else if (o instanceof Class) {
+            Class clazz = o;
+            return '"' + clazz.getSimpleName() + '"'
+        }
+        return null;
     }
 
     public static void main(String[] args) {
@@ -65,11 +72,16 @@ public class $className extends ${baseClassName} {
     @Override public boolean isInitialAction() { return ${map.isStartAction ?: false}; }
 
     @Override public String getActionId() { return ${makeGetter(map.actionId)}; }
+"""
 
-    @Override public String getData1() { return ${makeGetter(map.data1)}; }
+                ['input', 'control', 'output', 'reason', 'detail'].each {
+                    if (map[it]) {
+                        pw.println """    @Override public String ${makeGetter(it)} {  return ${makeGetter(map[it])}; } """
+                    }
+                }
 
-    @Override public String getData2() { return ${makeGetter(map.data2)}; }
 
+                pw.println """
     public ${className}Attributes getAttributes() {return historyEvent.get${className}Attributes();}
 """
                 def clazz = Class.forName("com.amazonaws.services.simpleworkflow.model.${className}Attributes")
@@ -83,7 +95,7 @@ public class $className extends ${baseClassName} {
 
     static void recurse(PrintWriter pw, Class parentClazz, Class clazz) {
         clazz.privateGetDeclaredFields(false).findAll {
-            return !['serialVersionUID', 'autoConstruct'].contains(it.name)
+            return !['serialVersionUID', 'autoConstruct', 'input', 'output', 'control', 'reason', 'detail'].contains(it.name)
         }.each { Field field ->
             if (field.type.name.startsWith('com.amazonaws')) {
                 recurse(pw, clazz, Class.forName(field.type.name))
@@ -151,69 +163,69 @@ class EventFactory {
     }
     static final def EVENT_TYPE_MAP = [
 // Activity Events
-(ActivityTaskScheduled)                          : [category: ACTION, state: ACTIVE, data1: 'input', data2: 'control', initialEventId: 'EventId', actionId: 'ActivityId', isStartAction: true],
-(ActivityTaskStarted)                            : [category: ACTION, state: ACTIVE, data1: 'identity', initialEventId: 'ScheduledEventId'],
-(ActivityTaskCompleted)                          : [category: ACTION, state: SUCCESS, data1: 'result', initialEventId: 'ScheduledEventId'],
-(ActivityTaskCanceled)                           : [category: ACTION, state: ERROR, data1: 'details', initialEventId: 'ScheduledEventId'],
-(ActivityTaskFailed)                             : [category: ACTION, state: ERROR, data1: 'reason', data2: 'details', initialEventId: 'ScheduledEventId'],
-(ActivityTaskTimedOut)                           : [category: ACTION, state: ERROR, data1: 'timeoutType', data2: 'details', initialEventId: 'ScheduledEventId'],
+(ActivityTaskScheduled)                          : [category: ACTION, state: ACTIVE, input: 'input', control: 'control', initialEventId: 'EventId', actionId: 'ActivityId', isStartAction: true],
+(ActivityTaskStarted)                            : [category: ACTION, state: ACTIVE, initialEventId: 'ScheduledEventId'],
+(ActivityTaskCompleted)                          : [category: ACTION, state: SUCCESS, output: 'result', initialEventId: 'ScheduledEventId'],
+(ActivityTaskCanceled)                           : [category: ACTION, state: ERROR, reason: ActivityTaskCanceled, details: 'details', initialEventId: 'ScheduledEventId'],
+(ActivityTaskFailed)                             : [category: ACTION, state: ERROR, reason: 'reason', details: 'details', initialEventId: 'ScheduledEventId'],
+(ActivityTaskTimedOut)                           : [category: ACTION, state: ERROR, reason: 'timeoutType', details: 'details', initialEventId: 'ScheduledEventId'],
 
 // Timers
-(TimerStarted)                                   : [category: ACTION, state: ACTIVE, data1: 'control', initialEventId: 'EventId', actionId: 'TimerId', isStartAction: true],
-(TimerFired)                                     : [category: ACTION, state: SUCCESS, initialEventId: 'StartedEventId', actionId: 'TimerId'],
-(TimerCanceled)                                  : [category: ACTION, state: SUCCESS, initialEventId: 'StartedEventId', actionId: 'TimerId'],
-(StartTimerFailed)                               : [category: ACTION, state: ERROR, data1: 'cause', actionId: 'TimerId'],
+(TimerStarted)                                   : [category: ACTION, state: ACTIVE, input: TimerStarted, control: 'control', initialEventId: 'EventId', actionId: 'TimerId', isStartAction: true],
+(TimerFired)                                     : [category: ACTION, state: SUCCESS, output: TimerFired, initialEventId: 'StartedEventId', actionId: 'TimerId'],
+(TimerCanceled)                                  : [category: ACTION, state: SUCCESS, output: TimerCanceled, initialEventId: 'StartedEventId', actionId: 'TimerId'],
+(StartTimerFailed)                               : [category: ACTION, state: ERROR, reason: StartTimerFailed, details: 'cause', actionId: 'TimerId'],
 
 // Child Workflows
-(StartChildWorkflowExecutionInitiated)           : [category: ACTION, state: ACTIVE, data1: 'input', data2: 'control', initialEventId: 'EventId', actionId: 'WorkflowId', isStartAction: true],
-(ChildWorkflowExecutionStarted)                  : [category: ACTION, state: ACTIVE, data1: 'runId', initialEventId: 'InitiatedEventId'],
-(ChildWorkflowExecutionCompleted)                : [category: ACTION, state: SUCCESS, data1: 'result', initialEventId: 'InitiatedEventId'],
-(ChildWorkflowExecutionCanceled)                 : [category: ACTION, state: ERROR, data1: 'details', initialEventId: 'InitiatedEventId'],
-(ChildWorkflowExecutionFailed)                   : [category: ACTION, state: ERROR, data1: 'reason', data2: 'details', initialEventId: 'InitiatedEventId'],
-(ChildWorkflowExecutionTerminated)               : [category: ACTION, state: ERROR, initialEventId: 'InitiatedEventId'],
-(ChildWorkflowExecutionTimedOut)                 : [category: ACTION, state: ERROR, data1: 'timeoutType', initialEventId: 'InitiatedEventId'],
+(StartChildWorkflowExecutionInitiated)           : [category: ACTION, state: ACTIVE, input: 'input', control: 'control', initialEventId: 'EventId', actionId: 'WorkflowId', isStartAction: true],
+(ChildWorkflowExecutionStarted)                  : [category: ACTION, state: ACTIVE, initialEventId: 'InitiatedEventId'],
+(ChildWorkflowExecutionCompleted)                : [category: ACTION, state: SUCCESS, output: 'result', initialEventId: 'InitiatedEventId'],
+(ChildWorkflowExecutionCanceled)                 : [category: ACTION, state: ERROR, reason: ChildWorkflowExecutionCanceled, details: 'details', initialEventId: 'InitiatedEventId'],
+(ChildWorkflowExecutionFailed)                   : [category: ACTION, state: ERROR, reason: 'reason', details: 'details', initialEventId: 'InitiatedEventId'],
+(ChildWorkflowExecutionTerminated)               : [category: ACTION, state: ERROR, reason: ChildWorkflowExecutionTerminated, initialEventId: 'InitiatedEventId'],
+(ChildWorkflowExecutionTimedOut)                 : [category: ACTION, state: ERROR, reason: ChildWorkflowExecutionTimedOut, details: 'timeoutType', initialEventId: 'InitiatedEventId'],
+(StartChildWorkflowExecutionFailed)              : [category: ACTION, state: ERROR, reason: StartChildWorkflowExecutionFailed, details: 'cause', control: 'control', initialEventId: 'EventId'],
 
 // Signal External Workflows
-(SignalExternalWorkflowExecutionInitiated)       : [category: ACTION, state: ACTIVE, data1: 'input', data2: 'control', initialEventId: 'EventId', actionId: 'SignalName', isStartAction: true],
-(ExternalWorkflowExecutionSignaled)              : [category: ACTION, state: SUCCESS, data1: 'runId', initialEventId: 'InitiatedEventId'],
+(SignalExternalWorkflowExecutionInitiated)       : [category: ACTION, state: ACTIVE, input: 'input', control: 'control', initialEventId: 'EventId', actionId: 'SignalName', isStartAction: true],
+(ExternalWorkflowExecutionSignaled)              : [category: ACTION, state: SUCCESS, output: 'runId', initialEventId: 'InitiatedEventId'],
 
 // Signal Received (either from this workflow or external source)
-(WorkflowExecutionSignaled)                      : [category: SIGNAL, state: SUCCESS, data1: 'input', initialEventId: 'EventId', actionId:'SignalName'],
+(WorkflowExecutionSignaled)                      : [category: SIGNAL, state: SUCCESS, output: 'input', initialEventId: 'EventId', actionId: 'SignalName'],
 
 // Marker
-(MarkerRecorded)                                 : [category: ACTION, state: SUCCESS, data1: 'details', initialEventId: 'EventId', actionId: 'MarkerName', isStartAction: true],
+(MarkerRecorded)                                 : [category: ACTION, state: SUCCESS, output: 'details', initialEventId: 'EventId', actionId: 'MarkerName', isStartAction: true],
+(RecordMarkerFailed)                             : [category: ACTION, state: ERROR, reason: RecordMarkerFailed, details: 'cause', initialEventId: 'EventId'],
 
 // Decision Task Events
-(DecisionTaskCompleted)                          : [category: DECISION, state: SUCCESS, data1: 'ExecutionContext', initialEventId: 'ScheduledEventId'],
+(DecisionTaskCompleted)                          : [category: DECISION, state: SUCCESS, output: 'ExecutionContext', initialEventId: 'ScheduledEventId'],
 // WorkflowExecutionStarted
-(WorkflowExecutionStarted)                       : [category: WORKFLOW, state: SUCCESS, data1: 'input', initialEventId: 'EventId'],
+(WorkflowExecutionStarted)                       : [category: WORKFLOW, state: SUCCESS, output: 'input', initialEventId: 'EventId'],
 
 // Workflow Error Events
-(WorkflowExecutionCancelRequested)               : [category: WORKFLOW, state: CRITICAL, data1: 'cause', initialEventId: 'EventId'],
-(ScheduleActivityTaskFailed)                     : [category: WORKFLOW, state: CRITICAL, data1: 'cause', data2: 'activityId', initialEventId: 'EventId'],
-(StartChildWorkflowExecutionFailed)              : [category: WORKFLOW, state: CRITICAL, data1: 'cause', data2: 'control', initialEventId: 'EventId'],
-(SignalExternalWorkflowExecutionFailed)          : [category: WORKFLOW, state: CRITICAL, data1: 'cause', data2: 'control', initialEventId: 'EventId'],
+(WorkflowExecutionCancelRequested)               : [category: WORKFLOW, state: CRITICAL, reason: WorkflowExecutionCancelRequested, details: 'cause', initialEventId: 'EventId'],
+(ScheduleActivityTaskFailed)                     : [category: WORKFLOW, state: CRITICAL, reason: ScheduleActivityTaskFailed, details: 'cause', data2: 'activityId', initialEventId: 'EventId'],
+(SignalExternalWorkflowExecutionFailed)          : [category: WORKFLOW, state: CRITICAL, reason: SignalExternalWorkflowExecutionFailed, details: 'cause', control: 'control', initialEventId: 'EventId'],
+(CompleteWorkflowExecutionFailed)                : [category: WORKFLOW, state: CRITICAL, reason: CompleteWorkflowExecutionFailed, data1: 'cause', initialEventId: 'EventId'],
+(WorkflowExecutionFailed)                        : [category: WORKFLOW, state: CRITICAL, reason: 'reason', details: 'details', initialEventId: 'EventId'],
+(FailWorkflowExecutionFailed)                    : [category: WORKFLOW, state: CRITICAL, reason: FailWorkflowExecutionFailed, details: 'cause', initialEventId: 'EventId'],
+(CancelWorkflowExecutionFailed)                  : [category: WORKFLOW, state: CRITICAL, reason: CancelWorkflowExecutionFailed, details: 'cause', initialEventId: 'EventId'],
+(ContinueAsNewWorkflowExecutionFailed)           : [category: WORKFLOW, state: CRITICAL, reason: ContinueAsNewWorkflowExecutionFailed, details: 'cause', initialEventId: 'EventId'],
 
 // Informational EventTypes that are not useful for general decision making
 (DecisionTaskScheduled)                          : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (DecisionTaskStarted)                            : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (DecisionTaskTimedOut)                           : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (WorkflowExecutionCompleted)                     : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
-(CompleteWorkflowExecutionFailed)                : [category: EXTERNAL, state: INFO, data1: 'cause', initialEventId: 'EventId'],
-(WorkflowExecutionFailed)                        : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
-(FailWorkflowExecutionFailed)                    : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (WorkflowExecutionTimedOut)                      : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (WorkflowExecutionCanceled)                      : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
-(CancelWorkflowExecutionFailed)                  : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (WorkflowExecutionContinuedAsNew)                : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
-(ContinueAsNewWorkflowExecutionFailed)           : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (WorkflowExecutionTerminated)                    : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (ActivityTaskCancelRequested)                    : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (RequestCancelActivityTaskFailed)                : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
-(RecordMarkerFailed)                             : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
 (CancelTimerFailed)                              : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
-(RequestCancelExternalWorkflowExecutionInitiated): [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
-(RequestCancelExternalWorkflowExecutionFailed)   : [category: EXTERNAL, state: INFO, initialEventId: 'EventId'],
+(RequestCancelExternalWorkflowExecutionInitiated): [category: EXTERNAL, control: 'control', state: INFO, initialEventId: 'EventId'],
+(RequestCancelExternalWorkflowExecutionFailed)   : [category: EXTERNAL, control: 'control', state: INFO, initialEventId: 'EventId'],
 (ExternalWorkflowExecutionCancelRequested)       : [category: EXTERNAL, state: INFO, initialEventId: 'EventId']
     ]
 

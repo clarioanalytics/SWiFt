@@ -21,9 +21,7 @@ public class WorkflowExecutionCancelRequestedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getCause(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getReason() {  return null; } 
 
     public WorkflowExecutionCancelRequestedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionCancelRequestedEventAttributes();}
 

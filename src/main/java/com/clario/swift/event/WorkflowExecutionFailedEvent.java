@@ -11,9 +11,9 @@ public class WorkflowExecutionFailedEvent extends Event {
         super(historyEvent);
     }
 
-    @Override public EventState getState() { return EventState.INFO; }
+    @Override public EventState getState() { return EventState.CRITICAL; }
 
-    @Override public EventCategory getCategory() { return EventCategory.EXTERNAL; }
+    @Override public EventCategory getCategory() { return EventCategory.WORKFLOW; }
 
     @Override public Long getInitialEventId() { return getEventId(); }
 
@@ -21,13 +21,9 @@ public class WorkflowExecutionFailedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return null; }
-
-    @Override public String getData2() { return null; }
+    @Override public String getReason() {  return getReason(); } 
 
     public WorkflowExecutionFailedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionFailedEventAttributes();}
-
-    public String getReason() { return getAttributes().getReason(); }
 
     public String getDetails() { return getAttributes().getDetails(); }
 

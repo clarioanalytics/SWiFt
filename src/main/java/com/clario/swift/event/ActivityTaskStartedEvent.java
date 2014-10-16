@@ -21,9 +21,6 @@ public class ActivityTaskStartedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getIdentity(); }
-
-    @Override public String getData2() { return null; }
 
     public ActivityTaskStartedEventAttributes getAttributes() {return historyEvent.getActivityTaskStartedEventAttributes();}
 

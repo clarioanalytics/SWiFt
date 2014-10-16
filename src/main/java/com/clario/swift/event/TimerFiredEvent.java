@@ -21,9 +21,7 @@ public class TimerFiredEvent extends Event {
 
     @Override public String getActionId() { return getTimerId(); }
 
-    @Override public String getData1() { return null; }
-
-    @Override public String getData2() { return null; }
+    @Override public String getOutput() {  return null; } 
 
     public TimerFiredEventAttributes getAttributes() {return historyEvent.getTimerFiredEventAttributes();}
 

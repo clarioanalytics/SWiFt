@@ -21,9 +21,7 @@ public class ActivityTaskTimedOutEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getTimeoutType(); }
-
-    @Override public String getData2() { return getDetails(); }
+    @Override public String getReason() {  return getTimeoutType(); } 
 
     public ActivityTaskTimedOutEventAttributes getAttributes() {return historyEvent.getActivityTaskTimedOutEventAttributes();}
 

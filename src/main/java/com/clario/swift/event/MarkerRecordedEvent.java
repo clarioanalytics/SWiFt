@@ -21,9 +21,7 @@ public class MarkerRecordedEvent extends Event {
 
     @Override public String getActionId() { return getMarkerName(); }
 
-    @Override public String getData1() { return getDetails(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getOutput() {  return getDetails(); } 
 
     public MarkerRecordedEventAttributes getAttributes() {return historyEvent.getMarkerRecordedEventAttributes();}
 

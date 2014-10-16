@@ -21,13 +21,8 @@ public class WorkflowExecutionTerminatedEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return null; }
-
-    @Override public String getData2() { return null; }
 
     public WorkflowExecutionTerminatedEventAttributes getAttributes() {return historyEvent.getWorkflowExecutionTerminatedEventAttributes();}
-
-    public String getReason() { return getAttributes().getReason(); }
 
     public String getDetails() { return getAttributes().getDetails(); }
 

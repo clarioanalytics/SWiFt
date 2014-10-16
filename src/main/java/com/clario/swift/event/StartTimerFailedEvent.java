@@ -21,9 +21,7 @@ public class StartTimerFailedEvent extends Event {
 
     @Override public String getActionId() { return getTimerId(); }
 
-    @Override public String getData1() { return getCause(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getReason() {  return null; } 
 
     public StartTimerFailedEventAttributes getAttributes() {return historyEvent.getStartTimerFailedEventAttributes();}
 

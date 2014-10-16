@@ -21,9 +21,7 @@ public class ChildWorkflowExecutionTimedOutEvent extends Event {
 
     @Override public String getActionId() { return null; }
 
-    @Override public String getData1() { return getTimeoutType(); }
-
-    @Override public String getData2() { return null; }
+    @Override public String getReason() {  return null; } 
 
     public ChildWorkflowExecutionTimedOutEventAttributes getAttributes() {return historyEvent.getChildWorkflowExecutionTimedOutEventAttributes();}
 
