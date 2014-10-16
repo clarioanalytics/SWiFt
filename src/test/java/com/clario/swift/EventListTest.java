@@ -1,9 +1,6 @@
 package com.clario.swift;
 
-import com.clario.swift.event.Event;
-import com.clario.swift.event.EventState;
-import com.clario.swift.event.MarkerRecordedEvent;
-import com.clario.swift.event.WorkflowExecutionSignaledEvent;
+import com.clario.swift.event.*;
 import org.junit.Test;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
@@ -39,6 +36,15 @@ public class EventListTest {
     @Test
     public void testByEventType() {
         EventList mock = loadEventList("SimpleWorkflowHistory.json").select(byEventType(ActivityTaskCompleted));
+        assertEquals(3, mock.size());
+        for (Event historyEvent : mock) {
+            assertEquals(ActivityTaskCompleted, historyEvent.getType());
+        }
+    }
+
+    @Test
+    public void testByEventClass() {
+        EventList mock = loadEventList("SimpleWorkflowHistory.json").selectEvent(ActivityTaskCompletedEvent.class);
         assertEquals(3, mock.size());
         for (Event historyEvent : mock) {
             assertEquals(ActivityTaskCompleted, historyEvent.getType());
