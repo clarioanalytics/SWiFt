@@ -59,7 +59,7 @@ public class TestUtil {
                         .withScheduledEventId(actionEvent.getHistoryEvent().getActivityTaskCompletedEventAttributes().getScheduledEventId())
                         .withStartedEventId(actionEvent.getHistoryEvent().getActivityTaskCompletedEventAttributes().getStartedEventId()));
 
-                historyEvents.add(i, Event.create(historyEvent));
+                historyEvents.add(i, new Event(historyEvent));
                 break;
             }
         }
@@ -247,7 +247,7 @@ public class TestUtil {
                         .withScheduledEventId(event.getHistoryEvent().getActivityTaskCompletedEventAttributes().getScheduledEventId())
                         .withStartedEventId(event.getHistoryEvent().getActivityTaskCompletedEventAttributes().getStartedEventId()));
 
-                converted.add(Event.create(historyEvent));
+                converted.add(new Event(historyEvent));
             } else {
                 converted.add(event);
             }

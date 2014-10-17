@@ -1,6 +1,7 @@
 package com.clario.swift;
 
-import com.clario.swift.event.*;
+import com.clario.swift.event.Event;
+import com.clario.swift.event.EventState;
 import org.junit.Test;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
@@ -43,15 +44,6 @@ public class EventListTest {
     }
 
     @Test
-    public void testByEventClass() {
-        EventList mock = loadEventList("SimpleWorkflowHistory.json").selectEvent(ActivityTaskCompletedEvent.class);
-        assertEquals(3, mock.size());
-        for (Event historyEvent : mock) {
-            assertEquals(ActivityTaskCompleted, historyEvent.getType());
-        }
-    }
-
-    @Test
     public void testByActionState() {
         EventList events = loadEventList("SimpleWorkflowHistory.json")
             .select(byEventState(EventState.ACTIVE));
@@ -65,16 +57,16 @@ public class EventListTest {
     public void testGetMarkers() {
         EventList markers = loadEventList("RetryWorkflowHistory.json").selectEventType(MarkerRecorded);
         assertEquals(1, markers.size());
-        MarkerRecordedEvent event = markers.getFirst();
+        Event event = markers.getFirst();
         assertEquals("failUntilTime", event.getActionId());
-        assertEquals("1398724533227", event.getDetails());
+        assertEquals("1398724533227", event.getOutput());
     }
 
     @Test
     public void testGetSignalsAll() {
         EventList signals = loadEventList("WaitForSignalWorkflow.json").selectEventType(WorkflowExecutionSignaled);
         assertEquals(1, signals.size());
-        WorkflowExecutionSignaledEvent event = signals.getFirst();
+        Event event = signals.getFirst();
         assertEquals("Boo", event.getActionId());
         assertEquals("99", event.getOutput());
     }
@@ -87,7 +79,7 @@ public class EventListTest {
                 byEventType(WorkflowExecutionSignaled));
 
         assertEquals(1, signals.size());
-        WorkflowExecutionSignaledEvent event = signals.getFirst();
+        Event event = signals.getFirst();
         assertEquals("Boo", event.getActionId());
         assertEquals("99", event.getOutput());
     }

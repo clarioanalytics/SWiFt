@@ -6,7 +6,6 @@ import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.EventList;
 import com.clario.swift.Workflow;
-import com.clario.swift.event.ActivityTaskCompletedEvent;
 import com.clario.swift.event.Event;
 import com.clario.swift.event.EventState;
 import org.slf4j.Logger;
@@ -59,7 +58,7 @@ public abstract class Action<T extends Action> {
         if (isSuccess()) {
             return getCurrentEvent().getOutput();
         } else if (successRetryPolicy != null && getState() == RETRY) {
-            ActivityTaskCompletedEvent completed = getEvents().selectEventType(ActivityTaskCompleted).getFirst();
+            Event completed = getEvents().selectEventType(ActivityTaskCompleted).getFirst();
             if (completed == null) {
                 throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
             } else {

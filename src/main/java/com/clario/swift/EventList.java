@@ -6,7 +6,6 @@ import com.clario.swift.action.Action;
 import com.clario.swift.action.RetryPolicy;
 import com.clario.swift.event.Event;
 import com.clario.swift.event.EventState;
-import com.clario.swift.event.TimerStartedEvent;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -39,7 +38,7 @@ public class EventList extends AbstractList<Event> {
     public static EventList convert(List<HistoryEvent> historyEvents) {
         List<Event> actionEvents = new ArrayList<Event>(historyEvents.size());
         for (HistoryEvent historyEvent : historyEvents) {
-            actionEvents.add(Event.create(historyEvent));
+            actionEvents.add(new Event(historyEvent));
         }
         return new EventList(actionEvents);
     }
@@ -122,8 +121,6 @@ public class EventList extends AbstractList<Event> {
 
     public EventList selectEventType(EventType eventType) {return select(byEventType(eventType));}
 
-    public EventList selectEvent(Class<? extends Event> eventClass) {return select(byEvent(eventClass));}
-
     public EventList selectEventState(EventState eventState) {return select(byEventState(eventState));}
 
     public EventList selectSinceLastDecision() {return select(bySinceLastDecision());}
@@ -136,7 +133,7 @@ public class EventList extends AbstractList<Event> {
     public EventList selectRetryCount(final String control) {
         return select(new SelectFunction() {
             public boolean select(Event event, int index, EventList eventList) {
-                return TimerStarted == event.getType() && control.equals(((TimerStartedEvent) event).getControl());
+                return TimerStarted == event.getType() && control.equals(event.getHistoryEvent().getTimerStartedEventAttributes().getControl());
             }
         });
     }
@@ -161,17 +158,6 @@ public class EventList extends AbstractList<Event> {
                     }
                 }
                 return initialEventIds.contains(event.getEventId()) || initialEventIds.contains(event.getInitialEventId());
-            }
-        };
-    }
-
-    /**
-     * Select events by {@link EventType}.
-     */
-    public static SelectFunction byEvent(final Class<? extends Event> eventClass) {
-        return new SelectFunction() {
-            public boolean select(Event event, int index, EventList eventList) {
-                return event.getClass().equals(eventClass);
             }
         };
     }

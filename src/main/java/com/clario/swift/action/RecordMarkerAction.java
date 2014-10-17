@@ -3,7 +3,6 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.RecordMarkerDecisionAttributes;
 import com.clario.swift.Workflow;
-import com.clario.swift.event.MarkerRecordedEvent;
 
 import static com.clario.swift.SwiftUtil.MAX_INPUT_LENGTH;
 import static com.clario.swift.SwiftUtil.assertMaxLength;
@@ -63,12 +62,7 @@ public class RecordMarkerAction extends Action<RecordMarkerAction> {
 
     @Override
     public String getOutput() {
-        if (isSuccess()) {
-            MarkerRecordedEvent event = getCurrentEvent();
-            return event.getDetails();
-        } else {
-            return details;
-        }
+        return isSuccess() ? getCurrentEvent().getDetails() : details;
     }
 
     @Override
