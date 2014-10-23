@@ -62,7 +62,7 @@ public class RetryActivityWorkflow extends Workflow {
     @Override
     public void decide(List<Decision> decisions) {
 
-        if (failUntilTimeMarker.isInitial()) {
+        if (failUntilTimeMarker.isNotStarted()) {
             // Use marker to do this code exactly once
             int seconds = Integer.parseInt(getWorkflowInput());
             DateTime dateTime = new DateTime().plusSeconds(seconds);

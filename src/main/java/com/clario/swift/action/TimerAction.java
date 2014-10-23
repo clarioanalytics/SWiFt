@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.StartTimer;
 import static com.clario.swift.SwiftUtil.*;
-import static com.clario.swift.event.EventState.INITIAL;
+import static com.clario.swift.event.EventState.NOT_STARTED;
 import static java.lang.String.format;
 
 /**
@@ -51,7 +51,7 @@ public class TimerAction extends Action<TimerAction> {
 
     @Override
     public String getControl() {
-        return isInitial() ? control : super.getControl();
+        return isNotStarted() ? control : super.getControl();
     }
 
     /**
@@ -80,7 +80,7 @@ public class TimerAction extends Action<TimerAction> {
      */
     @Override public EventState getState() {
         Event currentEvent = getCurrentEvent();
-        return currentEvent == null ? INITIAL : currentEvent.getState();
+        return currentEvent == null ? NOT_STARTED : currentEvent.getState();
     }
 
     /**

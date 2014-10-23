@@ -72,7 +72,7 @@ public class SplitJoinWorkflow extends Workflow {
 
             // join branches after step 4 and step 5 are complete
             if (step4.isSuccess() && step5.isSuccess()) {
-                if (step6.isInitial()) {
+                if (step6.isNotStarted()) {
                     log.info(format("Join step%s and step%s", step4.getOutput(), step5.getOutput()));
                 }
                 step6.withInput("6").decide(decisions);

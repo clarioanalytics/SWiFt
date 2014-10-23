@@ -53,7 +53,7 @@ public class SignalWaitForSignalWorkflow extends Workflow {
     public void decide(List<Decision> decisions) {
         log.info("decide");
 
-        if (marker.isInitial()) {
+        if (marker.isNotStarted()) {
             // Using a marker to ensure we create the child workflow id exactly once.
             marker.withDetails(createUniqueWorkflowId("Child Workflow")).decide(decisions);
         }
@@ -72,14 +72,14 @@ public class SignalWaitForSignalWorkflow extends Workflow {
         childWorkflow.setWorkflow(this);
 
         // Only start the child workflow once
-        if (childWorkflow.isInitial()) {
+        if (childWorkflow.isNotStarted()) {
             log.info("Start child workflow");
             childWorkflow.decide(decisions);
         }
 
         // Give the child workflow some time to start using a timer action
         if (timer.decide(decisions).isSuccess()) {
-            if (signal.isInitial()) {
+            if (signal.isNotStarted()) {
                 log.info("Timer finished, send signal"); // log only once
             }
             if (signal.withWorkflowId(childWorkflow.getActionId()).decide(decisions).isSuccess()) {

@@ -143,6 +143,15 @@ public abstract class Workflow {
     public abstract void decide(List<Decision> decisions);
 
     /**
+     * Called if an external process issued a {@link EventType#WorkflowExecutionCancelRequested} for this workflow.
+     * By default will simply add a {@link DecisionType#CancelWorkflowExecution} decision.  Subclasses
+     * can override this method to gracefully shut down a more complex workflow.
+     */
+    public void onCancelRequested(Event cancelEvent, List<Decision> decisions) {
+        decisions.add(createCancelWorkflowExecutionDecision(cancelEvent.getDetails()));
+    }
+
+    /**
      * Called by {@link DecisionPoller} to initialize workflow for a new decision task.
      */
     public void init() {
@@ -313,6 +322,14 @@ public abstract class Workflow {
                 new CompleteWorkflowExecutionDecisionAttributes()
                     .withResult(trimToMaxLength(result, DETAILS_MAX_LENGTH))
             );
+    }
+
+    public static Decision createCancelWorkflowExecutionDecision(String result) {
+        return new Decision()
+            .withDecisionType(DecisionType.CancelWorkflowExecution)
+            .withCancelWorkflowExecutionDecisionAttributes(
+                new CancelWorkflowExecutionDecisionAttributes()
+                    .withDetails(trimToMaxLength(result, DETAILS_MAX_LENGTH)));
     }
 
     /**

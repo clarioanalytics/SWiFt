@@ -44,7 +44,7 @@ public class StartChildWorkflow extends Workflow {
         // Since instances of StartChildWorkflow could be used across multiple calls we need to create a
         // specifically-named childWorkflowId for this workflow run's start child workflow call.
         // Markers come in handy for this since they are persisted immediately in the workflow state.
-        if (childWorkflowIdMarker.isInitial()) {
+        if (childWorkflowIdMarker.isNotStarted()) {
             // do this code only once
             childWorkflowIdMarker
                 .withDetails(createUniqueWorkflowId("Child Workflow"))

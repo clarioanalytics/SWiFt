@@ -192,7 +192,7 @@ public abstract class Action<T extends Action> {
      * <p/>
      * Default implementation if {@link EventState} is:
      * <ul>
-     * <li>{@link EventState#INITIAL}: add decision returned by {@link #createInitiateActivityDecision()}</li>
+     * <li>{@link EventState#NOT_STARTED}: add decision returned by {@link #createInitiateActivityDecision()}</li>
      * <li>{@link EventState#RETRY}: retry has been activated, add decision returned by {@link #createInitiateActivityDecision()}</li>
      * <li>{@link EventState#ACTIVE}: no decisions are added for in-progress actions</li>
      * <li>{@link EventState#SUCCESS}: if {@link #withNoFailWorkflowOnError()} has previously been called
@@ -216,7 +216,7 @@ public abstract class Action<T extends Action> {
         cancelActiveRetryTimer = false;
 
         switch (eventState) {
-            case INITIAL:
+            case NOT_STARTED:
                 decisions.add(createInitiateActivityDecision());
                 break;
             case ACTIVE:
@@ -279,7 +279,7 @@ public abstract class Action<T extends Action> {
     public EventState getState() {
         Event currentEvent = getCurrentEvent();
         if (currentEvent == null) {
-            return INITIAL;
+            return NOT_STARTED;
         } else if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
             return RETRY;
         } else {
@@ -295,9 +295,9 @@ public abstract class Action<T extends Action> {
 
 
     /**
-     * @return true if this instance is in it's initial state.
+     * @return true if this action has not yet been started.
      */
-    public boolean isInitial() { return INITIAL == getState(); }
+    public boolean isNotStarted() { return NOT_STARTED == getState(); }
 
     /**
      * @return true if the action completed with state {@link EventState#ERROR}.

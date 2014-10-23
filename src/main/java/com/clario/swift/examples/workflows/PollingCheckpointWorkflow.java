@@ -61,7 +61,7 @@ public class PollingCheckpointWorkflow extends Workflow {
         if (!step2.isSuccess()) {
             if (step1.decide(decisions).isSuccess()) {
 
-                if (doOnceMarkerAction.isInitial()) {
+                if (doOnceMarkerAction.isNotStarted()) {
                     // Create a 2000 markers to fill up the event history
                     doOnceMarkerAction.withDetails("marker doOnce").decide(decisions);
                     for (int i = 0; i < 2000; i++) {

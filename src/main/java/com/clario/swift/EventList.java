@@ -5,6 +5,7 @@ import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.clario.swift.action.Action;
 import com.clario.swift.action.RetryPolicy;
 import com.clario.swift.event.Event;
+import com.clario.swift.event.EventCategory;
 import com.clario.swift.event.EventState;
 
 import java.util.AbstractList;
@@ -121,6 +122,8 @@ public class EventList extends AbstractList<Event> {
 
     public EventList selectEventType(EventType eventType) {return select(byEventType(eventType));}
 
+    public EventList selectCategory(EventCategory category) { return select(byEventCategory(category)); }
+
     public EventList selectEventState(EventState eventState) {return select(byEventState(eventState));}
 
     public EventList selectSinceLastDecision() {return select(bySinceLastDecision());}
@@ -169,6 +172,17 @@ public class EventList extends AbstractList<Event> {
         return new SelectFunction() {
             public boolean select(Event event, int index, EventList eventList) {
                 return event.getType() == eventType;
+            }
+        };
+    }
+
+    /**
+     * Select events by {@link EventCategory}.
+     */
+    public static SelectFunction byEventCategory(final EventCategory category) {
+        return new SelectFunction() {
+            public boolean select(Event event, int index, EventList eventList) {
+                return event.getCategory() == category;
             }
         };
     }

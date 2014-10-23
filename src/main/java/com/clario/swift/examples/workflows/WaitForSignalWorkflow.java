@@ -60,7 +60,7 @@ public class WaitForSignalWorkflow extends Workflow {
         } else {
             String input = signal.getInput();
 
-            if (step1.isInitial()) {
+            if (step1.isNotStarted()) {
                 // Only log the first time
                 log.info("Signal '{}' received with value {}", signal.getActionId(), input);
             }

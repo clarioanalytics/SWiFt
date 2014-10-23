@@ -10,10 +10,19 @@ import com.clario.swift.action.Action;
  */
 public enum EventState {
 
-    /** State representing an {@link Action} that has not been scheduled (has no history events). */
-    INITIAL,
+    /**
+     * {@link Action} that has not been started (has no events).
+     */
+    NOT_STARTED,
 
-    /** History event representing an {@link Action} that has started and is not yet complete. */
+    /**
+     * Event representing the initial history event for a task.
+     */
+    START,
+
+    /**
+     * History event representing
+     */
     ACTIVE,
 
     /** History event representing an {@link Action} that should be re-scheduled. */
@@ -25,9 +34,6 @@ public enum EventState {
     /** History event representing an {@link Action} that finished in an error state. */
     ERROR,
 
-    /** History event representing an error on SWF that will immediately fail the workflow */
-    CRITICAL,
-
     /** Informational history event that, not usually useful in decision making */
-    INFO
+    DIAGNOSTIC
 }

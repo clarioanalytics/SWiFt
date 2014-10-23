@@ -1,6 +1,7 @@
 package com.clario.swift;
 
 import com.clario.swift.event.Event;
+import com.clario.swift.event.EventCategory;
 import com.clario.swift.event.EventState;
 import org.junit.Test;
 
@@ -44,13 +45,14 @@ public class EventListTest {
     }
 
     @Test
-    public void testByActionState() {
-        EventList events = loadEventList("SimpleWorkflowHistory.json")
-            .select(byEventState(EventState.ACTIVE));
-        assertEquals(6, events.size());
-        for (Event event : events) {
+    public void testByEventState() {
+        EventList events = loadEventList("SimpleWorkflowHistory.json");
+        EventList activeEvents = events.select(byEventState(EventState.ACTIVE));
+        assertEquals(15, activeEvents.size());
+        for (Event event : activeEvents) {
             assertEquals(EventState.ACTIVE, event.getState());
         }
+        assertEquals(6, activeEvents.selectCategory(EventCategory.ACTION).size());
     }
 
     @Test
@@ -96,8 +98,8 @@ public class EventListTest {
     @Test
     public void testGetErrorEvents() {
         EventList events = loadEventList("ScheduleActivityTaskFailed.json")
-            .select(byEventState(EventState.CRITICAL));
-        assertEquals(1, events.size());
+            .select(byEventState(EventState.ERROR));
+        assertEquals(2, events.size());
     }
 
     private EventList loadEventList(String fileName) {

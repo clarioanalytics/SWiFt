@@ -56,7 +56,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
 
     @Override
     public String getInput() {
-        return isInitial() ? input : super.getInput();
+        return isNotStarted() ? input : super.getInput();
     }
 
     /**
@@ -71,7 +71,7 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
 
     @Override
     public String getControl() {
-        return isInitial() ? control : super.getControl();
+        return isNotStarted() ? control : super.getControl();
     }
 
     /**

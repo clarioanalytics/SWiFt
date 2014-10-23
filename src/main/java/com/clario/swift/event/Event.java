@@ -11,7 +11,9 @@ import static java.lang.String.format;
 
 
 /**
- * Generated.  Could use reflection but speed is speed.
+ * Generated Event Class consolidates SWF {@link HistoryEvent} types
+ * so groups of similar event types can be accessed in a uniform way.
+ *
  * @author George Coller
  */
 public class Event implements Comparable<Event> {
@@ -31,20 +33,20 @@ public class Event implements Comparable<Event> {
     public EventCategory getCategory() {
         if (WorkflowExecutionStarted == getType()) { return WORKFLOW; }
         if (WorkflowExecutionCancelRequested == getType()) { return WORKFLOW; }
-        if (WorkflowExecutionCompleted == getType()) { return EXTERNAL; }
+        if (WorkflowExecutionCompleted == getType()) { return WORKFLOW; }
         if (CompleteWorkflowExecutionFailed == getType()) { return WORKFLOW; }
         if (WorkflowExecutionFailed == getType()) { return WORKFLOW; }
         if (FailWorkflowExecutionFailed == getType()) { return WORKFLOW; }
-        if (WorkflowExecutionTimedOut == getType()) { return EXTERNAL; }
-        if (WorkflowExecutionCanceled == getType()) { return EXTERNAL; }
+        if (WorkflowExecutionTimedOut == getType()) { return WORKFLOW; }
+        if (WorkflowExecutionCanceled == getType()) { return WORKFLOW; }
         if (CancelWorkflowExecutionFailed == getType()) { return WORKFLOW; }
-        if (WorkflowExecutionContinuedAsNew == getType()) { return EXTERNAL; }
+        if (WorkflowExecutionContinuedAsNew == getType()) { return WORKFLOW; }
         if (ContinueAsNewWorkflowExecutionFailed == getType()) { return WORKFLOW; }
-        if (WorkflowExecutionTerminated == getType()) { return EXTERNAL; }
-        if (DecisionTaskScheduled == getType()) { return EXTERNAL; }
-        if (DecisionTaskStarted == getType()) { return EXTERNAL; }
+        if (WorkflowExecutionTerminated == getType()) { return WORKFLOW; }
+        if (DecisionTaskScheduled == getType()) { return DECISION; }
+        if (DecisionTaskStarted == getType()) { return DECISION; }
         if (DecisionTaskCompleted == getType()) { return DECISION; }
-        if (DecisionTaskTimedOut == getType()) { return EXTERNAL; }
+        if (DecisionTaskTimedOut == getType()) { return DECISION; }
         if (ActivityTaskScheduled == getType()) { return ACTION; }
         if (ScheduleActivityTaskFailed == getType()) { return ACTION; }
         if (ActivityTaskStarted == getType()) { return ACTION; }
@@ -52,8 +54,8 @@ public class Event implements Comparable<Event> {
         if (ActivityTaskFailed == getType()) { return ACTION; }
         if (ActivityTaskTimedOut == getType()) { return ACTION; }
         if (ActivityTaskCanceled == getType()) { return ACTION; }
-        if (ActivityTaskCancelRequested == getType()) { return EXTERNAL; }
-        if (RequestCancelActivityTaskFailed == getType()) { return EXTERNAL; }
+        if (ActivityTaskCancelRequested == getType()) { return ACTION; }
+        if (RequestCancelActivityTaskFailed == getType()) { return ACTION; }
         if (WorkflowExecutionSignaled == getType()) { return SIGNAL; }
         if (MarkerRecorded == getType()) { return ACTION; }
         if (RecordMarkerFailed == getType()) { return ACTION; }
@@ -61,7 +63,7 @@ public class Event implements Comparable<Event> {
         if (StartTimerFailed == getType()) { return ACTION; }
         if (TimerFired == getType()) { return ACTION; }
         if (TimerCanceled == getType()) { return ACTION; }
-        if (CancelTimerFailed == getType()) { return EXTERNAL; }
+        if (CancelTimerFailed == getType()) { return ACTION; }
         if (StartChildWorkflowExecutionInitiated == getType()) { return ACTION; }
         if (StartChildWorkflowExecutionFailed == getType()) { return ACTION; }
         if (ChildWorkflowExecutionStarted == getType()) { return ACTION; }
@@ -73,28 +75,29 @@ public class Event implements Comparable<Event> {
         if (SignalExternalWorkflowExecutionInitiated == getType()) { return ACTION; }
         if (SignalExternalWorkflowExecutionFailed == getType()) { return ACTION; }
         if (ExternalWorkflowExecutionSignaled == getType()) { return ACTION; }
-        if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return EXTERNAL; }
-        if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return EXTERNAL; }
-        if (ExternalWorkflowExecutionCancelRequested == getType()) { return EXTERNAL; }
+        if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return ACTION; }
+        if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return ACTION; }
+        if (ExternalWorkflowExecutionCancelRequested == getType()) { return ACTION; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public EventState getState() {
-        if (WorkflowExecutionStarted == getType()) { return SUCCESS; }
-        if (WorkflowExecutionCancelRequested == getType()) { return CRITICAL; }
-        if (WorkflowExecutionCompleted == getType()) { return INFO; }
-        if (CompleteWorkflowExecutionFailed == getType()) { return CRITICAL; }
-        if (WorkflowExecutionFailed == getType()) { return CRITICAL; }
-        if (FailWorkflowExecutionFailed == getType()) { return CRITICAL; }
-        if (WorkflowExecutionTimedOut == getType()) { return INFO; }
-        if (WorkflowExecutionCanceled == getType()) { return INFO; }
-        if (CancelWorkflowExecutionFailed == getType()) { return CRITICAL; }
-        if (WorkflowExecutionContinuedAsNew == getType()) { return INFO; }
-        if (ContinueAsNewWorkflowExecutionFailed == getType()) { return CRITICAL; }
-        if (WorkflowExecutionTerminated == getType()) { return INFO; }
-        if (DecisionTaskScheduled == getType()) { return INFO; }
-        if (DecisionTaskStarted == getType()) { return INFO; }
+        if (WorkflowExecutionStarted == getType()) { return ACTIVE; }
+        if (WorkflowExecutionCancelRequested == getType()) { return ACTIVE; }
+        if (WorkflowExecutionCompleted == getType()) { return SUCCESS; }
+        if (CompleteWorkflowExecutionFailed == getType()) { return DIAGNOSTIC; }
+        if (WorkflowExecutionFailed == getType()) { return ERROR; }
+        if (FailWorkflowExecutionFailed == getType()) { return ERROR; }
+        if (WorkflowExecutionTimedOut == getType()) { return ERROR; }
+        if (WorkflowExecutionCanceled == getType()) { return ERROR; }
+        if (CancelWorkflowExecutionFailed == getType()) { return DIAGNOSTIC; }
+        if (WorkflowExecutionContinuedAsNew == getType()) { return ACTIVE; }
+        if (ContinueAsNewWorkflowExecutionFailed == getType()) { return ERROR; }
+        if (WorkflowExecutionTerminated == getType()) { return ERROR; }
+        if (DecisionTaskScheduled == getType()) { return ACTIVE; }
+        if (DecisionTaskStarted == getType()) { return ACTIVE; }
         if (DecisionTaskCompleted == getType()) { return SUCCESS; }
-        if (DecisionTaskTimedOut == getType()) { return INFO; }
+        if (DecisionTaskTimedOut == getType()) { return ERROR; }
         if (ActivityTaskScheduled == getType()) { return ACTIVE; }
         if (ScheduleActivityTaskFailed == getType()) { return ERROR; }
         if (ActivityTaskStarted == getType()) { return ACTIVE; }
@@ -102,8 +105,8 @@ public class Event implements Comparable<Event> {
         if (ActivityTaskFailed == getType()) { return ERROR; }
         if (ActivityTaskTimedOut == getType()) { return ERROR; }
         if (ActivityTaskCanceled == getType()) { return ERROR; }
-        if (ActivityTaskCancelRequested == getType()) { return INFO; }
-        if (RequestCancelActivityTaskFailed == getType()) { return INFO; }
+        if (ActivityTaskCancelRequested == getType()) { return ERROR; }
+        if (RequestCancelActivityTaskFailed == getType()) { return ERROR; }
         if (WorkflowExecutionSignaled == getType()) { return SUCCESS; }
         if (MarkerRecorded == getType()) { return SUCCESS; }
         if (RecordMarkerFailed == getType()) { return ERROR; }
@@ -111,7 +114,7 @@ public class Event implements Comparable<Event> {
         if (StartTimerFailed == getType()) { return ERROR; }
         if (TimerFired == getType()) { return SUCCESS; }
         if (TimerCanceled == getType()) { return SUCCESS; }
-        if (CancelTimerFailed == getType()) { return INFO; }
+        if (CancelTimerFailed == getType()) { return ACTIVE; }
         if (StartChildWorkflowExecutionInitiated == getType()) { return ACTIVE; }
         if (StartChildWorkflowExecutionFailed == getType()) { return ERROR; }
         if (ChildWorkflowExecutionStarted == getType()) { return ACTIVE; }
@@ -123,11 +126,12 @@ public class Event implements Comparable<Event> {
         if (SignalExternalWorkflowExecutionInitiated == getType()) { return ACTIVE; }
         if (SignalExternalWorkflowExecutionFailed == getType()) { return ERROR; }
         if (ExternalWorkflowExecutionSignaled == getType()) { return SUCCESS; }
-        if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return INFO; }
-        if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return INFO; }
-        if (ExternalWorkflowExecutionCancelRequested == getType()) { return INFO; }
+        if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return SUCCESS; }
+        if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return ERROR; }
+        if (ExternalWorkflowExecutionCancelRequested == getType()) { return ACTIVE; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public Long getInitialEventId() {
         if (WorkflowExecutionStarted == getType()) { return historyEvent.getEventId(); }
         if (WorkflowExecutionCancelRequested == getType()) { return historyEvent.getEventId(); }
@@ -178,6 +182,7 @@ public class Event implements Comparable<Event> {
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return historyEvent.getEventId(); }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public boolean isInitialAction() {
         if (WorkflowExecutionStarted == getType()) { return false; }
         if (WorkflowExecutionCancelRequested == getType()) { return false; }
@@ -225,9 +230,10 @@ public class Event implements Comparable<Event> {
         if (ExternalWorkflowExecutionSignaled == getType()) { return false; }
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return false; }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return false; }
-        if (ExternalWorkflowExecutionCancelRequested == getType()) { return false; }
+        if (ExternalWorkflowExecutionCancelRequested == getType()) { return true; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public String getActionId() {
         if (WorkflowExecutionStarted == getType()) { return null; }
         if (WorkflowExecutionCancelRequested == getType()) { return null; }
@@ -261,7 +267,7 @@ public class Event implements Comparable<Event> {
         if (StartTimerFailed == getType()) { return historyEvent.getStartTimerFailedEventAttributes().getTimerId(); }
         if (TimerFired == getType()) { return historyEvent.getTimerFiredEventAttributes().getTimerId(); }
         if (TimerCanceled == getType()) { return historyEvent.getTimerCanceledEventAttributes().getTimerId(); }
-        if (CancelTimerFailed == getType()) { return null; }
+        if (CancelTimerFailed == getType()) { return historyEvent.getCancelTimerFailedEventAttributes().getTimerId(); }
         if (StartChildWorkflowExecutionInitiated == getType()) { return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes().getWorkflowId(); }
         if (StartChildWorkflowExecutionFailed == getType()) { return null; }
         if (ChildWorkflowExecutionStarted == getType()) { return null; }
@@ -273,11 +279,12 @@ public class Event implements Comparable<Event> {
         if (SignalExternalWorkflowExecutionInitiated == getType()) { return historyEvent.getSignalExternalWorkflowExecutionInitiatedEventAttributes().getSignalName(); }
         if (SignalExternalWorkflowExecutionFailed == getType()) { return null; }
         if (ExternalWorkflowExecutionSignaled == getType()) { return null; }
-        if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return null; }
-        if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return null; }
+        if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return historyEvent.getRequestCancelExternalWorkflowExecutionInitiatedEventAttributes().getControl(); }
+        if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return historyEvent.getRequestCancelExternalWorkflowExecutionFailedEventAttributes().getControl(); }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public String getInput() {
         if (WorkflowExecutionStarted == getType()) { return historyEvent.getWorkflowExecutionStartedEventAttributes().getInput(); }
         if (WorkflowExecutionCancelRequested == getType()) { return null; }
@@ -328,6 +335,7 @@ public class Event implements Comparable<Event> {
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public String getControl() {
         if (WorkflowExecutionStarted == getType()) { return null; }
         if (WorkflowExecutionCancelRequested == getType()) { return null; }
@@ -378,8 +386,9 @@ public class Event implements Comparable<Event> {
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public String getOutput() {
-        if (WorkflowExecutionStarted == getType()) { return historyEvent.getWorkflowExecutionStartedEventAttributes().getInput(); }
+        if (WorkflowExecutionStarted == getType()) { return null; }
         if (WorkflowExecutionCancelRequested == getType()) { return null; }
         if (WorkflowExecutionCompleted == getType()) { return historyEvent.getWorkflowExecutionCompletedEventAttributes().getResult(); }
         if (CompleteWorkflowExecutionFailed == getType()) { return null; }
@@ -428,19 +437,20 @@ public class Event implements Comparable<Event> {
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public String getReason() {
         if (WorkflowExecutionStarted == getType()) { return null; }
         if (WorkflowExecutionCancelRequested == getType()) { return "Workflow Execution Cancel Requested"; }
         if (WorkflowExecutionCompleted == getType()) { return null; }
         if (CompleteWorkflowExecutionFailed == getType()) { return "Complete Workflow Execution Failed"; }
-        if (WorkflowExecutionFailed == getType()) { return historyEvent.getWorkflowExecutionFailedEventAttributes().getReason(); }
+        if (WorkflowExecutionFailed == getType()) { return "Workflow Execution Failed"; }
         if (FailWorkflowExecutionFailed == getType()) { return "Fail Workflow Execution Failed"; }
-        if (WorkflowExecutionTimedOut == getType()) { return null; }
+        if (WorkflowExecutionTimedOut == getType()) { return "Workflow Execution Timed Out"; }
         if (WorkflowExecutionCanceled == getType()) { return "Workflow Execution Canceled"; }
         if (CancelWorkflowExecutionFailed == getType()) { return "Cancel Workflow Execution Failed"; }
         if (WorkflowExecutionContinuedAsNew == getType()) { return null; }
         if (ContinueAsNewWorkflowExecutionFailed == getType()) { return "Continue As New Workflow Execution Failed"; }
-        if (WorkflowExecutionTerminated == getType()) { return historyEvent.getWorkflowExecutionTerminatedEventAttributes().getReason(); }
+        if (WorkflowExecutionTerminated == getType()) { return "Workflow Execution Terminated"; }
         if (DecisionTaskScheduled == getType()) { return null; }
         if (DecisionTaskStarted == getType()) { return null; }
         if (DecisionTaskCompleted == getType()) { return null; }
@@ -452,7 +462,7 @@ public class Event implements Comparable<Event> {
         if (ActivityTaskFailed == getType()) { return historyEvent.getActivityTaskFailedEventAttributes().getReason(); }
         if (ActivityTaskTimedOut == getType()) { return historyEvent.getActivityTaskTimedOutEventAttributes().getTimeoutType(); }
         if (ActivityTaskCanceled == getType()) { return "Activity Task Canceled"; }
-        if (ActivityTaskCancelRequested == getType()) { return null; }
+        if (ActivityTaskCancelRequested == getType()) { return "Activity Task Cancel Requested"; }
         if (RequestCancelActivityTaskFailed == getType()) { return "Request Cancel Activity Task Failed"; }
         if (WorkflowExecutionSignaled == getType()) { return null; }
         if (MarkerRecorded == getType()) { return null; }
@@ -461,7 +471,7 @@ public class Event implements Comparable<Event> {
         if (StartTimerFailed == getType()) { return "Start Timer Failed"; }
         if (TimerFired == getType()) { return null; }
         if (TimerCanceled == getType()) { return null; }
-        if (CancelTimerFailed == getType()) { return "Cancel Timer Failed"; }
+        if (CancelTimerFailed == getType()) { return null; }
         if (StartChildWorkflowExecutionInitiated == getType()) { return null; }
         if (StartChildWorkflowExecutionFailed == getType()) { return "Start Child Workflow Execution Failed"; }
         if (ChildWorkflowExecutionStarted == getType()) { return null; }
@@ -478,6 +488,7 @@ public class Event implements Comparable<Event> {
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
     public String getDetails() {
         if (WorkflowExecutionStarted == getType()) { return null; }
         if (WorkflowExecutionCancelRequested == getType()) { return historyEvent.getWorkflowExecutionCancelRequestedEventAttributes().getCause(); }
@@ -511,7 +522,7 @@ public class Event implements Comparable<Event> {
         if (StartTimerFailed == getType()) { return historyEvent.getStartTimerFailedEventAttributes().getCause(); }
         if (TimerFired == getType()) { return null; }
         if (TimerCanceled == getType()) { return null; }
-        if (CancelTimerFailed == getType()) { return historyEvent.getCancelTimerFailedEventAttributes().getCause(); }
+        if (CancelTimerFailed == getType()) { return null; }
         if (StartChildWorkflowExecutionInitiated == getType()) { return null; }
         if (StartChildWorkflowExecutionFailed == getType()) { return historyEvent.getStartChildWorkflowExecutionFailedEventAttributes().getCause(); }
         if (ChildWorkflowExecutionStarted == getType()) { return null; }
@@ -528,6 +539,7 @@ public class Event implements Comparable<Event> {
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
+
 
     public boolean equals(Object o) {
         return o != null && getClass().equals(o.getClass()) && historyEvent.equals(o);

@@ -68,7 +68,7 @@ public class CronWorkflow extends Workflow {
     @Override public void decide(List<Decision> decisions) {
         // Get the state of the workflow
         String echoCount;
-        if (echoActivity.isInitial()) {
+        if (echoActivity.isNotStarted()) {
             echoCount = defaultIfEmpty(getWorkflowInput(), "0");
             log.info("initialize echoCount=" + echoCount);
         } else {

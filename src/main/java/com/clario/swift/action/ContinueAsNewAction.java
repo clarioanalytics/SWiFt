@@ -34,7 +34,7 @@ public class ContinueAsNewAction extends Action<ContinueAsNewAction> {
     }
 
     public String getInput() {
-        return isInitial() ? input : super.getInput();
+        return isNotStarted() ? input : super.getInput();
     }
 
     @Override
