@@ -5,6 +5,7 @@ import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.StartTimerDecisionAttributes;
 import com.clario.swift.event.Event;
 import com.clario.swift.event.EventState;
+import com.clario.swift.TaskType;
 
 import java.util.concurrent.TimeUnit;
 
@@ -38,6 +39,8 @@ public class TimerAction extends Action<TimerAction> {
     }
 
     public String getStartToFireTimeout() { return startToFireTimeout; }
+
+    @Override public TaskType getTaskType() { return TaskType.TIMER; }
 
     /**
      * Optional control value to add to this timer.

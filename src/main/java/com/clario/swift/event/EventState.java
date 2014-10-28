@@ -1,39 +1,38 @@
 package com.clario.swift.event;
 
-import com.clario.swift.action.Action;
-
 /**
- * Tasks in SWF are represented by one or more related {@link Event} in history with the most recent event
- * representing the current state of the task.
- * <p/>
- * This enumeration makes working with state across different task types easier.
+ * State for a workflow, decision, or action in SWF is determined by the {@link EventState} of the most recent
+ * {@link Event} related to that task.
  */
 public enum EventState {
 
     /**
-     * {@link Action} that has not been started (has no events).
+     * No events exist for the task.
      */
     NOT_STARTED,
 
     /**
-     * Event representing the initial history event for a task.
+     * Initial event that started a task.
      */
-    START,
+    INITIAL,
 
     /**
-     * History event representing
+     * Event representing an ongoing task.
      */
     ACTIVE,
 
-    /** History event representing an {@link Action} that should be re-scheduled. */
+    /**
+     * Event representing a task that needs to be retried.
+     */
     RETRY,
 
-    /** History event representing an {@link Action} that finished in a successful state. */
+    /**
+     * Event representing a task that has completed successfully.
+     */
     SUCCESS,
 
-    /** History event representing an {@link Action} that finished in an error state. */
-    ERROR,
-
-    /** Informational history event that, not usually useful in decision making */
-    DIAGNOSTIC
+    /**
+     * Event representing a task that has failed.
+     */
+    ERROR
 }

@@ -1,6 +1,7 @@
 package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.model.*;
+import com.clario.swift.TaskType;
 
 import java.util.concurrent.TimeUnit;
 
@@ -187,9 +188,9 @@ public class ActivityAction extends Action<ActivityAction> {
 
     public String getStartToCloseTimeout() { return startToCloseTimeout; }
 
-    @Override
-    protected ActivityAction thisObject() { return this; }
+    @Override protected ActivityAction thisObject() { return this; }
 
+    @Override public TaskType getTaskType() { return TaskType.ACTIVITY; }
 
     public String getInput() {
         return isNotStarted() ? input : super.getInput();

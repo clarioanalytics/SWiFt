@@ -25,7 +25,7 @@ Our major goals were:
 - As much as possible use Amazon's SDK classes, don't reinvent the wheel or paint over what works 
 - Reduce as much 'magic' as possible, we believe that being able to follow your code in a debugger should be easy
 - Make it usable by as large an audience as possible:
-    - Make it backward compatible to Java 1.5
+    - Make it backward compatible to Java 1.6, which matches the minimum version that can be used with Amazon API for Java
     - Don't add a lot of dependencies and force 'jarplosion' on users 
     - Make writing/running workflows easy enough so that developers will want to do so
     - Document it well and provide lots of examples
@@ -49,7 +49,7 @@ In practice we've found that most of the time you don't want tight timeouts. Ins
 ## Requirements
 
 - Maven 2 or 3 installation
-- Java 1.5+ 
+- Java 1.6+ 
 - Active Amazon Web Services account and credentials
 - Access to Amazon SWF with a domain set up
 - Understanding of Amazon Simple Workflow concepts and the Amazon AWS SDK for Java

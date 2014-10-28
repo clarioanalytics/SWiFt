@@ -1,5 +1,6 @@
 package com.clario.swift.examples.workflows;
 
+import com.amazonaws.services.simpleworkflow.model.CompleteWorkflowExecutionDecisionAttributes;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.EventList;
 import com.clario.swift.TestUtil;

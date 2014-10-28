@@ -1,9 +1,13 @@
 package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.model.*;
+import com.clario.swift.TaskType;
 import com.clario.swift.Workflow;
+import com.clario.swift.event.Event;
+import com.clario.swift.event.EventState;
 
 import static com.clario.swift.SwiftUtil.*;
+import static com.clario.swift.event.EventState.INITIAL;
 import static java.lang.String.format;
 
 /**
@@ -33,8 +37,19 @@ public class ContinueAsNewAction extends Action<ContinueAsNewAction> {
         return this;
     }
 
+    @Override public TaskType getTaskType() { return TaskType.CONTINUE_AS_NEW; }
+
     public String getInput() {
         return isNotStarted() ? input : super.getInput();
+    }
+
+    /**
+     * Override: completed successful if the current event is also the {@link EventState#INITIAL}.
+     */
+    @Override
+    public boolean isSuccess() {
+        Event currentEvent = getCurrentEvent();
+        return currentEvent != null && INITIAL == currentEvent.getState();
     }
 
     @Override

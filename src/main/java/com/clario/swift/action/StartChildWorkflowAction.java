@@ -3,6 +3,7 @@ package com.clario.swift.action;
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.event.Event;
+import com.clario.swift.TaskType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,6 +70,8 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
         }
         return this;
     }
+
+    @Override public TaskType getTaskType() { return TaskType.START_CHILD_WORKFLOW; }
 
     /**
      * @see StartChildWorkflowExecutionDecisionAttributes#input

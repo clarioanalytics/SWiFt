@@ -5,7 +5,6 @@ import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
 import com.clario.swift.action.Action;
 import com.clario.swift.action.RetryPolicy;
 import com.clario.swift.event.Event;
-import com.clario.swift.event.EventCategory;
 import com.clario.swift.event.EventState;
 
 import java.util.AbstractList;
@@ -15,6 +14,7 @@ import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.DecisionTaskCompleted;
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
+import static com.clario.swift.event.EventState.INITIAL;
 import static java.util.Arrays.copyOfRange;
 
 /**
@@ -122,7 +122,7 @@ public class EventList extends AbstractList<Event> {
 
     public EventList selectEventType(EventType eventType) {return select(byEventType(eventType));}
 
-    public EventList selectCategory(EventCategory category) { return select(byEventCategory(category)); }
+    public EventList selectTaskType(TaskType taskType) { return select(byTaskType(taskType)); }
 
     public EventList selectEventState(EventState eventState) {return select(byEventState(eventState));}
 
@@ -155,7 +155,7 @@ public class EventList extends AbstractList<Event> {
             public boolean select(Event event, int index, EventList eventList) {
                 if (index == 0) {
                     for (Event ev : eventList) {
-                        if (ev.isInitialAction() && ev.getActionId().equals(actionId)) {
+                        if (INITIAL == ev.getState() && actionId.equals(ev.getActionId())) {
                             initialEventIds.add(ev.getEventId());
                         }
                     }
@@ -177,12 +177,12 @@ public class EventList extends AbstractList<Event> {
     }
 
     /**
-     * Select events by {@link EventCategory}.
+     * Select events by {@link TaskType}.
      */
-    public static SelectFunction byEventCategory(final EventCategory category) {
+    public static SelectFunction byTaskType(final TaskType taskType) {
         return new SelectFunction() {
             public boolean select(Event event, int index, EventList eventList) {
-                return event.getCategory() == category;
+                return event.getTask() == taskType;
             }
         };
     }

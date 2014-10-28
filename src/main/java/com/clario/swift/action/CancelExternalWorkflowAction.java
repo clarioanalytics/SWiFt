@@ -3,6 +3,7 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.RequestCancelExternalWorkflowExecutionDecisionAttributes;
+import com.clario.swift.TaskType;
 
 /**
  * Issue a cancel request to an external workflow.
@@ -32,6 +33,8 @@ public class CancelExternalWorkflowAction extends Action<CancelExternalWorkflowA
         this.control = control;
         return this;
     }
+
+    @Override public TaskType getTaskType() { return TaskType.CANCEL_EXTERNAL_WORKFLOW; }
 
     @Override public String getControl() {
         return super.getControl();

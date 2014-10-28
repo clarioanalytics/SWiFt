@@ -5,17 +5,20 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.EventList;
+import com.clario.swift.TaskType;
 import com.clario.swift.Workflow;
 import com.clario.swift.event.Event;
 import com.clario.swift.event.EventState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
-import static com.clario.swift.EventList.byActionId;
 import static com.clario.swift.SwiftUtil.*;
+import static com.clario.swift.TaskType.CONTINUE_AS_NEW;
+import static com.clario.swift.TaskType.RECORD_MARKER;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static com.clario.swift.event.EventState.*;
@@ -31,6 +34,7 @@ import static java.lang.String.format;
 public abstract class Action<T extends Action> {
 
     private final Logger log;
+    private static final List<TaskType> INITIAL_EQUALS_SUCCESS_TASKS = Arrays.asList(RECORD_MARKER, CONTINUE_AS_NEW);
 
     private final String actionId;
 
@@ -41,34 +45,6 @@ public abstract class Action<T extends Action> {
     private boolean completeWorkflowOnSuccess = false;
     private boolean cancelActiveRetryTimer = false;
 
-    //
-    // COMMON GETTERS ACROSS ACTIONS
-    //
-    public String getInput() { return getCurrentEvent().getInput(); }
-
-    public String getControl() { return getCurrentEvent().getControl(); }
-
-    /**
-     * Return output of action.
-     *
-     * @return result of action, null if action produces no output
-     * @throws IllegalStateException if activity did not complete successfully.
-     */
-    public String getOutput() {
-        if (isSuccess()) {
-            return getCurrentEvent().getOutput();
-        } else if (successRetryPolicy != null && getState() == RETRY) {
-            Event completed = getEvents().selectEventType(ActivityTaskCompleted).getFirst();
-            if (completed == null) {
-                throw new IllegalStateException("ActivityTaskCompleted event prior to retryOnSuccess not available.  Probably need to adjust Workflow.isContinuePollingForHistoryEvents algorithm");
-            } else {
-                return completed.getOutput();
-            }
-        } else {
-            throw new IllegalStateException("method not available when action state is " + getState());
-        }
-    }
-
     /**
      * Each action requires a workflow-unique identifier.
      *
@@ -77,6 +53,52 @@ public abstract class Action<T extends Action> {
     public Action(String actionId) {
         this.actionId = assertSwfValue(assertMaxLength(actionId, MAX_ID_LENGTH));
         log = LoggerFactory.getLogger(format("%s '%s'", getClass().getSimpleName(), getActionId()));
+    }
+
+    public abstract TaskType getTaskType();
+
+    //
+    // COMMON GETTERS ACROSS ACTIONS
+    //
+
+    /**
+     * @return earliest {@link EventState#INITIAL} event's input value, otherwise null
+     */
+    public String getInput() {
+        Event success = getTaskEvents().selectEventState(EventState.INITIAL).getLast();
+        return success == null ? null : success.getInput();
+    }
+
+    /**
+     * @return earliest {@link EventState#INITIAL} event's control value, otherwise null
+     */
+    public String getControl() {
+        Event success = getTaskEvents().selectEventState(EventState.INITIAL).getLast();
+        return success == null ? null : success.getControl();
+    }
+
+    /**
+     * @return most recent {@link #getTaskEvents()} output value if its state is {@link EventState#SUCCESS}, otherwise null.
+     */
+    public String getOutput() {
+        Event event = getTaskEvents().getFirst();
+        return (event != null && event.getState() == EventState.SUCCESS) ? event.getOutput() : null;
+    }
+
+    /**
+     * @return most recent {@link #getTaskEvents()} reason value if its state is {@link EventState#ERROR}, otherwise null.
+     */
+    public String getReason() {
+        Event event = getTaskEvents().getFirst();
+        return (event != null && event.getState() == EventState.ERROR) ? event.getReason() : null;
+    }
+
+    /**
+     * @return most recent {@link #getTaskEvents()} details value if its state is {@link EventState#ERROR}, otherwise null.
+     */
+    public String getDetails() {
+        Event event = getTaskEvents().getFirst();
+        return (event != null && event.getState() == EventState.ERROR) ? event.getDetails() : null;
     }
 
     /**
@@ -219,6 +241,8 @@ public abstract class Action<T extends Action> {
             case NOT_STARTED:
                 decisions.add(createInitiateActivityDecision());
                 break;
+            case INITIAL:
+                break;
             case ACTIVE:
                 break;
             case SUCCESS:
@@ -267,7 +291,7 @@ public abstract class Action<T extends Action> {
                 }
                 break;
             default:
-                throw new IllegalStateException(format("%s unknown action state:%s", this, getState()));
+                throw new IllegalStateException(format("%s unknown action state: %s", this, getState()));
         }
         return this;
     }
@@ -316,11 +340,18 @@ public abstract class Action<T extends Action> {
     }
 
     /**
-     * @return {@link EventList} of available history events related to this action.
+     * @return Workflow {@link EventList} selected by {@link #getActionId()} && {@link #getTaskType()}
+     */
+    public EventList getTaskEvents() {
+        return getEvents().selectTaskType(getTaskType());
+    }
+
+    /**
+     * @return Workflow {@link EventList} selected by {@link #getActionId()}
      */
     public EventList getEvents() {
         assertWorkflowSet();
-        return workflow.getEvents().select(byActionId(actionId));
+        return workflow.getEvents().selectActionId(actionId);
     }
 
     /**

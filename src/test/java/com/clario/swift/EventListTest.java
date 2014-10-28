@@ -1,7 +1,6 @@
 package com.clario.swift;
 
 import com.clario.swift.event.Event;
-import com.clario.swift.event.EventCategory;
 import com.clario.swift.event.EventState;
 import org.junit.Test;
 
@@ -47,12 +46,16 @@ public class EventListTest {
     @Test
     public void testByEventState() {
         EventList events = loadEventList("SimpleWorkflowHistory.json");
+        EventList initialEvents = events.select(byEventState(EventState.INITIAL));
+        assertEquals(8, initialEvents.size());
+        assertEquals(3, initialEvents.selectTaskType(TaskType.ACTIVITY).size());
+
         EventList activeEvents = events.select(byEventState(EventState.ACTIVE));
-        assertEquals(15, activeEvents.size());
+        assertEquals(7, activeEvents.size());
         for (Event event : activeEvents) {
             assertEquals(EventState.ACTIVE, event.getState());
         }
-        assertEquals(6, activeEvents.selectCategory(EventCategory.ACTION).size());
+        assertEquals(3, activeEvents.selectTaskType(TaskType.ACTIVITY).size());
     }
 
     @Test

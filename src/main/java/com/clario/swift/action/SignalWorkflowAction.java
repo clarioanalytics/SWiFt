@@ -3,6 +3,7 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.SignalExternalWorkflowExecutionDecisionAttributes;
+import com.clario.swift.TaskType;
 
 import static com.clario.swift.SwiftUtil.*;
 import static java.lang.String.format;
@@ -53,6 +54,8 @@ public class SignalWorkflowAction extends Action<SignalWorkflowAction> {
         this.input = assertMaxLength(input, MAX_INPUT_LENGTH);
         return this;
     }
+
+    @Override public TaskType getTaskType() { return TaskType.SIGNAL_EXTERNAL_WORKFLOW; }
 
     @Override
     public String getInput() {

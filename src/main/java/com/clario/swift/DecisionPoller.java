@@ -2,8 +2,6 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.event.Event;
-import com.clario.swift.event.EventCategory;
-import com.clario.swift.event.EventState;
 import com.clario.swift.examples.DecisionPollerPool;
 
 import java.util.ArrayList;
@@ -15,6 +13,8 @@ import static com.amazonaws.services.simpleworkflow.model.EventType.WorkflowExec
 import static com.clario.swift.EventList.convert;
 import static com.clario.swift.SwiftUtil.*;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
+import static com.clario.swift.event.EventState.ERROR;
+import static com.clario.swift.TaskType.WORKFLOW_EXECUTION;
 import static java.lang.String.format;
 
 
@@ -117,7 +117,7 @@ public class DecisionPoller extends BasePoller {
         List<Decision> decisions = new ArrayList<Decision>();
         EventList currentEvents = workflow.getEvents().selectSinceLastDecision();
 
-        List<Event> workflowErrors = currentEvents.selectCategory(EventCategory.WORKFLOW).selectEventState(EventState.ERROR);
+        List<Event> workflowErrors = currentEvents.selectTaskType(WORKFLOW_EXECUTION).selectEventState(ERROR);
         if (workflowErrors.isEmpty()) {
             try {
                 Event cancelEvent = currentEvents.selectEventType(WorkflowExecutionCancelRequested).getFirst();

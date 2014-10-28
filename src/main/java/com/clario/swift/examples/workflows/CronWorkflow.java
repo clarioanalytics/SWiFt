@@ -15,6 +15,8 @@ import java.util.List;
 import static com.amazonaws.services.simpleworkflow.model.ChildPolicy.TERMINATE;
 import static com.clario.swift.SwiftUtil.defaultIfEmpty;
 import static com.clario.swift.examples.Config.config;
+import static java.lang.Integer.parseInt;
+import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.joda.time.Minutes.minutesBetween;
@@ -51,12 +53,11 @@ public class CronWorkflow extends Workflow {
     public static final int CONTINUE_WORKFLOW_AFTER_MINUTES = 1;
 
     // Define a policy that returns 10 seconds
-    private static final RetryPolicy repeatEvery10Seconds20Times = new RetryPolicy()
-        .withFixedRetryInterval(SECONDS, 10)
-        .withMaximumAttempts(20);
+    private static final RetryPolicy REPEAT_EVERY_10_SECONDS_RETRY_POLICY = new RetryPolicy()
+        .withFixedRetryInterval(SECONDS, 10);
 
     final ActivityAction echoActivity = new ActivityAction("echo", "Activity Echo", "1.0")
-        .withOnSuccessRetryPolicy(repeatEvery10Seconds20Times);
+        .withOnSuccessRetryPolicy(REPEAT_EVERY_10_SECONDS_RETRY_POLICY);
 
     final ContinueAsNewAction continueAsNewAction = new ContinueAsNewAction("continue");
 
@@ -67,22 +68,26 @@ public class CronWorkflow extends Workflow {
 
     @Override public void decide(List<Decision> decisions) {
         // Get the state of the workflow
-        String echoCount;
+        int echoCount;
         if (echoActivity.isNotStarted()) {
-            echoCount = defaultIfEmpty(getWorkflowInput(), "0");
+            echoCount = parseInt(defaultIfEmpty(getWorkflowInput(), "0"));
             log.info("initialize echoCount=" + echoCount);
         } else {
-            echoCount = String.valueOf(Integer.valueOf(echoActivity.getOutput()) + 1);
-            log.info("increment echoCount=" + echoCount);
+            echoCount = parseInt(echoActivity.getOutput()) + 1;
+            log.info("echoCount=" + echoCount);
         }
 
-        int wfRuntimeMins = minutesBetween(new DateTime(getWorkflowStartDate()), DateTime.now()).getMinutes();
-        if (wfRuntimeMins >= CONTINUE_WORKFLOW_AFTER_MINUTES) {
-            // workflow has run for over a minute.  continue as new preserving the current echoCount state
-            log.info("continue as new workflow with echoCount=" + echoCount);
-            continueAsNewAction.withInput(echoCount).decide(decisions);
+        if (echoCount > 20) {
+            decisions.add(createCompleteWorkflowExecutionDecision(valueOf(echoCount)));
         } else {
-            echoActivity.withInput(echoCount).decide(decisions);
+            int wfRuntimeMins = minutesBetween(new DateTime(getWorkflowStartDate()), DateTime.now()).getMinutes();
+            if (wfRuntimeMins >= CONTINUE_WORKFLOW_AFTER_MINUTES) {
+                // workflow has run for over a minute.  continue as new preserving the current echoCount state
+                log.info("continue as new workflow with echoCount=" + echoCount);
+                continueAsNewAction.withInput(valueOf(echoCount)).decide(decisions);
+            } else {
+                echoActivity.withInput(valueOf(echoCount)).decide(decisions);
+            }
         }
     }
 }
