@@ -231,7 +231,7 @@ public abstract class Action<T extends Action> {
         EventState eventState = getState();
         Event currentEvent = getCurrentEvent();
 
-        if (cancelActiveRetryTimer && TimerStarted == currentEvent.getType()) {
+        if (cancelActiveRetryTimer && currentEvent != null && TimerStarted == currentEvent.getType()) {
             decisions.add(createCancelRetryTimerDecision());
             eventState = RETRY;
         }
