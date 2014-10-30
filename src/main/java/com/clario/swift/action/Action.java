@@ -247,7 +247,7 @@ public abstract class Action<T extends Action> {
                 break;
             case SUCCESS:
                 if (successRetryPolicy != null) {
-                    if (successRetryPolicy.testResultMatches(currentEvent.getOutput())) {
+                    if (successRetryPolicy.testResultMatches(getOutput())) {
                         log.info(format("%s no more repeats. matched output: %s", this, getOutput()));
                     } else {
                         Decision decision = successRetryPolicy.calcNextDecision(getActionId(), getEvents());
@@ -255,7 +255,7 @@ public abstract class Action<T extends Action> {
                             decisions.add(decision);
                             log.info("success, start timer delay: {} ", decision);
                         } else {
-                            log.info("success, no more attempts: output={}", currentEvent.getOutput());
+                            log.info("success, no more attempts: output={}", getOutput());
                         }
                     }
                 } else if (completeWorkflowOnSuccess) {
