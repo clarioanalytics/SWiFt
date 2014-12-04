@@ -501,7 +501,24 @@ public class Event implements Comparable<Event> {
 
     @Override
     public String toString() {
-        return format("%s: %s, %s, %s, %s", getType(), getEventId(), getInitialEventId(), getActionId(), getEventTimestamp());
+        StringBuilder sb = new StringBuilder(1000);
+        sb.append(format("%s: %s, %s, ", getType(), getEventId(), getInitialEventId()));
+        appendIf(getActionId(), sb);
+        appendIf(getInput(), sb);
+        appendIf(getOutput(), sb);
+        appendIf(getControl(), sb);
+        appendIf(getReason(), sb);
+        sb.append(" ");
+        sb.append(getEventTimestamp());
+        return sb.toString();
+    }
+
+    private static void appendIf(String value, StringBuilder sb) {
+        if (value != null) {
+            sb.append(" ");
+            sb.append(value);
+            sb.append(",");
+        }
     }
 
     /**
