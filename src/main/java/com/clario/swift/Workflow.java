@@ -3,6 +3,8 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.Action;
 import com.clario.swift.event.Event;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -22,6 +24,7 @@ import static java.lang.String.format;
  * @author George Coller
  */
 public abstract class Workflow {
+    private static final Logger log = LoggerFactory.getLogger(Workflow.class);
     private static final int DETAILS_MAX_LENGTH = 32768;
     private static final int REASON_MAX_LENGTH = 256;
     private static final int MARKER_NAME_MAX_LENGTH = 256;
@@ -369,7 +372,9 @@ public abstract class Workflow {
 
     void assertCanAddToPoller() {
         if (!canAddToPoller.compareAndSet(true, false)) {
-            throw new IllegalStateException(format("Attempt to add same instance of workflow %s to multiple decision pollers", this));
+            String msg = format("Attempt to add same instance of workflow %s to multiple decision pollers", this);
+            log.error(msg);
+            throw new IllegalStateException(msg);
         }
     }
 
