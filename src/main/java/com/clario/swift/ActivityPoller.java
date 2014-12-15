@@ -43,14 +43,14 @@ public class ActivityPoller extends BasePoller {
     public void registerSwfActivities() {
         for (ActivityInvoker invoker : activityMap.values()) {
             ActivityMethod method = invoker.getActivityMethod();
+            String key = makeKey(method.name(), method.version());
             try {
-                log.info(format("Register activity '%s' '%s'", method.name(), method.version()));
                 swf.registerActivityType(createRegisterActivityType(domain, taskList, method));
-                log.info(format("Register activity succeeded '%s' '%s'", method.name(), method.version()));
+                log.info(format("Register activity succeeded %s", key));
             } catch (TypeAlreadyExistsException e) {
-                log.warn(format("Activity already registered '%s' '%s'", method.name(), method.version()));
+                log.info(format("Register activity already exists %s", key));
             } catch (Throwable t) {
-                String format = format("Register activity failed '%s' '%s'", method.name(), method.version());
+                String format = format("Register activity failed %s", key);
                 log.error(format, t);
                 throw new IllegalStateException(format, t);
             }
@@ -69,7 +69,7 @@ public class ActivityPoller extends BasePoller {
                 if (method != null && method.isAnnotationPresent(ActivityMethod.class)) {
                     ActivityMethod activityMethod = method.getAnnotation(ActivityMethod.class);
                     String key = makeKey(activityMethod.name(), activityMethod.version());
-                    log.info(format("add activity '%s'", key));
+                    log.info(format("add activity %s", key));
                     activityMap.put(key, new ActivityInvoker(this, method, object));
                 }
             }
@@ -137,7 +137,7 @@ public class ActivityPoller extends BasePoller {
     /**
      * Wraps a single method annotated with {@link ActivityMethod} and is registered on
      * the activity map.
-     *
+     * <p/>
      * This class acts as the {@link ActivityContext} passed when calling an {@link ActivityMethod}.
      *
      * @see ActivityContext

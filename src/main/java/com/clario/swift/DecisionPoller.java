@@ -12,9 +12,9 @@ import java.util.Map;
 import static com.amazonaws.services.simpleworkflow.model.EventType.WorkflowExecutionCancelRequested;
 import static com.clario.swift.EventList.convert;
 import static com.clario.swift.SwiftUtil.*;
+import static com.clario.swift.TaskType.WORKFLOW_EXECUTION;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static com.clario.swift.event.EventState.ERROR;
-import static com.clario.swift.TaskType.WORKFLOW_EXECUTION;
 import static java.lang.String.format;
 
 
@@ -58,7 +58,7 @@ public class DecisionPoller extends BasePoller {
                 swf.registerWorkflowType(workflow.createRegisterWorkflowTypeRequest());
                 log.info(format("Register workflow succeeded %s", workflow));
             } catch (TypeAlreadyExistsException e) {
-                log.info(format("Workflow already registered %s", workflow));
+                log.info(format("Register workflow already exists %s", workflow));
             } catch (Throwable t) {
                 String format = format("Register workflow failed %s", workflow);
                 log.error(format);
@@ -69,12 +69,13 @@ public class DecisionPoller extends BasePoller {
 
     /**
      * Add {@link Workflow} implementations to the poller
-     * mirroring Worklfow Types registered on SWF with this poller's domain and task list.
+     * mirroring Workflow Types registered on SWF with this poller's domain and task list.
      */
     public void addWorkflows(Workflow... workflows) {
         for (Workflow workflow : workflows) {
             log.info(format("add workflow %s", workflow));
             workflow.withDomain(domain).withTaskList(taskList);
+            workflow.assertCanAddToPoller();
             this.workflows.put(workflow.getKey(), workflow);
         }
     }

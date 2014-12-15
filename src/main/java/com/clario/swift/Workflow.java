@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.WorkflowExecutionStarted;
 import static com.clario.swift.EventList.byEventType;
@@ -41,6 +42,7 @@ public abstract class Workflow {
     private String taskList;
     private String workflowId;
     private String runId;
+    private AtomicBoolean canAddToPoller = new AtomicBoolean(true);
 
     public Workflow(String name, String version) {
         this.name = assertSwfValue(assertMaxLength(name, MAX_NAME_LENGTH));
@@ -364,6 +366,13 @@ public abstract class Workflow {
             );
     }
 
+
+    void assertCanAddToPoller() {
+        if (!canAddToPoller.compareAndSet(true, false)) {
+            throw new IllegalStateException(format("Attempt to add same instance of workflow %s to multiple decision pollers", this));
+        }
+    }
+
     /**
      * Two workflows are considered equal if they have the same name and version.
      */
@@ -379,7 +388,7 @@ public abstract class Workflow {
 
     @Override
     public String toString() {
-        return format("Workflow %s ", key);
+        return key;
     }
 
 }
