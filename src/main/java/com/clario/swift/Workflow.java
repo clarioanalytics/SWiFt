@@ -6,10 +6,7 @@ import com.clario.swift.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -227,9 +224,8 @@ public abstract class Workflow {
     /** SWF task list this workflow is/will be executed under */
     public String getTaskList() { return taskList; }
 
-
     /** Optional tags submitted with workflow */
-    public Workflow withTags(String... tags) {
+    public Workflow withTags(Collection<String> tags) {
         for (String tag : tags) {
             this.tags.add(assertMaxLength(tag, MAX_NAME_LENGTH));
         }
@@ -237,6 +233,11 @@ public abstract class Workflow {
             throw new AssertionError(format("More than %d tags not allowed, received: %s", MAX_NUMBER_TAGS, join(this.tags, ",")));
         }
         return this;
+    }
+
+    /** Optional tags submitted with workflow */
+    public Workflow withTags(String... tags) {
+        return withTags(Arrays.asList(tags));
     }
 
     public List<String> getTags() { return tags; }
