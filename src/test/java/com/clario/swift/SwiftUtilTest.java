@@ -170,14 +170,15 @@ public class SwiftUtilTest {
         assertWorkflowId("A  B  C", "A__B__C");
         assertWorkflowId(" A  B  C ", "A__B__C");
         String name = "";
+        int dotPlusTenSpaces = 11;
         for (char i = 0; i < MAX_ID_LENGTH + 10; i++) {
             name += i % 10;
-            assertWorkflowId(name, trimToMaxLength(name, MAX_ID_LENGTH - 25));
+            assertWorkflowId(name, trimToMaxLength(name, MAX_ID_LENGTH - dotPlusTenSpaces));
         }
     }
 
     private void assertWorkflowId(String name, String expected) {
-        String regEx = "\\.\\d{4}-\\d{2}-\\d{2}T\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{3}Z";
+        String regEx = "\\.\\d+";
         String uniqueWorkflowId = createUniqueWorkflowId(name);
         Assert.assertTrue(uniqueWorkflowId.matches(".*" + regEx));
         String[] split = uniqueWorkflowId.split(regEx);

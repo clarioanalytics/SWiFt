@@ -6,6 +6,7 @@ import org.joda.time.format.DateTimeFormatter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collection;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
@@ -163,13 +164,6 @@ public class SwiftUtil {
     }
 
     /**
-     * Create a millisecond-accurate ISO timestamp using current time;
-     */
-    public static String timestamp() {
-        return DATE_TIME_MILLIS_FORMATTER.print(System.currentTimeMillis());
-    }
-
-    /**
      * Calc a SWF timeout string.
      * Pass null unit or duration &lt;= 0 for a timeout of NONE.
      *
@@ -198,21 +192,32 @@ public class SwiftUtil {
         return unit == null || duration < 1 ? SWF_TIMEOUT_YEAR : valueOf(unit.toSeconds(duration));
     }
 
-
     /**
      * Make a unique and valid workflowId.
-     * Replaces bad characters and whitespace, which also makes it easy for amazon cli use.
+     * Replaces bad characters and whitespace, appends a random int, and trims to {@link #MAX_ID_LENGTH}, which also makes it easy for amazon cli use.
      *
      * @param workflowName name of workflow.
      *
      * @return unique workflowId
      */
     public static String createUniqueWorkflowId(String workflowName) {
-        String name = workflowName.trim()
+        String name = replaceUnsafeNameChars(workflowName);
+        String randomize = String.format(".%010d", ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE));
+        name = trimToMaxLength(name, MAX_ID_LENGTH - randomize.length());
+        return assertSwfValue(name + randomize);
+    }
+
+
+    /**
+     * Replace disallowed name characters and whitespace with an underscore.
+     *
+     * @param string string to be fixed
+     *
+     * @return string with replacements
+     */
+    public static String replaceUnsafeNameChars(String string) {
+        return string.trim()
             .replaceAll("\\s|[:/|\\u0000-\\u001f\\u007f-\\u009f]", "_")
             .replaceAll("arn", "Arn");
-        String timestamp = "." + timestamp().replaceAll(":", ".");
-        name = trimToMaxLength(name, MAX_ID_LENGTH - timestamp.length());
-        return assertSwfValue(name + timestamp);
     }
 }
