@@ -91,8 +91,8 @@ public class ActivityPoller extends BasePoller {
     @Override
     protected void poll() {
         ActivityTask task = swf.pollForActivityTask(createPollForActivityTask(domain, taskList, getId()));
+        if (isLogTimeout()) { log.info("heartbeat"); }
         if (task.getTaskToken() == null) {
-            if (isLogTimeout()) { log.info("poll timeout"); }
             return;
         }
 

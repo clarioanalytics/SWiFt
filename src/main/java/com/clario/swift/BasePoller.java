@@ -1,6 +1,8 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +17,8 @@ public abstract class BasePoller implements Runnable {
     protected final String taskList;
     protected final String domain;
     protected AmazonSimpleWorkflow swf;
-    private int pollCount;
-    private int logPollEveryCount = 10;
+    private int logHeartbeatMinutes = 10;
+    private long priorHeartbeatTime = System.currentTimeMillis();
 
     /**
      * @param id unique id for poller used for logging and recording in SWF
@@ -55,24 +57,29 @@ public abstract class BasePoller implements Runnable {
     protected abstract void poll();
 
     /**
-     * Avoid filling the log with 'timeout' messages by recording it every Nth time.
-     * Default is every tenth time.
+     * Avoid filling the log with 'timeout' messages by recording it every {@link #setLogHeartbeatMinutes}.
+     * Default is 10 minutes.
      */
     protected boolean isLogTimeout() {
-        pollCount++;
-        return logPollEveryCount % pollCount == 0;
+        DateTime prior = new DateTime(priorHeartbeatTime);
+        DateTime now = DateTime.now();
+        if (new Duration(prior, now).getStandardMinutes() >= logHeartbeatMinutes) {
+            priorHeartbeatTime = System.currentTimeMillis();
+            return true;
+        }
+        return false;
     }
 
     /**
      * Set how often a poller logs 'timeout' messages.
      *
-     * @param count must be a positive integer
+     * @param minutes must be a positive integer
      *
      * @see #isLogTimeout()
      */
-    public void setLogPollEveryCount(int count) {
-        if (count < 1) { throw new IllegalArgumentException("parameter count must be greater or equal to one"); }
-        this.logPollEveryCount = count;
+    public void setLogHeartbeatMinutes(int minutes) {
+        if (minutes < 1) { throw new IllegalArgumentException("parameter minutes must be greater than zero"); }
+        this.logHeartbeatMinutes = minutes;
     }
 
     /**

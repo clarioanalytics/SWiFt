@@ -89,8 +89,8 @@ public class DecisionPoller extends BasePoller {
 
         while (decisionTask == null || decisionTask.getNextPageToken() != null) {
             decisionTask = swf.pollForDecisionTask(request);
+            if (isLogTimeout()) { log.info("heartbeat"); }
             if (decisionTask.getTaskToken() == null) {
-                if (isLogTimeout()) { log.info("poll timeout"); } // occasionally log a heartbeat for a timed-out poller.
                 if (workflow == null) { return; } // return immediately if not currently collecting events for a workflow decision
             } else {
                 if (workflow == null) {
