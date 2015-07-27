@@ -169,6 +169,8 @@ public class SwiftUtilTest {
         assertWorkflowId("A B C", "A_B_C");
         assertWorkflowId("A  B  C", "A__B__C");
         assertWorkflowId(" A  B  C ", "A__B__C");
+        assertWorkflowId(" A .B~$C ", "A__B__C");
+        assertWorkflowId("!@#$%^&*()_+-={}[]:;'<>,.?/~`", "_____________________________");
         String name = "";
         int dotPlusTenSpaces = 11;
         for (char i = 0; i < MAX_ID_LENGTH + 10; i++) {
