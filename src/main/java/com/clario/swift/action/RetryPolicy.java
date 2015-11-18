@@ -107,8 +107,13 @@ public class RetryPolicy {
             DateTime currentErrorDate = events.getFirst().getEventTimestamp();
 
             Seconds secondsElapsed = secondsBetween(firstRetryDate, currentErrorDate);
-            Seconds interval = initialRetryInterval.multipliedBy((int) pow(backoffCoefficient, retryEvents.size()));
-            if (interval.isGreaterThan(maximumRetryInterval)) {
+            Seconds interval;
+            try {
+                interval = initialRetryInterval.multipliedBy((int) pow(backoffCoefficient, retryEvents.size()));
+                if (interval.isGreaterThan(maximumRetryInterval)) {
+                    interval = maximumRetryInterval;
+                }
+            } catch (ArithmeticException ignore) {
                 interval = maximumRetryInterval;
             }
             return secondsElapsed.plus(interval).isGreaterThan(retryExpirationInterval) ? -1 : interval.getSeconds();

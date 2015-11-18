@@ -1,8 +1,16 @@
 package com.clario.swift.action;
 
+import com.amazonaws.services.simpleworkflow.model.EventType;
+import com.amazonaws.services.simpleworkflow.model.HistoryEvent;
+import com.amazonaws.services.simpleworkflow.model.TimerStartedEventAttributes;
 import com.clario.swift.EventList;
+import com.clario.swift.event.Event;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.TimerStarted;
 import static com.clario.swift.TestUtil.byUpToDecision;
@@ -131,6 +139,22 @@ public class RetryPolicyTest {
 
         retry.withInitialRetryInterval(SECONDS, 3);
         assertEquals("Calc 5th backoff with initial of 2 seconds", 48, retry.nextRetryDelaySeconds(events));
+    }
+
+
+    @Test
+    public void testExponentialBackoffTooManySeconds() {
+        int maxSeconds = 10000;
+        retry.withMaximumRetryInterval(TimeUnit.SECONDS, maxSeconds);
+        List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
+
+        for (int i = 0; i < 30; i++) {
+            HistoryEvent he = new HistoryEvent();
+            he.setEventType(EventType.TimerStarted);
+            he.setTimerStartedEventAttributes(new TimerStartedEventAttributes().withControl(control));
+            historyEvents.add(he);
+        }
+        assertEquals(maxSeconds, retry.nextRetryDelaySeconds(EventList.convert(historyEvents)));
     }
 
 
