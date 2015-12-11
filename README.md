@@ -115,8 +115,8 @@ Most developers will probably want to import the project into their IDE and run 
 
 The basic steps are:
 
-- Run StartActivityPollers main method to start polling for activities.  Start it in debug mode to debug an activity method.
-- Run StartDecisionPollers main method to start polling for decisions.  Start it in debug mode to debug workflows.
+- Run ActivityPollerPool main method to start polling for activities.  Start it in debug mode to debug an activity method.
+- Run DecisionPollerPool main method to start polling for decisions.  Start it in debug mode to debug workflows.
 - Choose an example workflow and run it's main method.  I suggest `SimpleWorkflow` to start with.
 
 Maven also provides a way to start up any class with a Main method from the command line.

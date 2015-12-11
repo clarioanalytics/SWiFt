@@ -2,8 +2,8 @@ package com.clario.swift.action;
 
 import com.amazonaws.services.redshift.model.UnsupportedOptionException;
 import com.amazonaws.services.simpleworkflow.model.*;
-import com.clario.swift.event.Event;
 import com.clario.swift.TaskType;
+import com.clario.swift.event.Event;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -120,34 +120,36 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
     @Override
     public Decision createInitiateActivityDecision() {
         return new Decision()
-            .withDecisionType(DecisionType.StartChildWorkflowExecution)
-            .withStartChildWorkflowExecutionDecisionAttributes(new StartChildWorkflowExecutionDecisionAttributes()
-                    .withWorkflowId(getActionId())
-                    .withWorkflowType(new WorkflowType().withName(name).withVersion((version)))
-                    .withTaskList(new TaskList().withName(taskList == null ? getWorkflow().getTaskList() : taskList))
-                    .withInput(trimToMaxLength(input, MAX_INPUT_LENGTH))
-                    .withExecutionStartToCloseTimeout(executionStartToCloseTimeout)
-                    .withTaskStartToCloseTimeout(taskStartToCloseTimeout)
-                    .withChildPolicy(childPolicy)
-                    .withTagList(tags)
-            );
+                   .withDecisionType(DecisionType.StartChildWorkflowExecution)
+                   .withStartChildWorkflowExecutionDecisionAttributes(new StartChildWorkflowExecutionDecisionAttributes()
+                                                                          .withWorkflowId(createUniqueWorkflowId(name))
+                                                                          .withControl(getActionId())
+                                                                          .withWorkflowType(new WorkflowType().withName(name).withVersion((version)))
+                                                                          .withTaskList(new TaskList().withName(taskList == null ? getWorkflow().getTaskList() : taskList))
+                                                                          .withInput(trimToMaxLength(input, MAX_INPUT_LENGTH))
+                                                                          .withExecutionStartToCloseTimeout(executionStartToCloseTimeout)
+                                                                          .withTaskStartToCloseTimeout(taskStartToCloseTimeout)
+                                                                          .withChildPolicy(childPolicy)
+                                                                          .withTagList(tags)
+                   );
     }
 
     /**
-     * Get the run identifier of the child workflow.
+     * Get the workflow identifier created for this child workflow.
      * Clients should ensure that the child workflow has been started in a prior decision task before calling this method.
      *
      * @throws UnsupportedOperationException if child runId is not available
      * @see #getState
      */
-    public String getChildRunId() {
+    public String getChildWorkflowId() {
         Event event = getEvents().selectEventType(ChildWorkflowExecutionStarted).getFirst();
         if (event == null) {
             throw new UnsupportedOptionException(format("RunId not available %s %s", this, getState()));
         } else {
-            return event.getHistoryEvent().getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getRunId();
+            return event.getHistoryEvent().getChildWorkflowExecutionStartedEventAttributes().getWorkflowExecution().getWorkflowId();
         }
     }
+
 
     @Override
     protected StartChildWorkflowAction thisObject() { return this; }

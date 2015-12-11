@@ -6,6 +6,7 @@ import com.clario.swift.action.RecordMarkerAction;
 import com.clario.swift.action.SignalWorkflowAction;
 import com.clario.swift.action.StartChildWorkflowAction;
 import com.clario.swift.action.TimerAction;
+import com.clario.swift.examples.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,43 +39,28 @@ public class SignalWaitForSignalWorkflow extends Workflow {
         config().submit(workflow, "666");
     }
 
+    private final StartChildWorkflowAction childWorkflow = new StartChildWorkflowAction("childWorkflow")
+                                                               .withNameVersion("Wait For Signal Workflow", "1.0")
+                                                               .withExecutionStartToCloseTimeout(MINUTES, 10)
+                                                               .withTaskStartToCloseTimeout(null, -1);
+
     private final SignalWorkflowAction signal = new SignalWorkflowAction("signal").withInput("999");
 
-    private final RecordMarkerAction marker = new RecordMarkerAction("childId");
-
-    private final TimerAction timer = new TimerAction("timer").withStartToFireTimeout(SECONDS, 2);
+    private final TimerAction timer = new TimerAction("timer").withStartToFireTimeout(SECONDS, 5);
 
     public SignalWaitForSignalWorkflow() {
         super("Signal Wait For Signal Workflow", "1.0");
-        addActions(signal, timer, marker);
+        addActions(signal, timer, childWorkflow);
     }
 
     @Override
     public void decide(List<Decision> decisions) {
         log.info("decide");
 
-        if (marker.isNotStarted()) {
-            // Using a marker to ensure we create the child workflow id exactly once.
-            marker.withDetails(createUniqueWorkflowId("Child Workflow")).decide(decisions);
-        }
-        String childWorkflowId = marker.getOutput();
-
-        // Good example of creating an action dynamically instead of it being a workflow field
-        StartChildWorkflowAction childWorkflow = new StartChildWorkflowAction(childWorkflowId)
-            .withNameVersion("Wait For Signal Workflow", "1.0")
-            .withExecutionStartToCloseTimeout(MINUTES, 10)
-            .withTaskStartToCloseTimeout(MINUTES, -1)
-            .withInput(getWorkflowInput())
-            .withTaskList(getTaskList());
-
-        // Do not forget this step when creating actions on the fly!
-        // It's how an action gets access to the workflow, event history, current state, etc.
-        childWorkflow.setWorkflow(this);
-
         // Only start the child workflow once
         if (childWorkflow.isNotStarted()) {
-            log.info("Start child workflow");
-            childWorkflow.decide(decisions);
+            log.info("Start child workflow, give it 5 secs to start up");
+            childWorkflow.withInput(getWorkflowInput()).decide(decisions);
         }
 
         // Give the child workflow some time to start using a timer action
@@ -82,7 +68,9 @@ public class SignalWaitForSignalWorkflow extends Workflow {
             if (signal.isNotStarted()) {
                 log.info("Timer finished, send signal"); // log only once
             }
-            if (signal.withWorkflowId(childWorkflow.getActionId()).decide(decisions).isSuccess()) {
+
+            // important to get the child workflow's id, not this workflow's id
+            if (signal.withWorkflowId(childWorkflow.getChildWorkflowId()).decide(decisions).isSuccess()) {
                 // wait until child workflow finishes
                 childWorkflow.withCompleteWorkflowOnSuccess().decide(decisions);
 
