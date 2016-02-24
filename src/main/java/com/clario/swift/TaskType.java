@@ -13,7 +13,8 @@ public enum TaskType {
     CONTINUE_AS_NEW,
     DECISION,
     WORKFLOW_EXECUTION,
-    WORKFLOW_SIGNALED;
+    WORKFLOW_SIGNALED,
+    LAMBDA;
 
     public static final String CATEGORY_DECISION = "CATEGORY_DECISION";
     public static final String CATEGORY_WORKFLOW = "CATEGORY_WORKFLOW";

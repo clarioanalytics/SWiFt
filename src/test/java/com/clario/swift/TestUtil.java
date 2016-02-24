@@ -3,6 +3,7 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.amazonaws.services.simpleworkflow.model.transform.DecisionTaskJsonUnmarshaller;
 import com.amazonaws.transform.JsonUnmarshallerContext;
+import com.amazonaws.transform.JsonUnmarshallerContextImpl;
 import com.amazonaws.transform.Unmarshaller;
 import com.clario.swift.action.ActivityAction;
 import com.clario.swift.event.Event;
@@ -89,7 +90,7 @@ public class TestUtil {
         try {
             Unmarshaller<DecisionTask, JsonUnmarshallerContext> unmarshaller = new DecisionTaskJsonUnmarshaller();
             JsonParser parser = new JsonFactory().createParser(json);
-            return unmarshaller.unmarshall(new JsonUnmarshallerContext(parser));
+            return unmarshaller.unmarshall(new JsonUnmarshallerContextImpl(parser));
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

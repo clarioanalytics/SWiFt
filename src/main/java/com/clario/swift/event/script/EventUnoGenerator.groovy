@@ -3,10 +3,11 @@ package com.clario.swift.event.script
 import com.amazonaws.services.simpleworkflow.model.EventType
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*
-import static com.clario.swift.event.EventState.*
 import static com.clario.swift.TaskType.*
+import static com.clario.swift.event.EventState.*
 
 /**
+ * Generates {@link com.clario.swift.event.Event} class.
  * @author George Coller
  */
 public class EventUnoGenerator {
@@ -81,7 +82,12 @@ public class Event implements Comparable<Event> {
                 EventType.each { EventType eventType ->
                     def map = EVENT_TYPE_MAP[eventType]
 
-                    def returnValue = map[methodName] ?: calcReturnValueExists(eventType, methodName)
+                    def returnValue
+                    try {
+                        returnValue = map[methodName] ?: calcReturnValueExists(eventType, methodName)
+                    } catch (e) {
+                        println returnValue
+                    }
                     if (methodName == 'initialEventId' && INITIAL == map.state) {
                         returnValue = 'eventId'
                     }
@@ -216,5 +222,14 @@ public class Event implements Comparable<Event> {
 // Signal Received (either from this workflow or external source)
 (WorkflowExecutionSignaled)                      : [task: WORKFLOW_SIGNALED, state: SUCCESS, output: 'input', initialEventId: 'eventId', actionId: 'SignalName'],
 
+(LambdaFunctionScheduled)                        : [task: LAMBDA, state: INITIAL, output: 'input'],
+(LambdaFunctionStarted)                          : [task: LAMBDA, state: ACTIVE, initialEventId: 'scheduledEventId'],
+(LambdaFunctionCompleted)                        : [task: LAMBDA, state: SUCCESS, output: 'result', initialEventId: 'scheduledEventId'],
+(LambdaFunctionFailed)                           : [task: LAMBDA, state: ERROR, reason: 'reason', details: 'details', initialEventId: 'scheduledEventId'],
+(LambdaFunctionTimedOut)                         : [task: LAMBDA, state: ERROR, reason: LambdaFunctionTimedOut, details: 'timeoutType', initialEventId: 'scheduledEventId'],
+(ScheduleLambdaFunctionFailed)                   : [task: LAMBDA, state: ERROR, reason: ScheduleLambdaFunctionFailed, control: 'name', details: 'cause'],
+(StartLambdaFunctionFailed)                      : [task: LAMBDA, state: ERROR, reason: StartLambdaFunctionFailed, output: 'message', details: 'cause', initialEventId: 'scheduledEventId'],
+
     ]
+
 }
