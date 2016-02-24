@@ -2,6 +2,7 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.Action;
+import com.clario.swift.action.ActionFn;
 import com.clario.swift.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -377,6 +378,24 @@ public abstract class Workflow {
             log.error(msg);
             throw new IllegalStateException(msg);
         }
+    }
+
+
+    /**
+     * Perform each {@link ActionFn} in order.
+     *
+     * @param decisions list to receive AWS decisions
+     * @param actionFns list of action functions
+     *
+     * @return true when all actions in list are complete, otherwise false
+     */
+    protected static boolean sequence(List<Decision> decisions, ActionFn... actionFns) {
+        for (ActionFn f : actionFns) {
+            if (!f.apply().decide(decisions).isSuccess()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
