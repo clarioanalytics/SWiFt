@@ -58,11 +58,13 @@
             </exclusions>
         </dependency>
 
+        <!-- dependency only required when regenerating the com.clario.swift.event.Event.java class -->
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
             <classifier>indy</classifier>
             <version>2.3.2</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- Logging -->
