@@ -1,7 +1,7 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.clario.swift.action.ActionFn;
+import com.clario.swift.action.ActionCallback;
 import com.clario.swift.action.MockAction;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,19 +24,14 @@ import static org.junit.Assert.assertEquals;
 public class DecisionBuilderTest {
 
     MockAction s1, s2, s3, s4, s5, s6, s7, s8, s9;
-    ActionFn f1, f2, f3, f4, f5, f6, f7, f8, f9;
+    ActionCallback f1, f2, f3, f4, f5, f6, f7, f8, f9;
     List<MockAction> mockActions;
-    List<ActionFn> actionFns;
     List<Decision> decisions;
     DecisionBuilder builder;
 
     @Before public void setup() {
         decisions = new ArrayList<>();
         builder = new DecisionBuilder(decisions);
-        Workflow wf = new Workflow("MockWorkflow", "1.0") {
-            @Override public void decide(List<Decision> decisions) {
-            }
-        };
         s1 = new MockAction("s1");
         s2 = new MockAction("s2");
         s3 = new MockAction("s3");
@@ -48,7 +43,6 @@ public class DecisionBuilderTest {
         s9 = new MockAction("s9");
         mockActions = asList(s1, s2, s3, s4, s5, s6, s7, s8, s9);
 
-        wf.addActions(s1, s2, s3, s4, s6, s6);
         f1 = () -> s1.withInput("");
         f2 = () -> s2.withInput(s1.getOutput());
         f3 = () -> s3.withInput(s2.getOutput());
@@ -58,7 +52,6 @@ public class DecisionBuilderTest {
         f7 = () -> s7.withInput(s6.getOutput());
         f8 = () -> s8.withInput(s7.getOutput());
         f9 = () -> s9.withInput(s8.getOutput());
-        actionFns = asList(f1, f2, f3, f4, f5, f6, f7, f8, f9);
 
     }
 

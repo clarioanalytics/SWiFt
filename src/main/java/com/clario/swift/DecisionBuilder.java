@@ -1,12 +1,11 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.clario.swift.action.ActionFn;
+import com.clario.swift.action.ActionCallback;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 import java.util.function.Function;
 
@@ -48,8 +47,8 @@ public class DecisionBuilder {
         // create full arg list 
         List<Node> list = new ArrayList<>();
         for (Object o : objects) {
-            if (o instanceof ActionFn) {
-                list.add(new ActionFnNode((ActionFn) o));
+            if (o instanceof ActionCallback) {
+                list.add(new ActionFnNode((ActionCallback) o));
             } else if (o == this) {
                 list.add(popList.pop());
             } else {
@@ -108,9 +107,9 @@ public class DecisionBuilder {
     }
 
     private class ActionFnNode extends Node {
-        private final ActionFn fn;
+        private final ActionCallback fn;
 
-        ActionFnNode(ActionFn fn) {
+        ActionFnNode(ActionCallback fn) {
             super("fn", emptyList());
             this.fn = fn;
         }

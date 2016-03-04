@@ -4,7 +4,7 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.clario.swift.DecisionBuilder;
 import com.clario.swift.Workflow;
-import com.clario.swift.action.ActionFn;
+import com.clario.swift.action.ActionCallback;
 import com.clario.swift.action.ActivityAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,12 +58,12 @@ public class SplitJoinWorkflowSequenced extends Workflow {
 
     @Override
     public void decide(List<Decision> decisions) {
-        ActionFn f1 = () -> step1.withInput("1");
-        ActionFn f2 = () -> step2.withInput("2");
-        ActionFn f3 = () -> step3.withInput("3");
-        ActionFn f4 = () -> step4.withInput("4");
-        ActionFn f5 = () -> step5.withInput("5");
-        ActionFn f6 = () -> step6.withInput("6");
+        ActionCallback f1 = () -> step1.withInput("1");
+        ActionCallback f2 = () -> step2.withInput("2");
+        ActionCallback f3 = () -> step3.withInput("3");
+        ActionCallback f4 = () -> step4.withInput("4");
+        ActionCallback f5 = () -> step5.withInput("5");
+        ActionCallback f6 = () -> step6.withInput("6");
 
         DecisionBuilder d = new DecisionBuilder(decisions);
         d.sequence(f1)

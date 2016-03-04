@@ -3,7 +3,7 @@ package com.clario.swift.examples.workflows;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.DecisionBuilder;
 import com.clario.swift.Workflow;
-import com.clario.swift.action.ActionFn;
+import com.clario.swift.action.ActionCallback;
 import com.clario.swift.action.ActivityAction;
 
 import java.util.List;
@@ -14,7 +14,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
- * Example demonstrating {@link Workflow#sequence(List, ActionFn[])} method, which can simplify repetitive workflow code.
+ * Example demonstrating {@link Workflow#sequence(List, ActionCallback[])} method, which can simplify repetitive workflow code.
  *
  * @author George Coller
  * @see SimpleWorkflow for the long version of this workflow
@@ -50,9 +50,9 @@ public class SimpleWorkflowSequenced extends Workflow {
     @Override
     public void decide(List<Decision> decisions) {
         String input = getWorkflowInput();
-        ActionFn f1 = () -> step1.withInput(input);
-        ActionFn f2 = () -> step2.withInput(step1.getOutput());
-        ActionFn f3 = () -> step3.withInput(step2.getOutput()).withCompleteWorkflowOnSuccess();
+        ActionCallback f1 = () -> step1.withInput(input);
+        ActionCallback f2 = () -> step2.withInput(step1.getOutput());
+        ActionCallback f3 = () -> step3.withInput(step2.getOutput()).withCompleteWorkflowOnSuccess();
 
         DecisionBuilder b = new DecisionBuilder(decisions);
         b.sequence(f1, f2, f3);
