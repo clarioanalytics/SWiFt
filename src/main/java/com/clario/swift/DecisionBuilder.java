@@ -4,9 +4,11 @@ import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.action.ActionFn;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.lang.String.join;
@@ -54,7 +56,11 @@ public class DecisionBuilder {
                 throw new IllegalArgumentException(format("Unexpected object on stack: %s", o));
             }
         }
-        stack.push(fn.apply(list));
+        if (list.size() == 1) {
+            stack.push(list.get(0));
+        } else {
+            stack.push(fn.apply(list));
+        }
         return this;
     }
 
@@ -66,10 +72,8 @@ public class DecisionBuilder {
     }
 
     public DecisionBuilder print() {
-        for (Node node : stack) {
-            System.out.println(node);
-        }
-//        System.out.println(SwiftUtil.toJson(stack, true));
+//        for (Node node : stack) { System.out.println(node); }
+        System.out.println(SwiftUtil.toJson(stack, true));
         return this;
     }
 
@@ -94,7 +98,7 @@ public class DecisionBuilder {
         abstract boolean decide();
 
         @JsonValue
-        Map<String, List<Node>> toMap() {
+        Object jsonValue() {
             return singletonMap(type, nodes);
         }
 
@@ -117,6 +121,11 @@ public class DecisionBuilder {
 
         @Override public String toString() {
             return format("'%s'", fn.apply().getActionId());
+        }
+
+        @JsonValue
+        Object jsonValue() {
+            return toString();
         }
     }
 
