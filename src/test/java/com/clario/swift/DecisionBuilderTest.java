@@ -55,6 +55,9 @@ public class DecisionBuilderTest {
 
     }
 
+    /**
+     * Helper class where a list of expected outcomes for each step of the workflow can be replayed.
+     */
     class Replay {
         int i = -1;
         List<MockAction> actions = new ArrayList<>();
@@ -67,7 +70,6 @@ public class DecisionBuilderTest {
 
         void next() {
             i++;
-            System.out.println("replay step " + i);
             if (i > 0) {
                 actions.forEach(MockAction::nextState);
             }
@@ -76,10 +78,10 @@ public class DecisionBuilderTest {
             Map<MockAction, String> map = steps.get(i);
 
             List<Decision> expectedDecisions = map.keySet().stream().map(MockAction::getDecision).collect(toList());
-            assertEquals(expectedDecisions, decisions);
+            assertEquals("replay step " + i, expectedDecisions, decisions);
 
             List<String> actualDecisionTypes = map.keySet().stream().map(MockAction::getDecisionType).collect(toList());
-            assertEquals(map.values().toString(), actualDecisionTypes.toString());
+            assertEquals("replay step " + i, map.values().toString(), actualDecisionTypes.toString());
         }
 
         Replay addStep() {

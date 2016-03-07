@@ -71,7 +71,6 @@ public class DecisionBuilder {
     }
 
     public DecisionBuilder print() {
-//        for (Node node : stack) { System.out.println(node); }
         System.out.println(SwiftUtil.toJson(stack, true));
         return this;
     }
