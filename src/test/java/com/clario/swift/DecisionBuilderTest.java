@@ -6,11 +6,9 @@ import com.clario.swift.action.MockAction;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import static com.clario.swift.DecisionBuilder.findFailWorkflowDecisions;
 import static com.clario.swift.event.EventState.ERROR;
 import static com.clario.swift.event.EventState.NOT_STARTED;
 import static java.util.Arrays.asList;
@@ -29,7 +27,8 @@ public class DecisionBuilderTest {
     List<Decision> decisions;
     DecisionBuilder builder;
 
-    @Before public void setup() {
+    @Before
+    public void setup() {
         decisions = new ArrayList<>();
         builder = new DecisionBuilder(decisions);
         s1 = new MockAction("s1");
@@ -62,26 +61,34 @@ public class DecisionBuilderTest {
         int i = -1;
         List<MockAction> actions = new ArrayList<>();
         List<Map<MockAction, String>> steps = new ArrayList<>();
+        final Map<MockAction, String> LAST_STEP = Collections.emptyMap();
 
         Replay() {
             actions.addAll(mockActions);
             addStep();
         }
 
-        void next() {
+        boolean next() {
             i++;
             if (i > 0) {
                 actions.forEach(MockAction::nextState);
             }
             decisions.clear();
-            builder.decide();
+            boolean result = builder.decide();
             Map<MockAction, String> map = steps.get(i);
 
-            List<Decision> expectedDecisions = map.keySet().stream().map(MockAction::getDecision).collect(toList());
-            assertEquals("replay step " + i, expectedDecisions, decisions);
+            if (map != LAST_STEP) {
+                List<Decision> expectedDecisions = map.keySet().stream().map(MockAction::getDecision)
+                                                       .filter(d -> d != null)
+                                                       .collect(toList());
+                assertEquals("replay step " + i + " decisions", expectedDecisions, decisions);
 
-            List<String> actualDecisionTypes = map.keySet().stream().map(MockAction::getDecisionType).collect(toList());
-            assertEquals("replay step " + i, map.values().toString(), actualDecisionTypes.toString());
+                List<String> actualDecisionTypes = map.keySet().stream().map(MockAction::getDecisionType)
+                                                       .filter(d -> d != null)
+                                                       .collect(toList());
+                assertEquals("replay step " + i + " decision types", map.values().toString(), actualDecisionTypes.toString());
+            }
+            return result;
         }
 
         Replay addStep() {
@@ -95,8 +102,13 @@ public class DecisionBuilderTest {
         }
 
         void play() {
+            steps.add(LAST_STEP);
+            boolean result = true;
             for (Map<MockAction, String> ignore : steps) {
-                next();
+                result = next();
+            }
+            if (findFailWorkflowDecisions(decisions).isEmpty() && !result) {
+                throw new IllegalStateException("DecisionBuilder was not complete, missing replay steps");
             }
         }
     }
@@ -131,6 +143,71 @@ public class DecisionBuilderTest {
             .addDecision(s1, "s1").addStep()
             .addDecision(s2, "s1->s2").addStep()
             .addDecision(s2, "FailWorkflowExecution")
+            .play();
+    }
+
+    @Test
+    public void testStepErrorFinally() {
+        f4 = () -> s4.withInput("finally");
+
+        s2.setEventStates(NOT_STARTED, ERROR);
+        builder.sequence(f1, f2, f3);
+        builder.doFinally(f4);
+
+        new Replay()
+            .addDecision(s1, "s1").addStep()
+            .addDecision(s2, "s1->s2").addStep()
+            .addDecision(s4, "finally->s4").addStep()
+            .addDecision(s2, "FailWorkflowExecution")
+            .play();
+    }
+
+    @Test
+    public void testStepNoErrorFinally() {
+        f4 = () -> s4.withInput(s3.getOutput());
+        f5 = () -> s5.withInput(s3.getOutput());
+        builder.sequence(f1, f2, f3);
+        builder.doFinally(builder.split(f4, f5));
+
+        new Replay()
+            .addDecision(s1, "s1").addStep()
+            .addDecision(s2, "s1->s2").addStep()
+            .addDecision(s3, "s1->s2->s3").addStep()
+            .addDecision(s4, "s1->s2->s3->s4")
+            .addDecision(s5, "s1->s2->s3->s5")
+            .play();
+    }
+
+
+    @Test
+    public void testTryCatchWithError() {
+        f4 = () -> s4.withInput("");
+
+        s3.setEventStates(NOT_STARTED, ERROR);
+        builder.sequence(f1);
+        builder.tryCatch(builder.sequence(f2, f3), f4);
+        builder.sequence(f5);
+
+        new Replay()
+            .addDecision(s1, "s1").addStep()
+            .addDecision(s2, "s1->s2").addStep()
+            .addDecision(s3, "s1->s2->s3").addStep()
+            .addDecision(s4, "s4").addStep()
+            .addDecision(s5, "s4->s5")
+            .play();
+    }
+
+    @Test
+    public void testTryCatchNoError() {
+        f3 = () -> s3.withInput("should never be run");
+        f4 = () -> s4.withInput(s2.getOutput());
+        builder.tryCatch(builder.sequence(f1, f2), f3);
+        builder.sequence(f4);
+
+        new Replay()
+            .addDecision(s1, "s1").addStep()
+            .addDecision(s2, "s1->s2").addStep()
+            .addDecision(s4, "s1->s2->s4")
             .play();
     }
 

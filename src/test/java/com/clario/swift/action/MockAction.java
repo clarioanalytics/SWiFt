@@ -6,7 +6,6 @@ import com.clario.swift.Workflow;
 import com.clario.swift.event.EventState;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.clario.swift.event.EventState.*;
@@ -19,7 +18,7 @@ import static java.util.Arrays.asList;
 public class MockAction extends Action<MockAction> {
     private String input;
     private Decision decision;
-    private boolean decisionMade;
+    private boolean nonFinalDecisionMade;
 
     private List<EventState> eventStates = new ArrayList<>(asList(NOT_STARTED, SUCCESS));
 
@@ -41,7 +40,7 @@ public class MockAction extends Action<MockAction> {
     }
 
     @Override public String getOutput() {
-        assert input != null;
+        assert input != null : getActionId() + ": assert input string is not null on getOutput()";
         if (input.isEmpty()) {
             return getActionId();
         } else {
@@ -53,18 +52,17 @@ public class MockAction extends Action<MockAction> {
         if (getState() == NOT_STARTED) {
             decision = createInitiateActivityDecision();
             decisions.add(decision);
-            decisionMade = true;
+            nonFinalDecisionMade = true;
         }
         if (getState() == ERROR) {
             decision = Workflow.createFailWorkflowExecutionDecision(getActionId(), "error", "");
             decisions.add(decision);
-            decisionMade = true;
         }
         return this;
     }
 
     @Override public EventState getState() {
-        assert !eventStates.isEmpty();
+        assert !eventStates.isEmpty() : getActionId() + ": assert eventStates not empty";
         return eventStates.get(0);
     }
 
@@ -86,12 +84,12 @@ public class MockAction extends Action<MockAction> {
     }
 
     public String getDecisionType() {
-        return decision.getDecisionType();
+        return (decision == null) ? null : decision.getDecisionType();
     }
 
     public void nextState() {
-        if (decisionMade) {
-            decisionMade = false;
+        if (nonFinalDecisionMade) {
+            nonFinalDecisionMade = false;
             eventStates.remove(0);
         }
     }
