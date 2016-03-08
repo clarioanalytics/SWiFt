@@ -215,7 +215,7 @@ public class DecisionBuilderTest {
     }
 
     @Test
-    public void testSplit() {
+    public void testSplitJoin1() {
         f1 = () -> s1.withInput("");
         f2 = () -> s2.withInput("");
         f3 = () -> s3.withInput(s1.getOutput() + "+" + s2.getOutput());
@@ -232,7 +232,7 @@ public class DecisionBuilderTest {
     }
 
     @Test
-    public void testSplit2() {
+    public void testSplitJoin2() {
         builder.split(
             () -> s1.withInput(""),
             () -> s2.withInput("")
@@ -247,7 +247,7 @@ public class DecisionBuilderTest {
 
 
     @Test
-    public void testSplitB() {
+    public void testSequenceSplitSequenceSplitSequence () {
         f1 = () -> s1.withInput("");
         f2 = () -> s2.withInput(s1.getOutput());
         f3 = () -> s3.withInput(s2.getOutput());
