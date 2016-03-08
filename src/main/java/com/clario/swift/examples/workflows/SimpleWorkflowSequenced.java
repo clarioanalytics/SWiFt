@@ -3,7 +3,6 @@ package com.clario.swift.examples.workflows;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.DecisionBuilder;
 import com.clario.swift.Workflow;
-import com.clario.swift.action.ActionCallback;
 import com.clario.swift.action.ActivityAction;
 
 import java.util.List;
@@ -14,7 +13,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
- * Example demonstrating {@link Workflow#sequence(List, ActionCallback[])} method, which can simplify repetitive workflow code.
+ * Example demonstrating {@link DecisionBuilder }, which can simplify repetitive workflow code.
  *
  * @author George Coller
  * @see SimpleWorkflow for the long version of this workflow
@@ -35,7 +34,8 @@ public class SimpleWorkflowSequenced extends Workflow {
     // Create known actions as fields
     final ActivityAction step1 = new ActivityAction("step1", "Activity X", "1.0");
     final ActivityAction step2 = new ActivityAction("step2", "Activity Y", "1.0");
-    final ActivityAction step3 = new ActivityAction("step3", "Activity Z", "1.0");
+    final ActivityAction step3 = new ActivityAction("step3", "Activity Z", "1.0")
+                                     .withCompleteWorkflowOnSuccess();
 
 
     /** Start the workflow by submitting it to SWF. */
@@ -49,16 +49,12 @@ public class SimpleWorkflowSequenced extends Workflow {
 
     @Override
     public void decide(List<Decision> decisions) {
-        String input = getWorkflowInput();
-        ActionCallback f1 = () -> step1.withInput(input);
-        ActionCallback f2 = () -> step2.withInput(step1.getOutput());
-        ActionCallback f3 = () -> step3.withInput(step2.getOutput()).withCompleteWorkflowOnSuccess();
 
-        DecisionBuilder b = new DecisionBuilder(decisions);
-        b.sequence(f1, f2, f3);
-
-
-        sequence(decisions, f1, f2, f3);
+        new DecisionBuilder(decisions).sequence(
+            () -> step1.withInput(getWorkflowInput()),
+            () -> step2.withInput(step1.getOutput()),
+            () -> step3.withInput(step2.getOutput()))
+            .decide();
     }
 
 }

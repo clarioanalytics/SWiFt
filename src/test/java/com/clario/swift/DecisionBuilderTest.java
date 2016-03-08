@@ -1,7 +1,7 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.clario.swift.action.ActionCallback;
+import com.clario.swift.action.ActionSupplier;
 import com.clario.swift.action.MockAction;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 public class DecisionBuilderTest {
 
     MockAction s1, s2, s3, s4, s5, s6, s7, s8, s9;
-    ActionCallback f1, f2, f3, f4, f5, f6, f7, f8, f9;
+    ActionSupplier f1, f2, f3, f4, f5, f6, f7, f8, f9;
     List<MockAction> mockActions;
     List<Decision> decisions;
     DecisionBuilder builder;
@@ -117,6 +117,7 @@ public class DecisionBuilderTest {
     @Test
     public void testSingleSequence() {
         builder.sequence(f1, f2, f3);
+
         new Replay()
             .addDecision(s1, "s1").addStep()
             .addDecision(s2, "s1->s2").addStep()
@@ -209,6 +210,8 @@ public class DecisionBuilderTest {
             .addDecision(s2, "s1->s2").addStep()
             .addDecision(s4, "s1->s2->s4")
             .play();
+        
+        assertEquals("[{\"tryCatch\":[{\"seq\":[\"'s1'\",\"'s2'\"]},\"'s3'\"]},{\"seq\":[\"'s4'\"]}]", builder.toString());
     }
 
     @Test
@@ -230,10 +233,10 @@ public class DecisionBuilderTest {
 
     @Test
     public void testSplit2() {
-        f1 = () -> s1.withInput("");
-        f2 = () -> s2.withInput("");
-        f3 = () -> s3.withInput(s1.getOutput() + "+" + s2.getOutput());
-        builder.split(f1, f2).sequence(f3);
+        builder.split(
+            () -> s1.withInput(""),
+            () -> s2.withInput("")
+        ).sequence(() -> s3.withInput(s1.getOutput() + "+" + s2.getOutput()));
 
         new Replay()
             .addDecision(s1, "s1")
@@ -262,7 +265,8 @@ public class DecisionBuilderTest {
                 builder.sequence(f4, builder.split(f5, f6), f7),
                 f8
             )
-            .sequence(f9);
+            .sequence(f9)
+        ;
 
         new Replay()
             .addDecision(s1, "s1").addStep()

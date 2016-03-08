@@ -2,11 +2,11 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
-import com.clario.swift.action.ActionCallback;
+import com.clario.swift.action.Action;
+import com.clario.swift.action.ActionSupplier;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
@@ -14,29 +14,43 @@ import java.util.stream.Collectors;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
 import static java.lang.String.format;
-import static java.lang.String.join;
 import static java.util.Collections.*;
-import static java.util.stream.Collectors.toList;
 
 /**
+ * Helper class for easily creating complex workflow branching with sequences, split/joins, error handling and a finally block available.
+ *
  * @author George Coller
  */
-public class DecisionBuilder {
+public class DecisionBuilder implements ActionSupplier {
     private final List<Decision> decisions;
-    private final Stack<Node> nodeStack = new Stack<>();
+    private final Stack<Node> stack = new Stack<>();
     private Node finallyNode;
 
     public DecisionBuilder(List<Decision> decisions) {
         this.decisions = decisions;
     }
 
-    public DecisionBuilder sequence(Object... objects) {
-        convertAndPush(nodeStack, objects, SeqNode::new);
+    /**
+     * Perform a set of actions one after another.
+     *
+     * @param suppliers list of {@link ActionSupplier} to sequence
+     *
+     * @return this instance
+     */
+    public DecisionBuilder sequence(ActionSupplier... suppliers) {
+        convertAndPush(suppliers, SeqNode::new);
         return this;
     }
 
-    public DecisionBuilder split(Object... objects) {
-        convertAndPush(nodeStack, objects, SplitNode::new);
+    /**
+     * Perform a set of actions in parallel, joining on the next builder action after the split.
+     *
+     * @param suppliers list of {@link ActionSupplier} to sequence
+     *
+     * @return this instance
+     */
+    public DecisionBuilder split(ActionSupplier... suppliers) {
+        convertAndPush(suppliers, SplitNode::new);
         return this;
     }
 
@@ -46,32 +60,33 @@ public class DecisionBuilder {
      * The {@link DecisionType#FailWorkflowExecution} decisions are removed and replaced with decisions
      * made from the given actions.
      *
-     * @param tryBlock try block of actions
-     * @param catchBlock catch block of actions
+     * @param trySupplier try block of actions
+     * @param catchSupplier catch block of actions
      */
-    public DecisionBuilder tryCatch(Object tryBlock, Object catchBlock) {
-        Object[] objects = Arrays.asList(tryBlock, catchBlock).toArray();
-        convertAndPush(nodeStack, objects, CatchNode::new);
+    public DecisionBuilder tryCatch(ActionSupplier trySupplier, ActionSupplier catchSupplier) {
+        convertAndPush(new ActionSupplier[]{trySupplier, catchSupplier}, CatchNode::new);
         return this;
     }
 
     /**
      * Perform a set of actions after all other actions are completed, even if they caused a {@link DecisionType#FailWorkflowExecution} decision.
      * Note that any {@link DecisionType#FailWorkflowExecution} decisions will still be added back after the finally section has successfully completed.
+     *
+     * @param supplier supplier to perform at the end of a workflow, regardless of any workflow errors.
      */
-    public DecisionBuilder doFinally(Object finallyBlock) {
-        convertAndPush(nodeStack, singletonList(finallyBlock).toArray(), FinallyNode::new);
-        finallyNode = nodeStack.pop();
+    public DecisionBuilder doFinally(ActionSupplier supplier) {
+        convertAndPush(new ActionSupplier[]{supplier}, FinallyNode::new);
+        finallyNode = stack.pop();
         return this;
     }
 
-    private Node convertAndPush(Stack<Node> stack, Object[] objects, Function<List<Node>, Node> fn) {
+    private Node convertAndPush(ActionSupplier[] callbacks, Function<List<Node>, Node> fn) {
         if (finallyNode != null) {
             throw new IllegalStateException("There can only be exactly one finally block allowed and it must be the last block added");
         }
         // pre-pop arguments to preserve argument ordering.
         Stack<Node> popList = new Stack<>();
-        for (Object o : objects) {
+        for (Object o : callbacks) {
             if (o == this) {
                 popList.push(stack.pop());
             }
@@ -79,13 +94,11 @@ public class DecisionBuilder {
 
         // create full arg list 
         List<Node> list = new ArrayList<>();
-        for (Object o : objects) {
-            if (o instanceof ActionCallback) {
-                list.add(new ActionFnNode((ActionCallback) o));
-            } else if (o == this) {
+        for (ActionSupplier callback : callbacks) {
+            if (callback == this) {
                 list.add(popList.pop());
             } else {
-                throw new IllegalArgumentException(format("Unexpected object on stack: %s", o));
+                list.add(new ActionFnNode(callback));
             }
         }
         Node node = fn.apply(list);
@@ -97,7 +110,7 @@ public class DecisionBuilder {
      * @return true if isSuccess(), otherwise false.
      */
     public boolean decide() {
-        boolean result = decideNodes(nodeStack);
+        boolean result = decideNodes(stack);
         List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
         if ((result || !failWorkflowDecisions.isEmpty()) && finallyNode != null) {
             result = decideNodes(singletonList(finallyNode));
@@ -114,9 +127,23 @@ public class DecisionBuilder {
         return true;
     }
 
+    /**
+     * Print out a string representation of this instance
+     *
+     * @return this instance
+     */
     public DecisionBuilder print() {
-        System.out.println(SwiftUtil.toJson(nodeStack, true));
+        System.out.println(toString());
         return this;
+    }
+
+    public String toString() {
+        return SwiftUtil.toJson(stack, false);
+    }
+
+    @Override
+    public Action get() {
+        throw new UnsupportedOperationException("method not available for " + getClass().getSimpleName());
     }
 
     abstract class Node {
@@ -136,24 +163,25 @@ public class DecisionBuilder {
         }
 
         public String toString() {
-            return String.format("%s(%s)", type, join(",", nodes.stream().map(Object::toString).collect(toList())));
+            return jsonValue().toString();
+//            return String.format("%s(%s)", type, join(",", nodes.stream().map(Object::toString).collect(toList())));
         }
     }
 
     private class ActionFnNode extends Node {
-        private final ActionCallback fn;
+        private final ActionSupplier fn;
 
-        ActionFnNode(ActionCallback fn) {
+        ActionFnNode(ActionSupplier fn) {
             super("fn", emptyList());
             this.fn = fn;
         }
 
         @Override public boolean decideNode() {
-            return fn.apply().decide(decisions).isSuccess();
+            return fn.get().decide(decisions).isSuccess();
         }
 
         @Override public String toString() {
-            return format("'%s'", fn.apply().getActionId());
+            return format("'%s'", fn.get().getActionId());
         }
 
         @JsonValue
@@ -233,10 +261,9 @@ public class DecisionBuilder {
     }
 
     static List<Decision> findFailWorkflowDecisions(List<Decision> decisions) {
-        return findDecisions(decisions, FailWorkflowExecution);
+        return decisions.stream()
+                   .filter(d -> d.getDecisionType().equals(FailWorkflowExecution.name()))
+                   .collect(Collectors.toList());
     }
 
-    static List<Decision> findDecisions(List<Decision> decisions, DecisionType decisionType) {
-        return decisions.stream().filter(d -> d.getDecisionType().equals(decisionType.name())).collect(Collectors.toList());
-    }
 }

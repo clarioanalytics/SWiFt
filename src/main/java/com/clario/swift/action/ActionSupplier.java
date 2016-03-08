@@ -8,11 +8,9 @@ import com.clario.swift.DecisionBuilder;
  *
  * @author George Coller
  */
-public interface ActionCallback<T extends Action> {
+public interface ActionSupplier {
     /**
-     * Apply the function.
-     *
-     * @return the action that was just applied to this function.
+     * @return the action that was just applied with this function.
      */
-    T apply();
+    Action get();
 }
