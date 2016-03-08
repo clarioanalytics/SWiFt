@@ -1,6 +1,9 @@
 package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.RegisterWorkflowTypeRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.joda.time.format.DateTimeFormatter;
 
 import java.io.PrintWriter;
@@ -39,6 +42,24 @@ public class SwiftUtil {
 
     // Ensure all-static utility class
     private SwiftUtil() { }
+
+    public static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
+
+    static {
+        JSON_OBJECT_MAPPER.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+    }
+
+    public static String toJson(Object o, boolean pretty) {
+        try {
+            if (pretty) {
+                return JSON_OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+            } else {
+                return JSON_OBJECT_MAPPER.writeValueAsString(o);
+            }
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 
     /**
      * Assert the value passes the constraints for SWF fields like name, version, domain, taskList, identifiers.
