@@ -101,7 +101,7 @@ public class DecisionBuilder implements ActionSupplier {
      * @param catchSupplier catch block of actions
      */
     public DecisionBuilder tryCatch(ActionSupplier trySupplier, ActionSupplier catchSupplier) {
-        convertAndPush(CatchNode::new, trySupplier, catchSupplier);
+        convertAndPush(TryCatchNode::new, trySupplier, catchSupplier);
         return this;
     }
 
@@ -111,8 +111,8 @@ public class DecisionBuilder implements ActionSupplier {
      *
      * @param supplier supplier to perform at the end of a workflow, regardless of any workflow errors.
      */
-    public DecisionBuilder doFinally(ActionSupplier supplier) {
-        convertAndPush(FinallyNode::new, supplier);
+    public DecisionBuilder andFinally(ActionSupplier supplier) {
+        convertAndPush(AndFinallyNode::new, supplier);
         finallyNode = stack.pop();
         return this;
     }
@@ -136,7 +136,7 @@ public class DecisionBuilder implements ActionSupplier {
             if (callback == this) {
                 list.add(popList.pop());
             } else {
-                list.add(new ActionFnNode(callback));
+                list.add(new ActionNode(callback));
             }
         }
         Node node = fn.apply(list);
@@ -187,11 +187,9 @@ public class DecisionBuilder implements ActionSupplier {
     // Workflow decisions are a tree of Nodes
     //---------------------------------------------------------------------------------------------------- 
     abstract class Node {
-        final String type;
         final List<Node> nodes;
 
-        Node(String type, List<Node> nodes) {
-            this.type = type;
+        Node(List<Node> nodes) {
             this.nodes = nodes;
         }
 
@@ -199,7 +197,7 @@ public class DecisionBuilder implements ActionSupplier {
 
         @JsonValue
         Object jsonValue() {
-            return singletonMap(type, nodes);
+            return singletonMap(getClass().getSimpleName().replace("Node", ""), nodes);
         }
 
         public String toString() {
@@ -211,11 +209,11 @@ public class DecisionBuilder implements ActionSupplier {
     /**
      * Leaf node that calls decide on an {@link Action}.
      */
-    private class ActionFnNode extends Node {
+    private class ActionNode extends Node {
         private final ActionSupplier fn;
 
-        ActionFnNode(ActionSupplier fn) {
-            super("fn", emptyList());
+        ActionNode(ActionSupplier fn) {
+            super(emptyList());
             this.fn = fn;
         }
 
@@ -238,7 +236,7 @@ public class DecisionBuilder implements ActionSupplier {
      */
     private class SeqNode extends Node {
 
-        SeqNode(List<Node> nodes) { super("seq", nodes); }
+        SeqNode(List<Node> nodes) { super(nodes); }
 
         @Override
         public boolean decideNode() {
@@ -256,7 +254,7 @@ public class DecisionBuilder implements ActionSupplier {
      */
     private class SplitNode extends Node {
 
-        SplitNode(List<Node> nodes) { super("split", nodes); }
+        SplitNode(List<Node> nodes) { super(nodes); }
 
         @Override
         public boolean decideNode() {
@@ -275,7 +273,7 @@ public class DecisionBuilder implements ActionSupplier {
         private final Supplier<Boolean> test;
 
         IfThenNode(Supplier<Boolean> test, List<Node> nodes) {
-            super("ifThen", nodes);
+            super(nodes);
             this.test = test;
         }
 
@@ -293,8 +291,8 @@ public class DecisionBuilder implements ActionSupplier {
      * Executes a catch block of nodes if one or more nodes in a try block adds a {@link EventType#WorkflowExecutionFailed} decision.
      * The {@link EventType#WorkflowExecutionFailed} decision(s) will be removed.
      */
-    private class CatchNode extends Node {
-        CatchNode(List<Node> nodes) { super("tryCatch", nodes); }
+    private class TryCatchNode extends Node {
+        TryCatchNode(List<Node> nodes) { super(nodes); }
 
         Node getTryBlock() {return nodes.get(0);}
 
@@ -315,8 +313,8 @@ public class DecisionBuilder implements ActionSupplier {
     /**
      * Ensures an execution of a block of nodes regardless if any prior blocks add a {@link EventType#WorkflowExecutionFailed}.
      */
-    private class FinallyNode extends Node {
-        FinallyNode(List<Node> nodes) { super("finally", nodes); }
+    private class AndFinallyNode extends Node {
+        AndFinallyNode(List<Node> nodes) { super(nodes); }
 
         Node getFinallyNode() {
             assert nodes.size() == 1 : "Finally should be a single node";

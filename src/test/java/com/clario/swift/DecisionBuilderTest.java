@@ -202,7 +202,7 @@ public class DecisionBuilderTest {
 
         s2.setEventStates(NOT_STARTED, ERROR);
         builder.sequence(f1, f2, f3);
-        builder.doFinally(f4);
+        builder.andFinally(f4);
 
         new Replay()
             .addDecision(s1, "s1").addStep()
@@ -217,7 +217,7 @@ public class DecisionBuilderTest {
         f4 = () -> s4.withInput(s3.getOutput());
         f5 = () -> s5.withInput(s3.getOutput());
         builder.sequence(f1, f2, f3);
-        builder.doFinally(builder.split(f4, f5));
+        builder.andFinally(builder.split(f4, f5));
 
         new Replay()
             .addDecision(s1, "s1").addStep()
@@ -260,7 +260,7 @@ public class DecisionBuilderTest {
             .addDecision(s4, "s1->s2->s4")
             .play();
 
-        assertEquals("[{\"tryCatch\":[{\"seq\":[\"'s1'\",\"'s2'\"]},\"'s3'\"]},{\"seq\":[\"'s4'\"]}]", builder.toString());
+        assertEquals("[{\"TryCatch\":[{\"Seq\":[\"'s1'\",\"'s2'\"]},\"'s3'\"]},{\"Seq\":[\"'s4'\"]}]", builder.toString());
     }
 
     @Test
