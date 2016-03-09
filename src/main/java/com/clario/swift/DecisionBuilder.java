@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
@@ -26,19 +27,24 @@ public class DecisionBuilder implements ActionSupplier {
     private final Stack<Node> stack = new Stack<>();
     private Node finallyNode;
 
+    /**
+     * Instantiate an instance with the list to receive decisions.
+     *
+     * @param decisions list to receive decisions
+     */
     public DecisionBuilder(List<Decision> decisions) {
         this.decisions = decisions;
     }
 
     /**
-     * Perform a set of actions one after another.
+     * Perform a set of actions in sequence (one after another).
      *
      * @param suppliers list of {@link ActionSupplier} to sequence
      *
      * @return this instance
      */
     public DecisionBuilder sequence(ActionSupplier... suppliers) {
-        convertAndPush(suppliers, SeqNode::new);
+        convertAndPush(SeqNode::new, suppliers);
         return this;
     }
 
@@ -50,7 +56,20 @@ public class DecisionBuilder implements ActionSupplier {
      * @return this instance
      */
     public DecisionBuilder split(ActionSupplier... suppliers) {
-        convertAndPush(suppliers, SplitNode::new);
+        convertAndPush(SplitNode::new, suppliers);
+        return this;
+    }
+
+    /**
+     * Perform a set of actions if a test returns true.
+     *
+     * @param test supplier callback that returns a boolean
+     * @param supplier block of actions to be performed if test returns true.
+     *
+     * @return this instance
+     */
+    public DecisionBuilder ifThen(Supplier<Boolean> test, ActionSupplier supplier) {
+        convertAndPush(nodes -> new IfThenNode(test, nodes), supplier);
         return this;
     }
 
@@ -64,7 +83,7 @@ public class DecisionBuilder implements ActionSupplier {
      * @param catchSupplier catch block of actions
      */
     public DecisionBuilder tryCatch(ActionSupplier trySupplier, ActionSupplier catchSupplier) {
-        convertAndPush(new ActionSupplier[]{trySupplier, catchSupplier}, CatchNode::new);
+        convertAndPush(CatchNode::new, trySupplier, catchSupplier);
         return this;
     }
 
@@ -75,16 +94,17 @@ public class DecisionBuilder implements ActionSupplier {
      * @param supplier supplier to perform at the end of a workflow, regardless of any workflow errors.
      */
     public DecisionBuilder doFinally(ActionSupplier supplier) {
-        convertAndPush(new ActionSupplier[]{supplier}, FinallyNode::new);
+        convertAndPush(FinallyNode::new, supplier);
         finallyNode = stack.pop();
         return this;
     }
 
-    private Node convertAndPush(ActionSupplier[] callbacks, Function<List<Node>, Node> fn) {
+    // common method to pop all arguments to fn off stack and push fn(args) back on stack
+    private Node convertAndPush(Function<List<Node>, Node> fn, ActionSupplier... callbacks) {
         if (finallyNode != null) {
             throw new IllegalStateException("There can only be exactly one finally block allowed and it must be the last block added");
         }
-        // pre-pop arguments to preserve argument ordering.
+        // pre-pop arguments to preserve original argument ordering.
         Stack<Node> popList = new Stack<>();
         for (Object o : callbacks) {
             if (o == this) {
@@ -107,7 +127,9 @@ public class DecisionBuilder implements ActionSupplier {
     }
 
     /**
-     * @return true if isSuccess(), otherwise false.
+     * Make the next set of decisions given the current workflow state.
+     *
+     * @return true if the decision tree is finished, otherwise false.
      */
     public boolean decide() {
         boolean result = decideNodes(stack);
@@ -143,9 +165,15 @@ public class DecisionBuilder implements ActionSupplier {
 
     @Override
     public Action get() {
+        // ActionSupplier is implemented so the DecisionBuilder instance can be a builder parameter
+        // This is a bit jank but it gets the job done without forcing clients to have to cast their lambdas.
         throw new UnsupportedOperationException("method not available for " + getClass().getSimpleName());
     }
 
+
+    //---------------------------------------------------------------------------------------------------- 
+    // Workflow decisions are a tree of Nodes
+    //---------------------------------------------------------------------------------------------------- 
     abstract class Node {
         final String type;
         final List<Node> nodes;
@@ -164,7 +192,6 @@ public class DecisionBuilder implements ActionSupplier {
 
         public String toString() {
             return jsonValue().toString();
-//            return String.format("%s(%s)", type, join(",", nodes.stream().map(Object::toString).collect(toList())));
         }
     }
 
@@ -211,11 +238,30 @@ public class DecisionBuilder implements ActionSupplier {
 
         @Override
         public boolean decideNode() {
-            boolean finishedFlag = true;
+            boolean result = true;
             for (Node branch : nodes) {
-                finishedFlag &= branch.decideNode();
+                result &= branch.decideNode();
             }
-            return finishedFlag;
+            return result;
+        }
+    }
+
+    private class IfThenNode extends Node {
+
+        private final Supplier<Boolean> test;
+
+        IfThenNode(Supplier<Boolean> test, List<Node> nodes) {
+            super("ifThen", nodes);
+            this.test = test;
+        }
+
+        @Override
+        public boolean decideNode() {
+            boolean result = true;
+            if (test.get()) {
+                result = nodes.get(0).decideNode();
+            }
+            return result;
         }
     }
 

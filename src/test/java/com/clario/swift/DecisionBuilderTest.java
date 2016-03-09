@@ -137,6 +137,43 @@ public class DecisionBuilderTest {
 
 
     @Test
+    public void testIfThenTrue() {
+        f3 = () -> s3.withInput(s2.getOutput());
+        f4 = () -> s4.withInput(s2.getOutput());
+        f5 = () -> s5.withInput("(" + s3.getOutput() + "+" + s4.getOutput() + ")");
+
+        builder
+            .sequence(f1)
+            .ifThen(() -> true, builder.sequence(f2, builder.split(f3, f4)))
+            .sequence(f5)
+            .print();
+
+        new Replay()
+            .addDecision(s1, "s1").addStep()
+            .addDecision(s2, "s1->s2").addStep()
+            .addDecision(s3, "s1->s2->s3")
+            .addDecision(s4, "s1->s2->s4").addStep()
+            .addDecision(s5, "(s1->s2->s3+s1->s2->s4)->s5")
+            .play();
+    }
+
+    @Test
+    public void testIfThenFalse() {
+        f5 = () -> s5.withInput(s1.getOutput());
+
+        builder
+            .sequence(f1)
+            .ifThen(() -> false, builder.sequence(f2, builder.split(f3, f4)))
+            .sequence(f5)
+            .print();
+
+        new Replay()
+            .addDecision(s1, "s1").addStep()
+            .addDecision(s5, "s1->s5")
+            .play();
+    }
+
+    @Test
     public void testSequenceStepError() {
         s2.setEventStates(NOT_STARTED, ERROR);
         builder.sequence(f1, f2, f3);
@@ -210,7 +247,7 @@ public class DecisionBuilderTest {
             .addDecision(s2, "s1->s2").addStep()
             .addDecision(s4, "s1->s2->s4")
             .play();
-        
+
         assertEquals("[{\"tryCatch\":[{\"seq\":[\"'s1'\",\"'s2'\"]},\"'s3'\"]},{\"seq\":[\"'s4'\"]}]", builder.toString());
     }
 
@@ -247,7 +284,7 @@ public class DecisionBuilderTest {
 
 
     @Test
-    public void testSequenceSplitSequenceSplitSequence () {
+    public void testSequenceSplitSequenceSplitSequence() {
         f1 = () -> s1.withInput("");
         f2 = () -> s2.withInput(s1.getOutput());
         f3 = () -> s3.withInput(s2.getOutput());
