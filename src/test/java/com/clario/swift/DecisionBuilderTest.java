@@ -8,6 +8,8 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static com.amazonaws.services.simpleworkflow.model.DecisionType.CompleteWorkflowExecution;
+import static com.clario.swift.DecisionBuilder.findDecisions;
 import static com.clario.swift.DecisionBuilder.findFailWorkflowDecisions;
 import static com.clario.swift.event.EventState.ERROR;
 import static com.clario.swift.event.EventState.NOT_STARTED;
@@ -62,6 +64,7 @@ public class DecisionBuilderTest {
         List<MockAction> actions = new ArrayList<>();
         List<Map<MockAction, String>> steps = new ArrayList<>();
         final Map<MockAction, String> LAST_STEP = Collections.emptyMap();
+        private String completeWorkflowResult;
 
         Replay() {
             actions.addAll(mockActions);
@@ -110,6 +113,17 @@ public class DecisionBuilderTest {
             if (findFailWorkflowDecisions(decisions).isEmpty() && !result) {
                 throw new IllegalStateException("DecisionBuilder was not complete, missing replay steps");
             }
+
+            if (completeWorkflowResult != null) {
+                List<Decision> list = findDecisions(decisions, CompleteWorkflowExecution);
+                assert !list.isEmpty() : "Expecting a CompleteWorkflowExecution decision";
+                assert completeWorkflowResult.equals(list.get(0).getCompleteWorkflowExecutionDecisionAttributes().getResult());
+            }
+        }
+
+        Replay assertCompleteWorkflowResult(String result) {
+            this.completeWorkflowResult = result;
+            return this;
         }
     }
 
@@ -145,8 +159,7 @@ public class DecisionBuilderTest {
         builder
             .sequence(f1)
             .ifThen(() -> true, builder.sequence(f2, builder.split(f3, f4)))
-            .sequence(f5)
-            .print();
+            .sequence(f5);
 
         new Replay()
             .addDecision(s1, "s1").addStep()
@@ -164,8 +177,7 @@ public class DecisionBuilderTest {
         builder
             .sequence(f1)
             .ifThen(() -> false, builder.sequence(f2, builder.split(f3, f4)))
-            .sequence(f5)
-            .print();
+            .sequence(f5);
 
         new Replay()
             .addDecision(s1, "s1").addStep()
@@ -279,6 +291,19 @@ public class DecisionBuilderTest {
             .addDecision(s1, "s1")
             .addDecision(s2, "s2").addStep()
             .addDecision(s3, "s1+s2->s3")
+            .play();
+    }
+
+    @Test
+    public void testWorklflowCompletionDecision() {
+        builder
+            .sequence(f1, f2)
+            .withCompleteWorkflowExecution(() -> s2.getOutput());
+
+        new Replay()
+            .addDecision(s1, "s1").addStep()
+            .addDecision(s2, "s1->s2")
+            .assertCompleteWorkflowResult("s1->s2")
             .play();
     }
 

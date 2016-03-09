@@ -28,11 +28,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  *
  * @author George Coller
  */
-public class SplitJoinWorkflowSequenced extends Workflow {
-    private final Logger log = LoggerFactory.getLogger(SplitJoinWorkflowSequenced.class);
+public class SplitJoinWorkflowDecisionBuilder extends Workflow {
+    private final Logger log = LoggerFactory.getLogger(SplitJoinWorkflowDecisionBuilder.class);
 
     public static void main(String[] args) {
-        Workflow workflow = new SplitJoinWorkflowSequenced()
+        Workflow workflow = new SplitJoinWorkflowDecisionBuilder()
                                 .withDomain(config().getDomain())
                                 .withTaskList(config().getTaskList())
                                 .withExecutionStartToCloseTimeout(MINUTES, 5)
@@ -50,7 +50,7 @@ public class SplitJoinWorkflowSequenced extends Workflow {
     final ActivityAction step6 = new ActivityAction("step6", "Activity Echo", "1.0")
                                      .withCompleteWorkflowOnSuccess();
 
-    public SplitJoinWorkflowSequenced() {
+    public SplitJoinWorkflowDecisionBuilder() {
         super("Split Join Workflow", "1.0");
         addActions(step1, step2, step3, step4, step5, step6);
     }

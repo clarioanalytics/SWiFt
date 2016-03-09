@@ -18,10 +18,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * @author George Coller
  * @see SimpleWorkflow for the long version of this workflow
  */
-public class SimpleWorkflowSequenced extends Workflow {
+public class SimpleWorkflowDecisionBuilder extends Workflow {
 
     public static void main(String[] args) {
-        Workflow workflow = new SimpleWorkflowSequenced()
+        Workflow workflow = new SimpleWorkflowDecisionBuilder()
                                 .withDomain(config().getDomain())
                                 .withTaskList(config().getTaskList())
                                 .withExecutionStartToCloseTimeout(MINUTES, 5)
@@ -39,7 +39,7 @@ public class SimpleWorkflowSequenced extends Workflow {
 
 
     /** Start the workflow by submitting it to SWF. */
-    public SimpleWorkflowSequenced() {
+    public SimpleWorkflowDecisionBuilder() {
         super("Simple Workflow Sequenced", "1.0");
 
         // This step registers the steps with the workflow so that you don't manually have to
