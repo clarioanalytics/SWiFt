@@ -1,6 +1,7 @@
 package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.clario.swift.TaskType;
 import com.clario.swift.Workflow;
 import com.clario.swift.event.EventState;
@@ -8,8 +9,8 @@ import com.clario.swift.event.EventState;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.amazonaws.services.simpleworkflow.model.DecisionType.ScheduleActivityTask;
 import static com.clario.swift.event.EventState.*;
-import static java.lang.String.format;
 import static java.util.Arrays.asList;
 
 /**
@@ -21,6 +22,7 @@ public class MockAction extends Action<MockAction> {
     private boolean nonFinalDecisionMade;
 
     private List<EventState> eventStates = new ArrayList<>(asList(NOT_STARTED, SUCCESS));
+    private String control;
 
     public MockAction(String actionId) {
         super(actionId);
@@ -48,14 +50,23 @@ public class MockAction extends Action<MockAction> {
         }
     }
 
+    /**
+     * Control will be used for unit test validation.
+     */
+    @Override public String getControl() {
+        return control;
+    }
+
     @Override public Action decide(List<Decision> decisions) {
         if (getState() == NOT_STARTED) {
             decision = createInitiateActivityDecision();
             decisions.add(decision);
+            control = getOutput();
             nonFinalDecisionMade = true;
         }
         if (getState() == ERROR) {
             decision = Workflow.createFailWorkflowExecutionDecision(getActionId(), "error", "");
+            control = decision.getFailWorkflowExecutionDecisionAttributes().getReason().replaceAll("\n", "");
             decisions.add(decision);
         }
         return this;
@@ -76,15 +87,11 @@ public class MockAction extends Action<MockAction> {
 
     @Override public Decision createInitiateActivityDecision() {
         assert decision == null;
-        return new Decision().withDecisionType(format("%s", getOutput()));
+        return new Decision().withDecisionType(ScheduleActivityTask);
     }
 
     public Decision getDecision() {
         return decision;
-    }
-
-    public String getDecisionType() {
-        return (decision == null) ? null : decision.getDecisionType();
     }
 
     public void nextState() {

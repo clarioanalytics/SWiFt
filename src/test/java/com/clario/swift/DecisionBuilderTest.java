@@ -60,7 +60,7 @@ public class DecisionBuilderTest {
      * Helper class where a list of expected outcomes for each step of the workflow can be replayed.
      */
     class Replay {
-        int i = -1;
+        int stepCount;
         List<MockAction> actions = new ArrayList<>();
         List<Map<MockAction, String>> steps = new ArrayList<>();
         final Map<MockAction, String> LAST_STEP = Collections.emptyMap();
@@ -72,8 +72,7 @@ public class DecisionBuilderTest {
         }
 
         boolean next(Map<MockAction, String> step) {
-            i++;
-            if (i > 0) {
+            if (++stepCount > 1) {
                 actions.forEach(MockAction::nextState);
             }
             decisions.clear();
@@ -83,12 +82,12 @@ public class DecisionBuilderTest {
                 List<Decision> expectedDecisions = step.keySet().stream().map(MockAction::getDecision)
                                                        .filter(d -> d != null)
                                                        .collect(toList());
-                assertEquals("replay step " + i + " decisions", expectedDecisions, decisions);
+                assertEquals("replay step " + stepCount + " decisions", expectedDecisions, decisions);
 
-                List<String> actualDecisionTypes = step.keySet().stream().map(MockAction::getDecisionType)
-                                                       .filter(d -> d != null)
-                                                       .collect(toList());
-                assertEquals("replay step " + i + " decision types", step.values().toString(), actualDecisionTypes.toString());
+                List<String> actualControls = step.keySet().stream().map(MockAction::getControl)
+                                                  .filter(d -> d != null)
+                                                  .collect(toList());
+                assertEquals("replay step " + stepCount + " controls", step.values().toString(), actualControls.toString());
             }
             return result;
         }
@@ -98,8 +97,8 @@ public class DecisionBuilderTest {
             return this;
         }
 
-        Replay addDecision(MockAction action, String decisionType) {
-            steps.get(steps.size() - 1).put(action, decisionType);
+        Replay expect(MockAction action, String expectedControlValue) {
+            steps.get(steps.size() - 1).put(action, expectedControlValue);
             return this;
         }
 
@@ -107,12 +106,12 @@ public class DecisionBuilderTest {
             steps.add(LAST_STEP);
             boolean result = true;
             while (!steps.isEmpty()) {
-                Map<MockAction, String> step = steps.remove(0);
-                result = next(step);
+                result = next(steps.remove(0));
                 if (result) {
                     break;
                 }
             }
+            
             List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
             if (failWorkflowDecisions.isEmpty() && !result) {
                 throw new IllegalStateException("DecisionBuilder was not complete, missing replay steps");
@@ -140,9 +139,9 @@ public class DecisionBuilderTest {
         builder.sequence(f1, f2, f3);
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s3, "s1->s2->s3")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s3, "s1->s2->s3")
             .play();
     }
 
@@ -150,9 +149,9 @@ public class DecisionBuilderTest {
     public void testMultipleSequences() {
         builder.sequence(f1).sequence(f2).sequence(f3);
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s3, "s1->s2->s3")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s3, "s1->s2->s3")
             .play();
     }
 
@@ -169,11 +168,11 @@ public class DecisionBuilderTest {
             .sequence(f5);
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s3, "s1->s2->s3")
-            .addDecision(s4, "s1->s2->s4").addStep()
-            .addDecision(s5, "(s1->s2->s3+s1->s2->s4)->s5")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s3, "s1->s2->s3")
+            .expect(s4, "s1->s2->s4").addStep()
+            .expect(s5, "(s1->s2->s3+s1->s2->s4)->s5")
             .play();
     }
 
@@ -187,8 +186,8 @@ public class DecisionBuilderTest {
             .sequence(f5);
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s5, "s1->s5")
+            .expect(s1, "s1").addStep()
+            .expect(s5, "s1->s5")
             .play();
     }
 
@@ -197,9 +196,9 @@ public class DecisionBuilderTest {
         s2.setEventStates(NOT_STARTED, ERROR);
         builder.sequence(f1, f2, f3);
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s2, "FailWorkflowExecution")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s2, "s2:error")
             .play();
     }
 
@@ -209,28 +208,35 @@ public class DecisionBuilderTest {
 
         s2.setEventStates(NOT_STARTED, ERROR);
         builder.sequence(f1, f2, f3);
-        builder.andFinally(f4, false);
+        builder.andFinally(f4);
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s4, "finally->s4").addStep()
-            .addDecision(s2, "FailWorkflowExecution")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s4, "finally->s4").addStep()
+            .expect(s2, "s2:error")
             .play();
     }
 
     @Test
     public void testStepErrorFinallyClearFailWorkflow() {
-        f4 = () -> s4.withInput("finally");
+        f4 = () -> {
+            s4.withInput("no error");
+            builder.findFailWorkflowDecision().ifPresent(d -> {
+                s4.withInput(d.getFailWorkflowExecutionDecisionAttributes().getReason());
+                decisions.remove(d);
+            });
+            return s4;
+        };
 
         s2.setEventStates(NOT_STARTED, ERROR);
         builder.sequence(f1, f2, f3);
-        builder.andFinally(f4, true);
+        builder.andFinally(f4);
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s4, "finally->s4")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s4, "s2:\nerror->s4")
             .play();
     }
 
@@ -240,33 +246,16 @@ public class DecisionBuilderTest {
         f4 = () -> s4.withInput(s3.getOutput());
         f5 = () -> s5.withInput(s3.getOutput());
         builder.sequence(f1, f2, f3);
-        builder.andFinally(builder.split(f4, f5), true);
+        builder.andFinally(builder.split(f4, f5));
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s3, "s1->s2->s3").addStep()
-            .addDecision(s4, "s1->s2->s3->s4")
-            .addDecision(s5, "s1->s2->s3->s5")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s3, "s1->s2->s3").addStep()
+            .expect(s4, "s1->s2->s3->s4")
+            .expect(s5, "s1->s2->s3->s5")
             .play();
     }
-
-    @Test
-    public void testStepNoErrorFinallyNoClearFailWorkflow() {
-        f4 = () -> s4.withInput(s3.getOutput());
-        f5 = () -> s5.withInput(s3.getOutput());
-        builder.sequence(f1, f2, f3);
-        builder.andFinally(builder.split(f4, f5), false);
-
-        new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s3, "s1->s2->s3").addStep()
-            .addDecision(s4, "s1->s2->s3->s4")
-            .addDecision(s5, "s1->s2->s3->s5")
-            .play();
-    }
-
 
     @Test
     public void testTryCatchWithError() {
@@ -280,12 +269,12 @@ public class DecisionBuilderTest {
         builder.sequence(f6);
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s3, "s1->s2->s3").addStep()
-            .addDecision(s4, "s4")
-            .addDecision(s5, "s5").addStep()
-            .addDecision(s6, "s4+s5->s6")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s3, "s1->s2->s3").addStep()
+            .expect(s4, "s4")
+            .expect(s5, "s5").addStep()
+            .expect(s6, "s4+s5->s6")
             .play();
     }
 
@@ -297,9 +286,9 @@ public class DecisionBuilderTest {
         builder.sequence(f4);
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s4, "s1->s2->s4")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s4, "s1->s2->s4")
             .play();
 
         assertEquals("[{\"TryCatch\":[{\"Seq\":[\"'s1'\",\"'s2'\"]},\"'s3'\"]},{\"Seq\":[\"'s4'\"]}]", builder.toString());
@@ -316,9 +305,9 @@ public class DecisionBuilderTest {
         ).sequence(f3);
 
         new Replay()
-            .addDecision(s1, "s1")
-            .addDecision(s2, "s2").addStep()
-            .addDecision(s3, "s1+s2->s3")
+            .expect(s1, "s1")
+            .expect(s2, "s2").addStep()
+            .expect(s3, "s1+s2->s3")
             .play();
     }
 
@@ -330,9 +319,9 @@ public class DecisionBuilderTest {
         ).sequence(() -> s3.withInput(s1.getOutput() + "+" + s2.getOutput()));
 
         new Replay()
-            .addDecision(s1, "s1")
-            .addDecision(s2, "s2").addStep()
-            .addDecision(s3, "s1+s2->s3")
+            .expect(s1, "s1")
+            .expect(s2, "s2").addStep()
+            .expect(s3, "s1+s2->s3")
             .play();
     }
 
@@ -343,8 +332,8 @@ public class DecisionBuilderTest {
             .withCompleteWorkflowExecution(() -> s2.getOutput());
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2")
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2")
             .assertCompleteWorkflowResult("s1->s2")
             .play();
     }
@@ -373,17 +362,17 @@ public class DecisionBuilderTest {
         ;
 
         new Replay()
-            .addDecision(s1, "s1").addStep()
-            .addDecision(s2, "s1->s2").addStep()
-            .addDecision(s3, "s1->s2->s3")
-            .addDecision(s4, "s1->s2->s4")
-            .addDecision(s8, "s1->s2->s8").addStep()
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s3, "s1->s2->s3")
+            .expect(s4, "s1->s2->s4")
+            .expect(s8, "s1->s2->s8").addStep()
 
-            .addDecision(s5, "s1->s2->s4->s5")
-            .addDecision(s6, "s1->s2->s4->s6").addStep()
+            .expect(s5, "s1->s2->s4->s5")
+            .expect(s6, "s1->s2->s4->s6").addStep()
 
-            .addDecision(s7, "(s1->s2->s4->s5)+(s1->s2->s4->s6)->s7").addStep()
-            .addDecision(s9, "(s1->s2->s3)+((s1->s2->s4->s5)+(s1->s2->s4->s6)->s7)+(s1->s2->s8)->s9")
+            .expect(s7, "(s1->s2->s4->s5)+(s1->s2->s4->s6)->s7").addStep()
+            .expect(s9, "(s1->s2->s3)+((s1->s2->s4->s5)+(s1->s2->s4->s6)->s7)+(s1->s2->s8)->s9")
             .play();
     }
 }

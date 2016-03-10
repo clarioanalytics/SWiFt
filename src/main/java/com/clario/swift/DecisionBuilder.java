@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Stack;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -109,10 +110,9 @@ public class DecisionBuilder implements ActionSupplier {
      * Perform a set of actions after all other actions are completed, even if they caused a {@link DecisionType#FailWorkflowExecution} decision.
      *
      * @param supplier supplier to perform at the end of a workflow, regardless of any workflow errors.
-     * @param clearFailWorkflowDecisions if true, remove any {@link DecisionType#FailWorkflowExecution} decisions prior to the finally block, otherwise add them back in after the finally block.
      */
-    public DecisionBuilder andFinally(ActionSupplier supplier, boolean clearFailWorkflowDecisions) {
-        convertAndPush(nodes -> new AndFinallyNode(nodes, clearFailWorkflowDecisions), supplier);
+    public DecisionBuilder andFinally(ActionSupplier supplier) {
+        convertAndPush(AndFinallyNode::new, supplier);
         finallyNode = stack.pop();
         return this;
     }
@@ -306,8 +306,8 @@ public class DecisionBuilder implements ActionSupplier {
             boolean result = getTryBlock().decideNode();
             List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
             if (!failWorkflowDecisions.isEmpty()) {
-                decisions.removeAll(failWorkflowDecisions);
                 result = getCatchBlock().decideNode();
+                decisions.removeAll(failWorkflowDecisions);
             }
             return result;
         }
@@ -317,28 +317,35 @@ public class DecisionBuilder implements ActionSupplier {
      * Ensures an execution of a block of nodes regardless if any prior blocks add a {@link EventType#WorkflowExecutionFailed}.
      */
     private class AndFinallyNode extends Node {
-        private final boolean keepFailDecisions;
-
-        AndFinallyNode(List<Node> nodes, boolean clearFailWorkflowDecisions) {
+        AndFinallyNode(List<Node> nodes) {
             super(nodes);
-            this.keepFailDecisions = !clearFailWorkflowDecisions;
             assert nodes.size() == 1 : "Finally should have exactly one node";
         }
 
         Node getFinallyNode() { return nodes.get(0); }
 
+        // TODO: finally block (and catch block) need access to failWorkflowDecision errors
+        // so they can do something with them.
+        // TODO: consider removing "keepFailDecisions" parameter and let finally block handle it 
+        // explicitly since any instance of FailWorkflowExecution will stop the workflow so no other
+        // decisions can be handled
+
         @Override
         public boolean decideNode() {
-            List<Decision> failDecisions = findFailWorkflowDecisions(decisions);
-            decisions.removeAll(failDecisions);
             boolean result = getFinallyNode().decideNode();
-
-            if (result && keepFailDecisions && !failDecisions.isEmpty()) {
-                decisions.addAll(failDecisions);
+            List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
+            if (!result) {
+                decisions.removeAll(failWorkflowDecisions);
+            }
+            if (!failWorkflowDecisions.isEmpty()) {
                 result = false;
             }
             return result;
         }
+    }
+
+    public Optional<Decision> findFailWorkflowDecision() {
+        return findDecisions(decisions, FailWorkflowExecution).stream().findAny();
     }
 
     static List<Decision> findFailWorkflowDecisions(List<Decision> decisions) {
