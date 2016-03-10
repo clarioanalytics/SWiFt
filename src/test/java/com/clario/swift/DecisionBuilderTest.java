@@ -9,14 +9,11 @@ import org.junit.Test;
 import java.util.*;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.CompleteWorkflowExecution;
-import static com.clario.swift.DecisionBuilder.findDecisions;
-import static com.clario.swift.DecisionBuilder.findFailWorkflowDecisions;
 import static com.clario.swift.event.EventState.ERROR;
 import static com.clario.swift.event.EventState.NOT_STARTED;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
-
 
 /**
  * @author George Coller
@@ -97,11 +94,20 @@ public class DecisionBuilderTest {
             return this;
         }
 
+        /**
+         * Add an expected control result at the current step
+         *
+         * @param action action with control value
+         * @param expectedControlValue expected control value on action
+         */
         Replay expect(MockAction action, String expectedControlValue) {
             steps.get(steps.size() - 1).put(action, expectedControlValue);
             return this;
         }
 
+        /**
+         * Perform the test by replaying all the configured steps and expectations.
+         */
         void play() {
             steps.add(LAST_STEP);
             boolean result = true;
@@ -111,9 +117,8 @@ public class DecisionBuilderTest {
                     break;
                 }
             }
-            
-            List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
-            if (failWorkflowDecisions.isEmpty() && !result) {
+
+            if (!builder.getFailWorkflowDecisionAttributes().isPresent() && !result) {
                 throw new IllegalStateException("DecisionBuilder was not complete, missing replay steps");
             }
             if (!steps.isEmpty()) {
@@ -121,7 +126,7 @@ public class DecisionBuilderTest {
             }
 
             if (completeWorkflowResult != null) {
-                List<Decision> list = findDecisions(decisions, CompleteWorkflowExecution);
+                List<Decision> list = builder.findDecisions(CompleteWorkflowExecution);
                 assert !list.isEmpty() : "Expecting a CompleteWorkflowExecution decision";
                 assert completeWorkflowResult.equals(list.get(0).getCompleteWorkflowExecutionDecisionAttributes().getResult());
             }
@@ -203,7 +208,7 @@ public class DecisionBuilderTest {
     }
 
     @Test
-    public void testStepErrorFinallyNoClearFailWorkflow() {
+    public void testFinallyWithError() {
         f4 = () -> s4.withInput("finally");
 
         s2.setEventStates(NOT_STARTED, ERROR);
@@ -219,30 +224,29 @@ public class DecisionBuilderTest {
     }
 
     @Test
-    public void testStepErrorFinallyClearFailWorkflow() {
-        f4 = () -> {
-            s4.withInput("no error");
-            builder.findFailWorkflowDecision().ifPresent(d -> {
-                s4.withInput(d.getFailWorkflowExecutionDecisionAttributes().getReason());
-                decisions.remove(d);
-            });
-            return s4;
-        };
-
+    public void testFinallyHandleError() {
         s2.setEventStates(NOT_STARTED, ERROR);
+
         builder.sequence(f1, f2, f3);
-        builder.andFinally(f4);
+        builder.andFinally(() -> {
+            builder.getFailWorkflowDecisionAttributes()
+                .ifPresent(attrs -> {
+                    s4.withInput("handled " + attrs.getReason());
+                    builder.removeFailWorkflowExecutionDecisions();
+                });
+            return s4;
+        });
 
         new Replay()
             .expect(s1, "s1").addStep()
             .expect(s2, "s1->s2").addStep()
-            .expect(s4, "s2:\nerror->s4")
+            .expect(s4, "handled s2:\nerror->s4")
             .play();
     }
 
 
     @Test
-    public void testStepNoErrorFinallyClearFailWorkflow() {
+    public void testFinallyNoError() {
         f4 = () -> s4.withInput(s3.getOutput());
         f5 = () -> s5.withInput(s3.getOutput());
         builder.sequence(f1, f2, f3);
@@ -259,8 +263,15 @@ public class DecisionBuilderTest {
 
     @Test
     public void testTryCatchWithError() {
-        f4 = () -> s4.withInput("");
-        f5 = () -> s5.withInput("");
+        f4 = () -> {
+            // demonstrate error decision is available for inspection but won't be retained 
+            assert builder.getFailWorkflowDecisionAttributes().isPresent();
+            return s4.withInput("");
+        };
+        f5 = () -> {
+            assert builder.getFailWorkflowDecisionAttributes().isPresent();
+            return s5.withInput("");
+        };
         f6 = () -> s6.withInput(s4.getOutput() + "+" + s5.getOutput());
 
         s3.setEventStates(NOT_STARTED, ERROR);
@@ -358,8 +369,7 @@ public class DecisionBuilderTest {
                 builder.sequence(f4, builder.split(f5, f6), f7),
                 f8
             )
-            .sequence(f9)
-        ;
+            .sequence(f9);
 
         new Replay()
             .expect(s1, "s1").addStep()

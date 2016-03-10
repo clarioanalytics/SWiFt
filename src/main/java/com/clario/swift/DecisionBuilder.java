@@ -3,6 +3,7 @@ package com.clario.swift;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.amazonaws.services.simpleworkflow.model.EventType;
+import com.amazonaws.services.simpleworkflow.model.FailWorkflowExecutionDecisionAttributes;
 import com.clario.swift.action.Action;
 import com.clario.swift.action.ActionSupplier;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.Stack;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
 import static java.lang.String.format;
@@ -27,7 +29,7 @@ import static java.util.stream.Collectors.toList;
  * @author George Coller
  */
 public class DecisionBuilder implements ActionSupplier {
-    private static final Logger log = LoggerFactory.getLogger(DecisionBuilder.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DecisionBuilder.class);
     private final List<Decision> decisions;
     private final Stack<Node> stack = new Stack<>();
     private Node finallyNode;
@@ -150,10 +152,9 @@ public class DecisionBuilder implements ActionSupplier {
      * @return true if the decision tree is finished, otherwise false.
      */
     public boolean decide() {
-        log.debug(toString());
         boolean result = decideNodes(stack);
-        List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
-        if ((result || !failWorkflowDecisions.isEmpty()) && finallyNode != null) {
+        Optional<FailWorkflowExecutionDecisionAttributes> attributes = getFailWorkflowDecisionAttributes();
+        if ((result || attributes.isPresent()) && finallyNode != null) {
             result = decideNodes(singletonList(finallyNode));
         }
         if (result && completeWorkflowExecutionResultSupplier != null) {
@@ -171,6 +172,11 @@ public class DecisionBuilder implements ActionSupplier {
         return true;
     }
 
+    /**
+     * Return a json structure representing the stack.
+     * Note to get the action ids each Node the ActionSuppliers will be exercised so toString() shouldn't be called
+     * if your ActionSupplier happens to be non-idempotent or requires a previous action to be complete.
+     */
     public String toString() {
         return SwiftUtil.toJson(stack, false);
     }
@@ -181,7 +187,6 @@ public class DecisionBuilder implements ActionSupplier {
         // This is a bit jank but it gets the job done without forcing clients to have to cast their lambdas.
         throw new UnsupportedOperationException("method not available for " + getClass().getSimpleName());
     }
-
 
     //---------------------------------------------------------------------------------------------------- 
     // Workflow decisions are a tree of Nodes
@@ -209,7 +214,7 @@ public class DecisionBuilder implements ActionSupplier {
     /**
      * Leaf node that calls decide on an {@link Action}.
      */
-    private class ActionNode extends Node {
+    class ActionNode extends Node {
         private final ActionSupplier fn;
 
         ActionNode(ActionSupplier fn) {
@@ -234,7 +239,7 @@ public class DecisionBuilder implements ActionSupplier {
     /**
      * Execute child nodes sequentially.
      */
-    private class SeqNode extends Node {
+    class SeqNode extends Node {
 
         SeqNode(List<Node> nodes) { super(nodes); }
 
@@ -252,7 +257,7 @@ public class DecisionBuilder implements ActionSupplier {
     /**
      * Execute child nodes in parallel until all are complete.
      */
-    private class SplitNode extends Node {
+    class SplitNode extends Node {
 
         SplitNode(List<Node> nodes) { super(nodes); }
 
@@ -269,7 +274,7 @@ public class DecisionBuilder implements ActionSupplier {
     /**
      * Executes a branch of nodes if a given test returns true, otherwise skips.
      */
-    private class IfThenNode extends Node {
+    class IfThenNode extends Node {
         private final Supplier<Boolean> test;
 
         IfThenNode(Supplier<Boolean> test, List<Node> nodes) {
@@ -291,7 +296,7 @@ public class DecisionBuilder implements ActionSupplier {
      * Executes a catch block of nodes if one or more nodes in a try block adds a {@link EventType#WorkflowExecutionFailed} decision.
      * The {@link EventType#WorkflowExecutionFailed} decision(s) will be removed.
      */
-    private class TryCatchNode extends Node {
+    class TryCatchNode extends Node {
         TryCatchNode(List<Node> nodes) {
             super(nodes);
             assert nodes.size() == 2 : "assert try catch node has exactly two nodes";
@@ -304,10 +309,9 @@ public class DecisionBuilder implements ActionSupplier {
         @Override
         public boolean decideNode() {
             boolean result = getTryBlock().decideNode();
-            List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
-            if (!failWorkflowDecisions.isEmpty()) {
+            if (getFailWorkflowDecisionAttributes().isPresent()) {
                 result = getCatchBlock().decideNode();
-                decisions.removeAll(failWorkflowDecisions);
+                removeFailWorkflowExecutionDecisions();
             }
             return result;
         }
@@ -316,45 +320,47 @@ public class DecisionBuilder implements ActionSupplier {
     /**
      * Ensures an execution of a block of nodes regardless if any prior blocks add a {@link EventType#WorkflowExecutionFailed}.
      */
-    private class AndFinallyNode extends Node {
+    class AndFinallyNode extends Node {
         AndFinallyNode(List<Node> nodes) {
             super(nodes);
             assert nodes.size() == 1 : "Finally should have exactly one node";
         }
 
-        Node getFinallyNode() { return nodes.get(0); }
-
-        // TODO: finally block (and catch block) need access to failWorkflowDecision errors
-        // so they can do something with them.
-        // TODO: consider removing "keepFailDecisions" parameter and let finally block handle it 
-        // explicitly since any instance of FailWorkflowExecution will stop the workflow so no other
-        // decisions can be handled
-
         @Override
         public boolean decideNode() {
-            boolean result = getFinallyNode().decideNode();
-            List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
+            boolean result = nodes.get(0).decideNode();
             if (!result) {
-                decisions.removeAll(failWorkflowDecisions);
+                removeFailWorkflowExecutionDecisions();
             }
-            if (!failWorkflowDecisions.isEmpty()) {
-                result = false;
-            }
-            return result;
+            return result && !getFailWorkflowDecisionAttributes().isPresent();
         }
     }
 
-    public Optional<Decision> findFailWorkflowDecision() {
-        return findDecisions(decisions, FailWorkflowExecution).stream().findAny();
+    /**
+     * Remove any existing {@link DecisionType#FailWorkflowExecution} decisions.
+     */
+    public void removeFailWorkflowExecutionDecisions() {
+        decisions.removeAll(findDecisions(FailWorkflowExecution));
     }
 
-    static List<Decision> findFailWorkflowDecisions(List<Decision> decisions) {
-        return findDecisions(decisions, FailWorkflowExecution);
+    /**
+     * Return the {@link FailWorkflowExecutionDecisionAttributes} for the first
+     * {@link DecisionType#FailWorkflowExecution} decision (if any).
+     * <p>
+     * Useful in try/catch or finally sections to review the reason/details for a workflow error.
+     *
+     * @return attributes if they exist
+     */
+    public Optional<FailWorkflowExecutionDecisionAttributes> getFailWorkflowDecisionAttributes() {
+        return findDecisionStream(FailWorkflowExecution).map(Decision::getFailWorkflowExecutionDecisionAttributes).findFirst();
     }
 
-    static List<Decision> findDecisions(List<Decision> decisions, DecisionType decisionType) {
+    public List<Decision> findDecisions(DecisionType decisionType) {
+        return findDecisionStream(decisionType).collect(toList());
+    }
+
+    private Stream<Decision> findDecisionStream(DecisionType decisionType) {
         return decisions.stream()
-                   .filter(d -> d.getDecisionType().equals(decisionType.name()))
-                   .collect(toList());
+                   .filter(d -> d.getDecisionType().equals(decisionType.name()));
     }
 }
