@@ -107,12 +107,12 @@ public class DecisionBuilder implements ActionSupplier {
 
     /**
      * Perform a set of actions after all other actions are completed, even if they caused a {@link DecisionType#FailWorkflowExecution} decision.
-     * Note that any {@link DecisionType#FailWorkflowExecution} decisions will still be added back after the finally section has successfully completed.
      *
      * @param supplier supplier to perform at the end of a workflow, regardless of any workflow errors.
+     * @param clearFailWorkflowDecisions if true, remove any {@link DecisionType#FailWorkflowExecution} decisions prior to the finally block, otherwise add them back in after the finally block.
      */
-    public DecisionBuilder andFinally(ActionSupplier supplier) {
-        convertAndPush(AndFinallyNode::new, supplier);
+    public DecisionBuilder andFinally(ActionSupplier supplier, boolean clearFailWorkflowDecisions) {
+        convertAndPush(nodes -> new AndFinallyNode(nodes, clearFailWorkflowDecisions), supplier);
         finallyNode = stack.pop();
         return this;
     }
@@ -292,11 +292,14 @@ public class DecisionBuilder implements ActionSupplier {
      * The {@link EventType#WorkflowExecutionFailed} decision(s) will be removed.
      */
     private class TryCatchNode extends Node {
-        TryCatchNode(List<Node> nodes) { super(nodes); }
+        TryCatchNode(List<Node> nodes) {
+            super(nodes);
+            assert nodes.size() == 2 : "assert try catch node has exactly two nodes";
+        }
 
-        Node getTryBlock() {return nodes.get(0);}
+        Node getTryBlock() { return nodes.get(0); }
 
-        Node getCatchBlock() {return nodes.get(1);}
+        Node getCatchBlock() { return nodes.get(1); }
 
         @Override
         public boolean decideNode() {
@@ -314,24 +317,27 @@ public class DecisionBuilder implements ActionSupplier {
      * Ensures an execution of a block of nodes regardless if any prior blocks add a {@link EventType#WorkflowExecutionFailed}.
      */
     private class AndFinallyNode extends Node {
-        AndFinallyNode(List<Node> nodes) { super(nodes); }
+        private final boolean keepFailDecisions;
 
-        Node getFinallyNode() {
-            assert nodes.size() == 1 : "Finally should be a single node";
-            return nodes.get(0);
+        AndFinallyNode(List<Node> nodes, boolean clearFailWorkflowDecisions) {
+            super(nodes);
+            this.keepFailDecisions = !clearFailWorkflowDecisions;
+            assert nodes.size() == 1 : "Finally should have exactly one node";
         }
+
+        Node getFinallyNode() { return nodes.get(0); }
 
         @Override
         public boolean decideNode() {
-            List<Decision> failWorkflowDecisions = findFailWorkflowDecisions(decisions);
-            decisions.removeAll(failWorkflowDecisions);
+            List<Decision> failDecisions = findFailWorkflowDecisions(decisions);
+            decisions.removeAll(failDecisions);
             boolean result = getFinallyNode().decideNode();
-            if (!result) {
-                return false;
-            } else {
-                decisions.addAll(failWorkflowDecisions);
-                return true;
+
+            if (result && keepFailDecisions && !failDecisions.isEmpty()) {
+                decisions.addAll(failDecisions);
+                result = false;
             }
+            return result;
         }
     }
 
