@@ -175,7 +175,7 @@ public class Event implements Comparable<Event> {
 (StartTimerFailed)                               : [task: TIMER, state: ERROR, reason: StartTimerFailed, details: 'cause', actionId: 'timerId'],
 
 // Child Workflows
-(StartChildWorkflowExecutionInitiated)           : [task: START_CHILD_WORKFLOW, state: INITIAL, actionId: 'workflowId'],
+(StartChildWorkflowExecutionInitiated)           : [task: START_CHILD_WORKFLOW, state: INITIAL, actionId: 'control'],
 (ChildWorkflowExecutionStarted)                  : [task: START_CHILD_WORKFLOW, state: ACTIVE, initialEventId: 'initiatedEventId'],
 (ChildWorkflowExecutionCompleted)                : [task: START_CHILD_WORKFLOW, state: SUCCESS, output: 'result', initialEventId: 'initiatedEventId'],
 (ChildWorkflowExecutionCanceled)                 : [task: START_CHILD_WORKFLOW, state: ERROR, reason: ChildWorkflowExecutionCanceled, initialEventId: 'initiatedEventId'],
