@@ -239,7 +239,7 @@ public class Event implements Comparable<Event> {
         if (TimerFired == getType()) { return historyEvent.getTimerFiredEventAttributes().getTimerId(); }
         if (TimerCanceled == getType()) { return historyEvent.getTimerCanceledEventAttributes().getTimerId(); }
         if (CancelTimerFailed == getType()) { return historyEvent.getCancelTimerFailedEventAttributes().getTimerId(); }
-        if (StartChildWorkflowExecutionInitiated == getType()) { return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes().getWorkflowId(); }
+        if (StartChildWorkflowExecutionInitiated == getType()) { return historyEvent.getStartChildWorkflowExecutionInitiatedEventAttributes().getControl(); }
         if (StartChildWorkflowExecutionFailed == getType()) { return null; }
         if (ChildWorkflowExecutionStarted == getType()) { return null; }
         if (ChildWorkflowExecutionCompleted == getType()) { return null; }
