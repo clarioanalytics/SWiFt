@@ -2,6 +2,7 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.Action;
+import com.clario.swift.action.ActionSupplier;
 import com.clario.swift.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +67,7 @@ public abstract class Workflow {
      * Reset instance to prepare for new set of history events.
      */
     public void reset() {
-        eventList = new LinkedList<Event>();
+        eventList = new LinkedList<>();
     }
 
     /**
@@ -157,7 +158,7 @@ public abstract class Workflow {
      * Called by {@link DecisionPoller} to initialize workflow for a new decision task.
      */
     public void init() {
-        eventList = new LinkedList<Event>();
+        eventList = new LinkedList<>();
     }
 
     public String getName() { return name; }

@@ -79,6 +79,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return CANCEL_EXTERNAL_WORKFLOW; }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return CANCEL_EXTERNAL_WORKFLOW; }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return CANCEL_EXTERNAL_WORKFLOW; }
+        if (LambdaFunctionScheduled == getType()) { return LAMBDA; }
+        if (LambdaFunctionStarted == getType()) { return LAMBDA; }
+        if (LambdaFunctionCompleted == getType()) { return LAMBDA; }
+        if (LambdaFunctionFailed == getType()) { return LAMBDA; }
+        if (LambdaFunctionTimedOut == getType()) { return LAMBDA; }
+        if (ScheduleLambdaFunctionFailed == getType()) { return LAMBDA; }
+        if (StartLambdaFunctionFailed == getType()) { return LAMBDA; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -130,6 +137,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return INITIAL; }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return ERROR; }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return SUCCESS; }
+        if (LambdaFunctionScheduled == getType()) { return INITIAL; }
+        if (LambdaFunctionStarted == getType()) { return ACTIVE; }
+        if (LambdaFunctionCompleted == getType()) { return SUCCESS; }
+        if (LambdaFunctionFailed == getType()) { return ERROR; }
+        if (LambdaFunctionTimedOut == getType()) { return ERROR; }
+        if (ScheduleLambdaFunctionFailed == getType()) { return ERROR; }
+        if (StartLambdaFunctionFailed == getType()) { return ERROR; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -181,6 +195,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return historyEvent.getEventId(); }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return historyEvent.getEventId(); }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return historyEvent.getEventId(); }
+        if (LambdaFunctionScheduled == getType()) { return historyEvent.getEventId(); }
+        if (LambdaFunctionStarted == getType()) { return historyEvent.getLambdaFunctionStartedEventAttributes().getScheduledEventId(); }
+        if (LambdaFunctionCompleted == getType()) { return historyEvent.getLambdaFunctionCompletedEventAttributes().getScheduledEventId(); }
+        if (LambdaFunctionFailed == getType()) { return historyEvent.getLambdaFunctionFailedEventAttributes().getScheduledEventId(); }
+        if (LambdaFunctionTimedOut == getType()) { return historyEvent.getLambdaFunctionTimedOutEventAttributes().getScheduledEventId(); }
+        if (ScheduleLambdaFunctionFailed == getType()) { return null; }
+        if (StartLambdaFunctionFailed == getType()) { return historyEvent.getStartLambdaFunctionFailedEventAttributes().getScheduledEventId(); }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -232,6 +253,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return historyEvent.getRequestCancelExternalWorkflowExecutionInitiatedEventAttributes().getControl(); }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return historyEvent.getRequestCancelExternalWorkflowExecutionFailedEventAttributes().getControl(); }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
+        if (LambdaFunctionScheduled == getType()) { return null; }
+        if (LambdaFunctionStarted == getType()) { return null; }
+        if (LambdaFunctionCompleted == getType()) { return null; }
+        if (LambdaFunctionFailed == getType()) { return null; }
+        if (LambdaFunctionTimedOut == getType()) { return null; }
+        if (ScheduleLambdaFunctionFailed == getType()) { return null; }
+        if (StartLambdaFunctionFailed == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -283,6 +311,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return null; }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return null; }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
+        if (LambdaFunctionScheduled == getType()) { return historyEvent.getLambdaFunctionScheduledEventAttributes().getInput(); }
+        if (LambdaFunctionStarted == getType()) { return null; }
+        if (LambdaFunctionCompleted == getType()) { return null; }
+        if (LambdaFunctionFailed == getType()) { return null; }
+        if (LambdaFunctionTimedOut == getType()) { return null; }
+        if (ScheduleLambdaFunctionFailed == getType()) { return null; }
+        if (StartLambdaFunctionFailed == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -334,6 +369,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return historyEvent.getRequestCancelExternalWorkflowExecutionInitiatedEventAttributes().getControl(); }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return historyEvent.getRequestCancelExternalWorkflowExecutionFailedEventAttributes().getControl(); }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
+        if (LambdaFunctionScheduled == getType()) { return null; }
+        if (LambdaFunctionStarted == getType()) { return null; }
+        if (LambdaFunctionCompleted == getType()) { return null; }
+        if (LambdaFunctionFailed == getType()) { return null; }
+        if (LambdaFunctionTimedOut == getType()) { return null; }
+        if (ScheduleLambdaFunctionFailed == getType()) { return historyEvent.getScheduleLambdaFunctionFailedEventAttributes().getName(); }
+        if (StartLambdaFunctionFailed == getType()) { return null; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -385,6 +427,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return null; }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return null; }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
+        if (LambdaFunctionScheduled == getType()) { return historyEvent.getLambdaFunctionScheduledEventAttributes().getInput(); }
+        if (LambdaFunctionStarted == getType()) { return null; }
+        if (LambdaFunctionCompleted == getType()) { return historyEvent.getLambdaFunctionCompletedEventAttributes().getResult(); }
+        if (LambdaFunctionFailed == getType()) { return null; }
+        if (LambdaFunctionTimedOut == getType()) { return null; }
+        if (ScheduleLambdaFunctionFailed == getType()) { return null; }
+        if (StartLambdaFunctionFailed == getType()) { return historyEvent.getStartLambdaFunctionFailedEventAttributes().getMessage(); }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -436,6 +485,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return null; }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return "Request Cancel External Workflow Execution Failed"; }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
+        if (LambdaFunctionScheduled == getType()) { return null; }
+        if (LambdaFunctionStarted == getType()) { return null; }
+        if (LambdaFunctionCompleted == getType()) { return null; }
+        if (LambdaFunctionFailed == getType()) { return historyEvent.getLambdaFunctionFailedEventAttributes().getReason(); }
+        if (LambdaFunctionTimedOut == getType()) { return "Lambda Function Timed Out"; }
+        if (ScheduleLambdaFunctionFailed == getType()) { return "Schedule Lambda Function Failed"; }
+        if (StartLambdaFunctionFailed == getType()) { return "Start Lambda Function Failed"; }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -487,6 +543,13 @@ public class Event implements Comparable<Event> {
         if (RequestCancelExternalWorkflowExecutionInitiated == getType()) { return null; }
         if (RequestCancelExternalWorkflowExecutionFailed == getType()) { return historyEvent.getRequestCancelExternalWorkflowExecutionFailedEventAttributes().getCause(); }
         if (ExternalWorkflowExecutionCancelRequested == getType()) { return null; }
+        if (LambdaFunctionScheduled == getType()) { return null; }
+        if (LambdaFunctionStarted == getType()) { return null; }
+        if (LambdaFunctionCompleted == getType()) { return null; }
+        if (LambdaFunctionFailed == getType()) { return historyEvent.getLambdaFunctionFailedEventAttributes().getDetails(); }
+        if (LambdaFunctionTimedOut == getType()) { return historyEvent.getLambdaFunctionTimedOutEventAttributes().getTimeoutType(); }
+        if (ScheduleLambdaFunctionFailed == getType()) { return historyEvent.getScheduleLambdaFunctionFailedEventAttributes().getCause(); }
+        if (StartLambdaFunctionFailed == getType()) { return historyEvent.getStartLambdaFunctionFailedEventAttributes().getCause(); }
         throw new IllegalArgumentException("Unknown EventType " + getType());
     }
 
@@ -501,24 +564,7 @@ public class Event implements Comparable<Event> {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(1000);
-        sb.append(format("%s: %s, %s, ", getType(), getEventId(), getInitialEventId()));
-        appendIf(getActionId(), sb);
-        appendIf(getInput(), sb);
-        appendIf(getOutput(), sb);
-        appendIf(getControl(), sb);
-        appendIf(getReason(), sb);
-        sb.append(" ");
-        sb.append(getEventTimestamp());
-        return sb.toString();
-    }
-
-    private static void appendIf(String value, StringBuilder sb) {
-        if (value != null) {
-            sb.append(" ");
-            sb.append(value);
-            sb.append(",");
-        }
+        return format("%s: %s, %s, %s, %s", getType(), getEventId(), getInitialEventId(), getActionId(), getEventTimestamp());
     }
 
     /**

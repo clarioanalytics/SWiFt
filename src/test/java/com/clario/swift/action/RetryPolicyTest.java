@@ -177,7 +177,7 @@ public class RetryPolicyTest {
         retry.withRetryExpirationInterval(SECONDS, 62);
         assertEquals("62 is workflow time elapsed + 40 seconds", 40, retry.nextRetryDelaySeconds(events));
 
-        retry.withRetryExpirationInterval(SECONDS, 61);
+        retry.withRetryExpirationInterval(SECONDS, 60);
         assertEquals("Set expiration one second before so retry is timed out", -1, retry.nextRetryDelaySeconds(events));
     }
 
