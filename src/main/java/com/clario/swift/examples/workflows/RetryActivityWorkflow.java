@@ -37,7 +37,7 @@ public class RetryActivityWorkflow extends Workflow {
     }
 
     // RetryPolicy subclasses should be thread-safe so we can share them
-    private static final RetryPolicy RETRY_POLICY = new RetryPolicy()
+    private final RetryPolicy RETRY_POLICY = new RetryPolicy("step1 retry")
         .withInitialRetryInterval(TimeUnit.SECONDS, 5)
         .withMaximumRetryInterval(TimeUnit.MINUTES, 1)
         .withRetryExpirationInterval(TimeUnit.HOURS, 1)

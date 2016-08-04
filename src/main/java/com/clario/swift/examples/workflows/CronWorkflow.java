@@ -53,7 +53,7 @@ public class CronWorkflow extends Workflow {
     public static final int CONTINUE_WORKFLOW_AFTER_MINUTES = 1;
 
     // Define a policy that returns 10 seconds
-    private static final RetryPolicy REPEAT_EVERY_10_SECONDS_RETRY_POLICY = new RetryPolicy()
+    private final RetryPolicy REPEAT_EVERY_10_SECONDS_RETRY_POLICY = new RetryPolicy("echoRetry")
         .withFixedRetryInterval(SECONDS, 10);
 
     final ActivityAction echoActivity = new ActivityAction("echo", "Activity Echo", "1.0")
