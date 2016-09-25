@@ -15,13 +15,11 @@ import org.joda.time.Seconds;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.clario.swift.SwiftUtil.calcTimeoutOrNone;
 import static com.clario.swift.action.TimerAction.createStartTimerDecision;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.pow;
-import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.joda.time.Seconds.seconds;
 import static org.joda.time.Seconds.secondsBetween;
@@ -38,18 +36,22 @@ import static org.joda.time.Seconds.secondsBetween;
  * which means that {@link EventList#selectActionId(String)} returns both action and timer events.
  * <p/>
  * Retry polices can be registered to retry both when an {@link Action} succeeds (for cron-like actions) and when
- * it errors.  The only caveot is that the <code>RetryPolicy</code> instance that is registered on {@link Action#withOnSuccessRetryPolicy(RetryPolicy)}
+ * it errors.  The only caveat is that the <code>RetryPolicy</code> instance that is registered on {@link Action#withOnSuccessRetryPolicy(RetryPolicy)}
  * have a different control value than the one registered on {@link Action#withOnErrorRetryPolicy(RetryPolicy)}.
  * This is because the action needs to differentiate between each retry policy's timer events.
  * <p/>
- * An <code>RetryPolicy</code> instance itself is thread-safe and can be reused across many {@link Action} instances.
+ * <pre>
+ * Suggested Usage:
+ * - Separate RetryPolicy instance for each {@link Action} in a workflow receiving the retry policy
+ * - Use the Action's actionId for the RetryPolicy control value
+ * - If you use both an error and success retry policy for a given action, each should have its own control value.
+ * </pre>
  *
  * @author George Coller
  */
 public class RetryPolicy {
     public static final int DEFAULT_INITIAL_RETRY_INTERVAL = 5;
     public static final double DEFAULT_BACKOFF_COEFFICIENT = 2.0;
-    public static final AtomicInteger counter = new AtomicInteger();
     protected double backoffCoefficient = DEFAULT_BACKOFF_COEFFICIENT;
     protected int maximumAttempts = MAX_VALUE;
     protected Seconds initialRetryInterval = seconds(DEFAULT_INITIAL_RETRY_INTERVAL);
@@ -59,17 +61,19 @@ public class RetryPolicy {
     private String matchesRegEx;
 
     /**
-     * Create a new instance with a calculated control value.
-     */
-    public RetryPolicy() {
-        this(format("%s_%d", RetryPolicy.class.getSimpleName(), counter.incrementAndGet()));
-    }
-
-    /**
      * Create a new instance with a defined control value.
      * <p/>
      * The control value is used to match {@link EventType#TimerStarted} records that were issued
      * from this instance.
+     * <p/>
+     * This means that generally you'll want a unique control value for any action receiving a retry policy.
+     * <p>
+     * <pre>
+     * Suggested Usage:
+     * - New instance for each unique {@link Action} in a workflow receiving the retry policy
+     * - Can use the Action's actionId for the control value
+     * - If you create both an error and success retry policy for a single action, each policy should have its own control value.
+     * </pre>
      *
      * @param control custom control value
      */

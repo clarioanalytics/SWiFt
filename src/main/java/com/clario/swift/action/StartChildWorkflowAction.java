@@ -61,6 +61,8 @@ public class StartChildWorkflowAction extends Action<StartChildWorkflowAction> {
      * @see StartChildWorkflowExecutionDecisionAttributes#tagList
      */
     public StartChildWorkflowAction withTags(String... tags) {
+        this.tags.clear();  // because this needs to be stateless 
+        
         for (String tag : tags) {
             this.tags.add(assertMaxLength(tag, MAX_NAME_LENGTH));
         }

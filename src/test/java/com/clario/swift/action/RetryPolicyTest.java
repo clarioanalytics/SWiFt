@@ -49,12 +49,12 @@ public class RetryPolicyTest {
 
     @Test(expected = IllegalStateException.class)
     public void testValidateMaxRetryExpirationIntervalLTInitial() {
-        new RetryPolicy().withRetryExpirationInterval(SECONDS, 4).validate();
+        new RetryPolicy("retry").withRetryExpirationInterval(SECONDS, 4).validate();
     }
 
     @Test(expected = IllegalStateException.class)
     public void testValidateMaxRetryIntervalLTInitial() {
-        new RetryPolicy().withMaximumRetryInterval(SECONDS, 4).validate();
+        new RetryPolicy("retry").withMaximumRetryInterval(SECONDS, 4).validate();
     }
 
 

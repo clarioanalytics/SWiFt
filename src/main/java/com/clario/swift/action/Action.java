@@ -45,8 +45,6 @@ public abstract class Action<T extends Action> {
     private boolean completeWorkflowOnSuccess = false;
     private boolean cancelActiveRetryTimer = false;
 
-    private boolean logOnceSuccessFlag = true;
-
     /**
      * Each action requires a workflow-unique identifier.
      *
@@ -257,20 +255,14 @@ public abstract class Action<T extends Action> {
                             decisions.add(decision);
                             log.info("success, start timer delay: {} ", decision);
                         } else {
-                            if (logOnceSuccessFlag) {
-                                log.info("success, no more attempts: output={}", getOutput());
-                                logOnceSuccessFlag = false;
-                            }
+                            log.debug("success, no more attempts: output={}", getOutput());
                         }
                     }
                 } else if (completeWorkflowOnSuccess) {
                     decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
                     log.info("success, workflow complete: {}", getOutput());
                 } else {
-                    if (logOnceSuccessFlag) {
-                        log.info("success: {}", getOutput());
-                        logOnceSuccessFlag = false;
-                    }
+                    log.debug("success: {}", getOutput());
                 }
                 break;
             case RETRY:
