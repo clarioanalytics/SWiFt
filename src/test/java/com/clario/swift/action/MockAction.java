@@ -1,7 +1,6 @@
 package com.clario.swift.action;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
-import com.amazonaws.services.simpleworkflow.model.DecisionType;
 import com.clario.swift.TaskType;
 import com.clario.swift.Workflow;
 import com.clario.swift.event.EventState;
@@ -65,9 +64,14 @@ public class MockAction extends Action<MockAction> {
             nonFinalDecisionMade = true;
         }
         if (getState() == ERROR) {
-            decision = Workflow.createFailWorkflowExecutionDecision(getActionId(), "error", "");
-            control = decision.getFailWorkflowExecutionDecisionAttributes().getReason().replaceAll("\n", "");
-            decisions.add(decision);
+            if (isFailWorkflowOnError()) {
+                decision = Workflow.createFailWorkflowExecutionDecision(getActionId(), "error", "");
+                control = decision.getFailWorkflowExecutionDecisionAttributes().getReason().replaceAll("\n", "");
+                decisions.add(decision);
+            } else {
+                decision = null;
+                control = "error no fail " + getOutput();
+            }
         }
         return this;
     }

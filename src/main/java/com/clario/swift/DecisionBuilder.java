@@ -10,15 +10,13 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Stack;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
+import static com.clario.swift.DecisionBuilder.DecisionState.*;
 import static java.lang.String.format;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
@@ -29,6 +27,24 @@ import static java.util.stream.Collectors.toList;
  * @author George Coller
  */
 public class DecisionBuilder implements ActionSupplier {
+    enum DecisionState {
+        notStarted, success, error;
+
+        boolean isPending() {
+            return this == notStarted;
+        }
+
+        boolean isFinished() {
+            return this == success || this == error;
+        }
+
+        boolean isError() { return this == error; }
+
+        boolean isSuccess() {
+            return this == success;
+        }
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(DecisionBuilder.class);
     private final List<Decision> decisions;
     private final Stack<Node> stack = new Stack<>();
@@ -151,25 +167,25 @@ public class DecisionBuilder implements ActionSupplier {
      *
      * @return true if the decision tree is finished, otherwise false.
      */
-    public boolean decide() {
-        boolean result = decideNodes(stack);
-        Optional<FailWorkflowExecutionDecisionAttributes> attributes = getFailWorkflowDecisionAttributes();
-        if ((result || attributes.isPresent()) && finallyNode != null) {
+    public DecisionState decide() {
+        DecisionState result = decideNodes(stack);
+        if (result.isFinished() && finallyNode != null) {
             result = decideNodes(singletonList(finallyNode));
         }
-        if (result && completeWorkflowExecutionResultSupplier != null) {
+        if (result.isFinished() && completeWorkflowExecutionResultSupplier != null) {
             decisions.add(Workflow.createCompleteWorkflowExecutionDecision(completeWorkflowExecutionResultSupplier.get()));
         }
         return result;
     }
 
-    private boolean decideNodes(List<Node> nodes) {
+    private DecisionState decideNodes(List<Node> nodes) {
         for (Node node : nodes) {
-            if (!node.decideNode()) {
-                return false;
+            DecisionState decisionState = node.decideNode();
+            if (!decisionState.isSuccess()) {
+                return decisionState;
             }
         }
-        return true;
+        return DecisionState.success;
     }
 
     /**
@@ -198,7 +214,7 @@ public class DecisionBuilder implements ActionSupplier {
             this.nodes = nodes;
         }
 
-        abstract boolean decideNode();
+        abstract DecisionState decideNode();
 
         @JsonValue
         Object jsonValue() {
@@ -222,8 +238,15 @@ public class DecisionBuilder implements ActionSupplier {
             this.fn = fn;
         }
 
-        @Override public boolean decideNode() {
-            return fn.get().decide(decisions).isSuccess();
+        @Override public DecisionState decideNode() {
+            Action action = fn.get().decide(decisions);
+            if (action.isError()) {
+                return DecisionState.error;
+            } else if (action.isSuccess()) {
+                return DecisionState.success;
+            } else {
+                return notStarted;
+            }
         }
 
         @Override public String toString() {
@@ -244,13 +267,14 @@ public class DecisionBuilder implements ActionSupplier {
         SeqNode(List<Node> nodes) { super(nodes); }
 
         @Override
-        public boolean decideNode() {
+        public DecisionState decideNode() {
             for (Node node : nodes) {
-                if (!node.decideNode()) {
-                    return false;
+                DecisionState decisionState = node.decideNode();
+                if (!decisionState.isSuccess()) {
+                    return decisionState;
                 }
             }
-            return true;
+            return DecisionState.success;
         }
     }
 
@@ -262,12 +286,21 @@ public class DecisionBuilder implements ActionSupplier {
         SplitNode(List<Node> nodes) { super(nodes); }
 
         @Override
-        public boolean decideNode() {
-            boolean result = true;
-            for (Node branch : nodes) {
-                result &= branch.decideNode();
+        public DecisionState decideNode() {
+            Map<DecisionState, Integer> decisionCountMap = new HashMap<>();
+            for (DecisionState state : DecisionState.values()) {
+                decisionCountMap.put(state, 0);
             }
-            return result;
+            for (Node branch : nodes) {
+                decisionCountMap.computeIfPresent(branch.decideNode(), (k, v) -> v + 1);
+            }
+            if (decisionCountMap.get(notStarted) > 0) {
+                return notStarted;
+            } else if (decisionCountMap.get(error) > 0) {
+                return error;
+            } else {
+                return success;
+            }
         }
     }
 
@@ -283,12 +316,12 @@ public class DecisionBuilder implements ActionSupplier {
         }
 
         @Override
-        public boolean decideNode() {
-            boolean result = true;
+        public DecisionState decideNode() {
+            DecisionState decisionState = DecisionState.success;
             if (test.get()) {
-                result = nodes.get(0).decideNode();
+                decisionState = nodes.get(0).decideNode();
             }
-            return result;
+            return decisionState;
         }
     }
 
@@ -307,13 +340,13 @@ public class DecisionBuilder implements ActionSupplier {
         Node getCatchBlock() { return nodes.get(1); }
 
         @Override
-        public boolean decideNode() {
-            boolean result = getTryBlock().decideNode();
-            if (getFailWorkflowDecisionAttributes().isPresent()) {
-                result = getCatchBlock().decideNode();
+        public DecisionState decideNode() {
+            DecisionState decisionState = getTryBlock().decideNode();
+            if (decisionState.isError()) {
+                decisionState = getCatchBlock().decideNode();
                 removeFailWorkflowExecutionDecisions();
             }
-            return result;
+            return decisionState;
         }
     }
 
@@ -327,12 +360,19 @@ public class DecisionBuilder implements ActionSupplier {
         }
 
         @Override
-        public boolean decideNode() {
-            boolean result = nodes.get(0).decideNode();
-            if (!result) {
+        public DecisionState decideNode() {
+            DecisionState finallyDecisionState = nodes.get(0).decideNode();
+            DecisionState returnState = finallyDecisionState;
+            if (finallyDecisionState.isPending()) {
+                // remove any fail executors until finally has passed.
                 removeFailWorkflowExecutionDecisions();
+            } else if (finallyDecisionState.isSuccess()) {
+                // if finally success, then return error/success depending on if any prior nodes put in a fail workflow decision.
+                // note that prior nodes could be in an error state but have withNoFailWorkflowOnError set.
+                returnState = getFailWorkflowDecisionAttributes().isPresent() ? DecisionState.error : DecisionState.success;
             }
-            return result && !getFailWorkflowDecisionAttributes().isPresent();
+
+            return returnState;
         }
     }
 

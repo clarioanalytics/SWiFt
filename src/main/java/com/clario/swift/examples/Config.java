@@ -44,20 +44,20 @@ public class Config {
         } catch (Exception ignored) {
             throw new IllegalStateException("Cannot init example workflow configuration, config.properties file");
         }
-        String id = p.getProperty("amazon.aws.id");
-        String key = p.getProperty("amazon.aws.key");
+        String id = p.getProperty("amazon.aws.id").trim();
+        String key = p.getProperty("amazon.aws.key").trim();
         amazonSimpleWorkflow = new AmazonSimpleWorkflowClient(new BasicAWSCredentials(id, key),
             new ClientConfiguration().withConnectionTimeout(10 * 1000)
         );
 
-        domain = p.getProperty("swf.domain");
-        taskList = p.getProperty("swf.task.list");
+        domain = p.getProperty("swf.domain").trim();
+        taskList = p.getProperty("swf.task.list").trim();
 
-        activityPoolSize = parseInt(p.getProperty("activity.pollers.pool.size"));
-        decisionPoolSize = parseInt(p.getProperty("decision.pollers.pool.size"));
+        activityPoolSize = parseInt(p.getProperty("activity.pollers.pool.size").trim());
+        decisionPoolSize = parseInt(p.getProperty("decision.pollers.pool.size").trim());
 
-        registerActivities = parseBoolean(p.getProperty("activity.pollers.register"));
-        registerWorkflows = parseBoolean(p.getProperty("decision.pollers.register"));
+        registerActivities = parseBoolean(p.getProperty("activity.pollers.register").trim());
+        registerWorkflows = parseBoolean(p.getProperty("decision.pollers.register").trim());
     }
 
     public static synchronized Config config() {
