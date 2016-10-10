@@ -355,6 +355,18 @@ public abstract class Action<T extends Action> {
     }
 
     /**
+     * @return True if this activity will issue a fail workflow decision on error, otherwise false.
+     * @see #withNoFailWorkflowOnError()
+     */
+    public boolean isFailWorkflowOnError() { return failWorkflowOnError; }
+
+    /**
+     * @return true if this activity will issue a complete workflow decision on success, otherwise false.
+     * @see #withCompleteWorkflowOnSuccess()
+     */
+    public boolean isCompleteWorkflowOnSuccess() { return completeWorkflowOnSuccess; }
+
+    /**
      * Subclass implements to create the specific {@link Decision} that initiates the action.
      */
     public abstract Decision createInitiateActivityDecision();

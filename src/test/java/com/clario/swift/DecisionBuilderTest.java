@@ -5,6 +5,8 @@ import com.clario.swift.action.ActionSupplier;
 import com.clario.swift.action.MockAction;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -14,11 +16,13 @@ import static com.clario.swift.event.EventState.NOT_STARTED;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author George Coller
  */
 public class DecisionBuilderTest {
+    private static Logger log = LoggerFactory.getLogger(DecisionBuilderTest.class);
 
     MockAction s1, s2, s3, s4, s5, s6, s7, s8, s9;
     ActionSupplier f1, f2, f3, f4, f5, f6, f7, f8, f9;
@@ -68,20 +72,25 @@ public class DecisionBuilderTest {
             addStep();
         }
 
-        boolean next(Map<MockAction, String> step) {
+        DecisionBuilder.DecisionState next(Map<MockAction, String> step) {
+            log.info("next " + step);
             if (++stepCount > 1) {
                 actions.forEach(MockAction::nextState);
             }
             decisions.clear();
-            boolean result = builder.decide();
+            DecisionBuilder.DecisionState result = builder.decide();
 
             if (step != LAST_STEP) {
-                List<Decision> expectedDecisions = step.keySet().stream().map(MockAction::getDecision)
+                List<Decision> expectedDecisions = step.keySet().stream()
+                                                       .filter(d -> d != null)
+                                                       .map(MockAction::getDecision)
                                                        .filter(d -> d != null)
                                                        .collect(toList());
                 assertEquals("replay step " + stepCount + " decisions", expectedDecisions, decisions);
 
-                List<String> actualControls = step.keySet().stream().map(MockAction::getControl)
+                List<String> actualControls = step.keySet().stream()
+                                                  .filter(d -> d != null)
+                                                  .map(MockAction::getControl)
                                                   .filter(d -> d != null)
                                                   .collect(toList());
                 assertEquals("replay step " + stepCount + " controls", step.values().toString(), actualControls.toString());
@@ -110,19 +119,19 @@ public class DecisionBuilderTest {
          */
         void play() {
             steps.add(LAST_STEP);
-            boolean result = true;
+            DecisionBuilder.DecisionState result = DecisionBuilder.DecisionState.notStarted;
             while (!steps.isEmpty()) {
                 result = next(steps.remove(0));
-                if (result) {
+                if (result.isFinished()) {
                     break;
                 }
             }
 
-            if (!builder.getFailWorkflowDecisionAttributes().isPresent() && !result) {
-                throw new IllegalStateException("DecisionBuilder was not complete, missing replay steps");
-            }
-            if (!steps.isEmpty()) {
+            if (steps.size() > 1) {
                 throw new IllegalStateException(steps.size() + " steps were added but not replayed");
+            }
+            if (!builder.getFailWorkflowDecisionAttributes().isPresent() && result.isError()) {
+                throw new IllegalStateException("Result is error but no fail workflow attributes present");
             }
 
             if (completeWorkflowResult != null) {
@@ -219,8 +228,57 @@ public class DecisionBuilderTest {
             .expect(s1, "s1").addStep()
             .expect(s2, "s1->s2").addStep()
             .expect(s4, "finally->s4").addStep()
-            .expect(s2, "s2:error")
+            .expect(s2, "s2:error").play();
+    }
+
+    @Test
+    public void testErrorInFinallyBlock() {
+        f4 = () -> s4.withInput("finally");
+
+        s4.setEventStates(NOT_STARTED, ERROR);
+        builder.sequence(f1, f2);
+        builder.andFinally(f4);
+
+        new Replay()
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s2, "s1->s2").play();
+        
+        assertTrue(builder.getFailWorkflowDecisionAttributes().isPresent());
+    }
+
+
+    @Test
+    public void testFinallyWithErrorNoFailWorkflowAndNoDecisions() {
+        f4 = () -> s4.withInput("finally");
+
+        s2.setEventStates(NOT_STARTED, ERROR);
+        s2.withNoFailWorkflowOnError();
+        builder.sequence(f1, f2, f3);
+        builder.andFinally(f4);
+
+        new Replay()
+            .expect(s1, "s1").addStep()
+            .expect(s2, "s1->s2").addStep()
+            .expect(s4, "finally->s4").addStep()
             .play();
+    }
+
+    @Test
+    public void testNoFailWorkflowOnError() {
+        s2.setEventStates(NOT_STARTED, ERROR);
+        s2.withNoFailWorkflowOnError();
+        builder.sequence(f1, f2, f3);
+
+        try {
+            new Replay()
+                .expect(s1, "s1").addStep()
+                .expect(s2, "s1->s2").addStep()
+                .expect(s2, "error no fail s1->s2")
+                .play();
+        } catch (IllegalStateException e) {
+            assertEquals("Result is error but no fail workflow attributes present", e.getMessage());
+        }
     }
 
     @Test

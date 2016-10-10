@@ -153,10 +153,40 @@ public class DecisionPoller extends BasePoller {
             decisions.add(failWorkflowExecutionDecision);
         }
 
+        checkFailWorkflowExecutionDecision(decisions);
+        if (decisions.isEmpty()) {
+            log.warn("No decisions made during poll");
+        }
+
         try {
             swf.respondDecisionTaskCompleted(createRespondDecisionTaskCompletedRequest(decisionTask.getTaskToken(), decisions));
         } catch (Exception e) {
             log.error(format("%s: %s", workflowId, workflow), e);
+        }
+    }
+
+    /**
+     * If a {@link DecisionType#FailWorkflowExecution} decision is made then remove all other decisions.
+     * In practice it has been seen that additional decisions (including additional
+     * {@link DecisionType#FailWorkflowExecution} decisions can screw up proper SWF workflow completions.
+     */
+    void checkFailWorkflowExecutionDecision(List<Decision> decisions) {
+        Decision failWorkflowDecision = null;
+        for (Decision decision : decisions) {
+            if (decision.getDecisionType().equals(DecisionType.FailWorkflowExecution.name())) {
+                failWorkflowDecision = decision;
+                break;
+            }
+        }
+        if (failWorkflowDecision != null && decisions.size() > 1) {
+            log.info("FailWorkflowExecution decision made, removing other decisions:");
+            for (Decision decision : decisions) {
+                if (decision != failWorkflowDecision) {
+                    log.info("Remove decision " + decision);
+                }
+            }
+            decisions.clear();
+            decisions.add(failWorkflowDecision);
         }
     }
 
