@@ -33,6 +33,7 @@ public class DecisionPollerPool {
             poller.addWorkflows(new CronWorkflow());
             poller.addWorkflows(new PollingCheckpointWorkflow());
             poller.addWorkflows(new RetryActivityWorkflow());
+            poller.addWorkflows(new RetryActivityWorkflowDecisionBuilder());
             poller.addWorkflows(new SignalWaitForSignalWorkflow());
             poller.addWorkflows(new SimpleWorkflow());
             poller.addWorkflows(new SimpleWorkflowDecisionBuilder());
