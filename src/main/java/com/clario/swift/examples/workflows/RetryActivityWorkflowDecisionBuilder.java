@@ -1,6 +1,7 @@
 package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.clario.swift.DecisionBuilder;
 import com.clario.swift.SwiftUtil;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
@@ -23,12 +24,12 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  * @author George Coller
  * @see RetryPolicy
  */
-public class RetryActivityWorkflow extends Workflow {
-    private static final Logger log = LoggerFactory.getLogger(RetryActivityWorkflow.class);
+public class RetryActivityWorkflowDecisionBuilder extends Workflow {
+    private static final Logger log = LoggerFactory.getLogger(RetryActivityWorkflowDecisionBuilder.class);
 
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
-        Workflow workflow = new RetryActivityWorkflow()
+        Workflow workflow = new RetryActivityWorkflowDecisionBuilder()
             .withDomain(config().getDomain())
             .withTaskList(config().getTaskList())
             .withTaskStartToCloseTimeout(MINUTES, 60)
@@ -51,36 +52,31 @@ public class RetryActivityWorkflow extends Workflow {
         .withHeartBeatTimeoutTimeout(MINUTES, 1)
         .withOnErrorRetryPolicy(RETRY_POLICY);
 
+    final ActivityAction step2 = new ActivityAction("step2", "Activity X", "1.0");
+
     private final RecordMarkerAction failUntilTimeMarker = new RecordMarkerAction("failUntilTime");
 
 
-    public RetryActivityWorkflow() {
-        super("Retry Activity Workflow", "1.0");
-        addActions(step1, failUntilTimeMarker);
+    public RetryActivityWorkflowDecisionBuilder() {
+        super("Retry Activity Workflow Decision Builder", "1.0");
+        addActions(step1, step2, failUntilTimeMarker);
     }
 
     @Override
     public void decide(List<Decision> decisions) {
+        RetryActivityWorkflow.recordFailUntilTimeMarker(failUntilTimeMarker, decisions, getWorkflowInput());
 
-        recordFailUntilTimeMarker(failUntilTimeMarker, decisions, getWorkflowInput());
         String failUntilTime = failUntilTimeMarker.getOutput();
+        DecisionBuilder d = new DecisionBuilder(decisions);
 
-        if (step1.withInput(failUntilTime).decide(decisions).isSuccess()) {
+        d.sequence(() -> step1.withInput(failUntilTime))
+            .andFinally(() -> step2.withInput("123"))
+            .decide();
+
+        if (step1.isSuccess() && step2.isSuccess()) {
             int times = step1.getEvents().selectRetryCount(RETRY_POLICY.getControl()).size();
             log.info("Activity succeeded after " + times + " times at " + SwiftUtil.DATE_TIME_MILLIS_FORMATTER.print(DateTime.now()));
             decisions.add(createCompleteWorkflowExecutionDecision("finished ok!"));
-        }
-    }
-
-    static void recordFailUntilTimeMarker(RecordMarkerAction markerAction, List<Decision> decisions, String input) {
-        if (markerAction.isNotStarted()) {
-            // Use marker to do this code exactly once
-            int seconds = Integer.parseInt(input);
-            DateTime dateTime = new DateTime().plusSeconds(seconds);
-            log.info("Should fail and retry until after: {}", SwiftUtil.DATE_TIME_MILLIS_FORMATTER.print(dateTime));
-            markerAction
-                .withDetails(String.valueOf(dateTime.getMillis()))
-                .decide(decisions);
         }
     }
 }
