@@ -39,7 +39,7 @@ public class RetryActivityWorkflow extends Workflow {
     // RetryPolicy subclasses should be thread-safe so we can share them
     private final RetryPolicy RETRY_POLICY = new RetryPolicy("step1 retry")
         .withInitialRetryInterval(TimeUnit.SECONDS, 5)
-        .withMaximumRetryInterval(TimeUnit.SECONDS, 20)
+        .withMaximumRetryInterval(TimeUnit.MINUTES, 1)
         .withRetryExpirationInterval(TimeUnit.HOURS, 1)
         .withMaximumAttempts(20);
 
@@ -62,25 +62,21 @@ public class RetryActivityWorkflow extends Workflow {
     @Override
     public void decide(List<Decision> decisions) {
 
-        recordFailUntilTimeMarker(failUntilTimeMarker, decisions, getWorkflowInput());
+        if (failUntilTimeMarker.isNotStarted()) {
+            // Use marker to do this code exactly once
+            int seconds = Integer.parseInt(getWorkflowInput());
+            DateTime dateTime = new DateTime().plusSeconds(seconds);
+            log.info("Should fail and retry until after: {}", SwiftUtil.DATE_TIME_MILLIS_FORMATTER.print(dateTime));
+            failUntilTimeMarker
+                .withDetails(String.valueOf(dateTime.getMillis()))
+                .decide(decisions);
+        }
         String failUntilTime = failUntilTimeMarker.getOutput();
 
         if (step1.withInput(failUntilTime).decide(decisions).isSuccess()) {
             int times = step1.getEvents().selectRetryCount(RETRY_POLICY.getControl()).size();
             log.info("Activity succeeded after " + times + " times at " + SwiftUtil.DATE_TIME_MILLIS_FORMATTER.print(DateTime.now()));
             decisions.add(createCompleteWorkflowExecutionDecision("finished ok!"));
-        }
-    }
-
-    static void recordFailUntilTimeMarker(RecordMarkerAction markerAction, List<Decision> decisions, String input) {
-        if (markerAction.isNotStarted()) {
-            // Use marker to do this code exactly once
-            int seconds = Integer.parseInt(input);
-            DateTime dateTime = new DateTime().plusSeconds(seconds);
-            log.info("Should fail and retry until after: {}", SwiftUtil.DATE_TIME_MILLIS_FORMATTER.print(dateTime));
-            markerAction
-                .withDetails(String.valueOf(dateTime.getMillis()))
-                .decide(decisions);
         }
     }
 }

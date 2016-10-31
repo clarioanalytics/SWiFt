@@ -15,7 +15,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static com.amazonaws.services.simpleworkflow.model.DecisionType.*;
+import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
 import static com.clario.swift.DecisionBuilder.DecisionState.*;
 import static java.lang.String.format;
 import static java.util.Collections.*;
@@ -28,15 +28,21 @@ import static java.util.stream.Collectors.toList;
  */
 public class DecisionBuilder implements ActionSupplier {
     enum DecisionState {
-        notStarted, success, error, retry;
+        notStarted, success, error;
 
-        boolean isPending() { return this == notStarted || this == retry; }
+        boolean isPending() {
+            return this == notStarted;
+        }
 
-        boolean isFinished() { return this == success || this == error; }
+        boolean isFinished() {
+            return this == success || this == error;
+        }
 
         boolean isError() { return this == error; }
 
-        boolean isSuccess() { return this == success; }
+        boolean isSuccess() {
+            return this == success;
+        }
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(DecisionBuilder.class);
@@ -179,7 +185,7 @@ public class DecisionBuilder implements ActionSupplier {
                 return decisionState;
             }
         }
-        return success;
+        return DecisionState.success;
     }
 
     /**
@@ -234,27 +240,13 @@ public class DecisionBuilder implements ActionSupplier {
 
         @Override public DecisionState decideNode() {
             Action action = fn.get().decide(decisions);
-            boolean isRetry = isRetry(action);
-            
-            if (isRetry) {
-                return retry;
-            } else if (action.isError()) {
-                return error;
+            if (action.isError()) {
+                return DecisionState.error;
             } else if (action.isSuccess()) {
-                return success;
+                return DecisionState.success;
             } else {
                 return notStarted;
             }
-        }
-
-        /**
-         * Return true if any decision is of type "StartTimer" and is related to the given action.
-         */
-        private boolean isRetry(Action action) {
-            return decisions.stream()
-                       .anyMatch(d ->
-                                     fromValue(d.getDecisionType()).equals(StartTimer) &&
-                                         d.getStartTimerDecisionAttributes().getTimerId().equals(action.getActionId()));
         }
 
         @Override public String toString() {
@@ -282,7 +274,7 @@ public class DecisionBuilder implements ActionSupplier {
                     return decisionState;
                 }
             }
-            return success;
+            return DecisionState.success;
         }
     }
 
@@ -325,7 +317,7 @@ public class DecisionBuilder implements ActionSupplier {
 
         @Override
         public DecisionState decideNode() {
-            DecisionState decisionState = success;
+            DecisionState decisionState = DecisionState.success;
             if (test.get()) {
                 decisionState = nodes.get(0).decideNode();
             }
@@ -377,7 +369,7 @@ public class DecisionBuilder implements ActionSupplier {
             } else if (finallyDecisionState.isSuccess()) {
                 // if finally success, then return error/success depending on if any prior nodes put in a fail workflow decision.
                 // note that prior nodes could be in an error state but have withNoFailWorkflowOnError set.
-                returnState = getFailWorkflowDecisionAttributes().isPresent() ? error : success;
+                returnState = getFailWorkflowDecisionAttributes().isPresent() ? DecisionState.error : DecisionState.success;
             }
 
             return returnState;
