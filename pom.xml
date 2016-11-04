@@ -4,7 +4,7 @@
     <name>Clario SWiFt</name>
     <groupId>com.clario</groupId>
     <artifactId>services-swift</artifactId>
-    <version>1.4.1</version>
+    <version>1.5.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <build>
