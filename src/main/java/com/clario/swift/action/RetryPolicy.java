@@ -102,7 +102,7 @@ public class RetryPolicy {
      */
     public int nextRetryDelaySeconds(EventList events) {
         EventList retryEvents = events.selectRetryCount(getControl());
-        if (retryEvents.size() > maximumAttempts) {
+        if (retryEvents.size() >= maximumAttempts) {
             return -1;
         } else if (retryEvents.isEmpty()) {
             return initialRetryInterval.getSeconds();
