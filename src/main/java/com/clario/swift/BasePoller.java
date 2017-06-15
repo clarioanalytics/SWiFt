@@ -45,7 +45,11 @@ public abstract class BasePoller implements Runnable {
         try {
             poll();
         } catch (Throwable t) {
-            log.error(this.toString(), t);
+            if (t.getMessage() != null && t.getMessage().contains("Connection pool shut down")) {
+                log.debug(t.getMessage());
+            } else {
+                log.error(toString(), t);
+            }
         }
     }
 
