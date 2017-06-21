@@ -164,6 +164,15 @@ public class RetryPolicyTest {
         assertEquals(3, events.selectRetryCount(control).size());
         assertEquals(40, retry.nextRetryDelaySeconds(events));
 
+        // three retries have occurred so one more is fine
+        retry.withMaximumAttempts(4);
+        assertEquals(40, retry.nextRetryDelaySeconds(events));
+        
+        // three retries have occurred so we're finished
+        retry.withMaximumAttempts(3);
+        assertEquals(-1, retry.nextRetryDelaySeconds(events));
+
+        // shouldn't get here in prod but testing extreme bounds
         retry.withMaximumAttempts(2);
         assertEquals(-1, retry.nextRetryDelaySeconds(events));
     }
