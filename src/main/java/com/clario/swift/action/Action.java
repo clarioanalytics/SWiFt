@@ -317,7 +317,11 @@ public abstract class Action<T extends Action> {
      */
     public boolean isSuccess() { return SUCCESS == getState(); }
 
-
+    /**
+     * @return true if the action completed with state {@link EventState#ERROR} or {@link EventState#SUCCESS}.
+     */
+    public boolean isComplete() { return isSuccess() || isError(); }
+    
     /**
      * @return true if this action has not yet been started.
      */
