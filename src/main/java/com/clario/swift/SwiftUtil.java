@@ -74,10 +74,9 @@ public class SwiftUtil {
             if (value.length() == 0) {
                 throw new AssertionError("Empty value not allowed");
             }
-            if (value.length() == 0
-                    || value.matches("\\s.*|.*\\s")
-                    || value.matches(".*[:/|\\u0000-\\u001f\\u007f-\\u009f].*")
-                    || value.contains("arn")) {
+            if (value.matches("\\s.*|.*\\s")
+                || value.matches(".*[:/|\\u0000-\\u001f\\u007f-\\u009f].*")
+                || value.contains("arn")) {
                 throw new AssertionError("Value contains one or more bad characters: '" + value + "'");
             }
         }
@@ -238,7 +237,7 @@ public class SwiftUtil {
      */
     public static String replaceUnsafeNameChars(String string) {
         return string.trim()
-                   .replaceAll("\\s|[^\\w]", "_")
-                   .replaceAll("arn", "Arn");
+            .replaceAll("\\s|[^\\w]", "_")
+            .replaceAll("arn", "Arn");
     }
 }

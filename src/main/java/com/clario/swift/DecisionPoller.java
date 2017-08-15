@@ -28,7 +28,7 @@ import static java.lang.String.format;
  * @see DecisionPollerPool DecisionPollerPool for example usage.
  */
 public class DecisionPoller extends BasePoller {
-    private final Map<String, Workflow> workflows = new LinkedHashMap<String, Workflow>();
+    private final Map<String, Workflow> workflows = new LinkedHashMap<>();
     private final String executionContext;
 
     /**

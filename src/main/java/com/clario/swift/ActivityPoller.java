@@ -23,7 +23,7 @@ import static java.lang.String.format;
  * @see com.clario.swift.examples.ActivityPollerPool StartActivityPollers for example usage.
  */
 public class ActivityPoller extends BasePoller {
-    private final Map<String, ActivityInvoker> activityMap = new LinkedHashMap<String, ActivityInvoker>();
+    private final Map<String, ActivityInvoker> activityMap = new LinkedHashMap<>();
 
     /**
      * @param id unique id for poller used for logging and recording in SWF
@@ -41,20 +41,22 @@ public class ActivityPoller extends BasePoller {
      * @see ActivityMethod
      */
     public void registerSwfActivities() {
-        for (ActivityInvoker invoker : activityMap.values()) {
-            ActivityMethod method = invoker.getActivityMethod();
-            String key = makeKey(method.name(), method.version());
-            try {
-                swf.registerActivityType(createRegisterActivityType(domain, taskList, method));
-                log.info(format("Register activity succeeded %s", key));
-            } catch (TypeAlreadyExistsException e) {
-                log.info(format("Register activity already exists %s", key));
-            } catch (Throwable t) {
-                String format = format("Register activity failed %s", key);
-                log.error(format, t);
-                throw new IllegalStateException(format, t);
+        activityMap.values().parallelStream().forEach(invoker ->
+            {
+                ActivityMethod method = invoker.getActivityMethod();
+                String key = makeKey(method.name(), method.version());
+                try {
+                    swf.registerActivityType(createRegisterActivityType(domain, taskList, method));
+                    log.info(format("Register activity succeeded %s", key));
+                } catch (TypeAlreadyExistsException ignored) {
+                    log.info(format("Register activity already exists %s", key));
+                } catch (Throwable t) {
+                    String format = format("Register activity failed %s", key);
+                    log.error(format, t);
+                    throw new IllegalStateException(format, t);
+                }
             }
-        }
+        );
     }
 
     /**

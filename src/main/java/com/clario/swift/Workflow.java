@@ -2,7 +2,6 @@ package com.clario.swift;
 
 import com.amazonaws.services.simpleworkflow.model.*;
 import com.clario.swift.action.Action;
-import com.clario.swift.action.ActionSupplier;
 import com.clario.swift.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +28,8 @@ public abstract class Workflow {
     protected final String name;
     protected final String version;
     protected final String key;
-    private final List<String> tags = new ArrayList<String>();
-    private List<Event> eventList = new ArrayList<Event>();
+    private final List<String> tags = new ArrayList<>();
+    private List<Event> eventList = new ArrayList<>();
 
     // Optional fields used for submitting workflow.
     private String description;
@@ -366,8 +365,8 @@ public abstract class Workflow {
         return new Decision()
             .withDecisionType(DecisionType.RecordMarker)
             .withRecordMarkerDecisionAttributes(new RecordMarkerDecisionAttributes()
-                    .withMarkerName(trimToMaxLength(name, MARKER_NAME_MAX_LENGTH))
-                    .withDetails(trimToMaxLength(details, DETAILS_MAX_LENGTH))
+                .withMarkerName(trimToMaxLength(name, MARKER_NAME_MAX_LENGTH))
+                .withDetails(trimToMaxLength(details, DETAILS_MAX_LENGTH))
             );
     }
 
