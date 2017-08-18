@@ -12,13 +12,10 @@ import com.clario.swift.event.EventState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static com.amazonaws.services.simpleworkflow.model.EventType.*;
 import static com.clario.swift.SwiftUtil.*;
-import static com.clario.swift.TaskType.CONTINUE_AS_NEW;
-import static com.clario.swift.TaskType.RECORD_MARKER;
 import static com.clario.swift.Workflow.createCompleteWorkflowExecutionDecision;
 import static com.clario.swift.Workflow.createFailWorkflowExecutionDecision;
 import static com.clario.swift.event.EventState.*;
@@ -34,7 +31,6 @@ import static java.lang.String.format;
 public abstract class Action<T extends Action> {
 
     private final Logger log;
-    private static final List<TaskType> INITIAL_EQUALS_SUCCESS_TASKS = Arrays.asList(RECORD_MARKER, CONTINUE_AS_NEW);
 
     private final String actionId;
 
@@ -202,10 +198,10 @@ public abstract class Action<T extends Action> {
      */
     public Decision createCancelRetryTimerDecision() {
         return new Decision()
-                   .withDecisionType(DecisionType.CancelTimer)
-                   .withCancelTimerDecisionAttributes(new CancelTimerDecisionAttributes()
-                                                          .withTimerId(getActionId())
-                   );
+            .withDecisionType(DecisionType.CancelTimer)
+            .withCancelTimerDecisionAttributes(new CancelTimerDecisionAttributes()
+                .withTimerId(getActionId())
+            );
     }
 
 
@@ -246,23 +242,27 @@ public abstract class Action<T extends Action> {
             case ACTIVE:
                 break;
             case SUCCESS:
+                boolean isActionCompleted = true;
                 if (successRetryPolicy != null) {
-                    if (successRetryPolicy.testResultMatches(getOutput())) {
-                        log.info(format("%s no more repeats. matched output: %s", this, getOutput()));
+                    if (successRetryPolicy.testStopRetrying(getOutput())) {
+                        log.info("{} success retry stop retrying true", this);
                     } else {
                         Decision decision = successRetryPolicy.calcNextDecision(getActionId(), getEvents());
-                        if (decision != null) {
-                            decisions.add(decision);
-                            log.info("success, start timer delay: {} ", decision);
+                        if (decision == null) {
+                            log.debug("{} success retry, no more attempts", this);
                         } else {
-                            log.debug("success, no more attempts: output={}", getOutput());
+                            decisions.add(decision);
+                            isActionCompleted = false;
+                            workflow.pushDummyTimerStartedEvent(actionId);
+                            log.info("{} success retry, start timer delay: {} ", this, decision);
                         }
                     }
-                } else if (completeWorkflowOnSuccess) {
-                    decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
-                    log.info("success, workflow complete: {}", getOutput());
-                } else {
-                    log.debug("success: {}", getOutput());
+                }
+                if (isActionCompleted) {
+                    if (completeWorkflowOnSuccess) {
+                        decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
+                    }
+                    log.info("{} action completed", this);
                 }
                 break;
             case RETRY:
@@ -271,22 +271,23 @@ public abstract class Action<T extends Action> {
                 break;
 
             case ERROR:
-                boolean checkFailWorkflowOnError = true;
+                boolean isFailWorkflow = failWorkflowOnError;
                 if (errorRetryPolicy != null) {
-                    if (errorRetryPolicy.testResultMatches(currentEvent.getReason(), currentEvent.getDetails())) {
-                        log.info(format("%s no more attempts. matched error reason or details: %s %s", this, currentEvent.getReason(), currentEvent.getDetails()));
+                    if (errorRetryPolicy.testStopRetrying(currentEvent.getReason()) || errorRetryPolicy.testStopRetrying(currentEvent.getDetails())) {
+                        log.info("{} stop retrying based on error reason and details: {} {}", this, currentEvent.getReason(), currentEvent.getDetails());
                     } else {
                         Decision decision = errorRetryPolicy.calcNextDecision(getActionId(), getEvents());
                         if (decision != null) {
                             decisions.add(decision);
-                            checkFailWorkflowOnError = false;
+                            isFailWorkflow = false;
+                            workflow.pushDummyTimerStartedEvent(actionId);
                             log.info("error, start timer delay: {} ", decision);
                         } else {
                             log.info("error, no more attempts: error={} detail={}", currentEvent.getReason(), currentEvent.getDetails());
                         }
                     }
                 }
-                if (checkFailWorkflowOnError && failWorkflowOnError) {
+                if (isFailWorkflow) {
                     decisions.add(createFailWorkflowExecutionDecision(toString(), currentEvent.getReason(), currentEvent.getDetails()));
                 }
                 break;
@@ -304,7 +305,7 @@ public abstract class Action<T extends Action> {
         Event currentEvent = getCurrentEvent();
         if (currentEvent == null) {
             return NOT_STARTED;
-        } else if (TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
+        } else if (TimerStarted == currentEvent.getType() || TimerFired == currentEvent.getType() || TimerCanceled == currentEvent.getType()) {
             return RETRY;
         } else {
             return currentEvent.getState();
@@ -321,7 +322,7 @@ public abstract class Action<T extends Action> {
      * @return true if the action completed with state {@link EventState#ERROR} or {@link EventState#SUCCESS}.
      */
     public boolean isComplete() { return isSuccess() || isError(); }
-    
+
     /**
      * @return true if this action has not yet been started.
      */

@@ -63,6 +63,24 @@ public abstract class Workflow {
     }
 
     /**
+     * Pushes a {@link EventType#TimerStarted} event into the EventList for a given action so that its
+     * {@link Action#getState} will equal RETRY instead of SUCCESS OR FAIL for the rest of the current decision pass.
+     * Intended side-effect is that <pre>isSuccess</pre> and <pre>isFail</pre> will return false as well.
+     */
+    public void pushDummyTimerStartedEvent(String actionId) {
+        Event event = new Event(
+            new HistoryEvent()
+                .withEventId(eventList.get(0).getEventId() + 1)
+                .withEventTimestamp(new Date())
+                .withEventType(EventType.TimerStarted)
+                .withTimerStartedEventAttributes(new TimerStartedEventAttributes()
+                    .withTimerId(actionId)
+                    .withControl("pushDummyTimerStartedEvent")
+                ));
+        eventList.add(0, event);
+    }
+
+    /**
      * Reset instance to prepare for new set of history events.
      */
     public void reset() {
