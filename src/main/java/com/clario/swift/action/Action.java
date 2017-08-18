@@ -3,6 +3,7 @@ package com.clario.swift.action;
 import com.amazonaws.services.simpleworkflow.model.CancelTimerDecisionAttributes;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.amazonaws.services.simpleworkflow.model.DecisionType;
+import com.amazonaws.services.simpleworkflow.model.EventType;
 import com.clario.swift.DecisionPoller;
 import com.clario.swift.EventList;
 import com.clario.swift.TaskType;
@@ -245,24 +246,27 @@ public abstract class Action<T extends Action> {
                 boolean isActionCompleted = true;
                 if (successRetryPolicy != null) {
                     if (successRetryPolicy.testStopRetrying(getOutput())) {
-                        log.info("{} success retry stop retrying true", this);
+                        log.info("success retry, terminated");
                     } else {
                         Decision decision = successRetryPolicy.calcNextDecision(getActionId(), getEvents());
                         if (decision == null) {
-                            log.debug("{} success retry, no more attempts", this);
+                            log.debug("success retry, no more attempts");
                         } else {
                             decisions.add(decision);
                             isActionCompleted = false;
                             workflow.pushDummyTimerStartedEvent(actionId);
-                            log.info("{} success retry, start timer delay: {} ", this, decision);
+                            log.info("success retry, start timer delay");
                         }
                     }
                 }
                 if (isActionCompleted) {
+                    // Log complete once
+                    if (workflow.getEvents().selectSinceLastDecision().contains(getCurrentEvent())) {
+                        log.info("action completed");
+                    }
                     if (completeWorkflowOnSuccess) {
                         decisions.add(createCompleteWorkflowExecutionDecision(getOutput()));
                     }
-                    log.info("{} action completed", this);
                 }
                 break;
             case RETRY:
@@ -274,16 +278,16 @@ public abstract class Action<T extends Action> {
                 boolean isFailWorkflow = failWorkflowOnError;
                 if (errorRetryPolicy != null) {
                     if (errorRetryPolicy.testStopRetrying(currentEvent.getReason()) || errorRetryPolicy.testStopRetrying(currentEvent.getDetails())) {
-                        log.info("{} stop retrying based on error reason and details: {} {}", this, currentEvent.getReason(), currentEvent.getDetails());
+                        log.info("error retry, terminated");
                     } else {
                         Decision decision = errorRetryPolicy.calcNextDecision(getActionId(), getEvents());
                         if (decision != null) {
                             decisions.add(decision);
                             isFailWorkflow = false;
                             workflow.pushDummyTimerStartedEvent(actionId);
-                            log.info("error, start timer delay: {} ", decision);
+                            log.info("error retry, start timer delay");
                         } else {
-                            log.info("error, no more attempts: error={} detail={}", currentEvent.getReason(), currentEvent.getDetails());
+                            log.info("error retry, no more attempts: error={} detail={}", currentEvent.getReason(), currentEvent.getDetails());
                         }
                     }
                 }

@@ -1,12 +1,11 @@
 package com.clario.swift.examples.workflows;
 
 import com.amazonaws.services.simpleworkflow.model.Decision;
+import com.clario.swift.DecisionBuilder;
 import com.clario.swift.Workflow;
 import com.clario.swift.action.ActivityAction;
 import com.clario.swift.action.FeedbackActivityAction;
 import com.clario.swift.action.RetryPolicy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +20,6 @@ import static java.util.concurrent.TimeUnit.MINUTES;
  * @see RetryPolicy
  */
 public class RetryActivityPollingWorkflow extends Workflow {
-    private static final Logger log = LoggerFactory.getLogger(RetryActivityPollingWorkflow.class);
 
     /** Start the workflow by submitting it to SWF. */
     public static void main(String[] args) {
@@ -38,20 +36,24 @@ public class RetryActivityPollingWorkflow extends Workflow {
     private final ActivityAction poll = new FeedbackActivityAction("poll", "Activity Poll", "1.0")
         .withOnSuccessRetryPolicy(new RetryPolicy("retry poll")
             .withFixedRetryInterval(TimeUnit.SECONDS, 2)
-            .withRetryTerminator(output -> output.length() > 10) // terminate when the output string is > 10 characters
+            .withRetryTerminator(output -> output.length() > 8) // terminate when the output string is > 8 characters
         );
+    
+    private final ActivityAction email = new ActivityAction("email", "Activity Echo", "1.0");
 
     public RetryActivityPollingWorkflow() {
         super("Retry Activity Polling Workflow", "1.0");
-        addActions(init, poll);
+        addActions(init, poll, email);
     }
 
     @Override
     public void decide(List<Decision> decisions) {
-        if (init.withInput("WORK").decide(decisions).isSuccess()) {
-            if (poll.withInput(init.getOutput()).decide(decisions).isSuccess()) {
-                decisions.add(createCompleteWorkflowExecutionDecision(poll.getOutput()));
-            }
-        }
+        new DecisionBuilder(decisions)
+            .sequence(
+                () -> init.withInput("WORK"),
+                () -> poll.withInput(init.getOutput()))
+            .andFinally(() -> email.withInput("Mock Email"))
+            .withCompleteWorkflowExecution(() -> poll.getOutput())
+            .decide();
     }
 }
