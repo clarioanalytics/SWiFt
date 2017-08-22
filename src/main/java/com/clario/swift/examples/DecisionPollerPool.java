@@ -40,7 +40,7 @@ public class DecisionPollerPool {
             poller.addWorkflows(new StartChildWorkflow());
             poller.addWorkflows(new TimerWorkflow());
             poller.addWorkflows(new WaitForSignalWorkflow());
-            poller.addWorkflows(new RetryActivityPollingWorkflow());
+            poller.addWorkflows(new RetryActivityPollingWorkflowGroovy());
 
             if (config().isRegisterWorkflows() && it == 1) {
                 poller.registerSwfWorkflows();

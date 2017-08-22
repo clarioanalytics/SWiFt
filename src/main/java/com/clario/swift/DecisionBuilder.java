@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
-import static com.clario.swift.DecisionBuilder.DecisionState.*;
+import static com.clario.swift.DecisionState.*;
 import static java.lang.String.format;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
@@ -27,23 +27,6 @@ import static java.util.stream.Collectors.toList;
  * @author George Coller
  */
 public class DecisionBuilder implements ActionSupplier {
-    enum DecisionState {
-        notStarted, success, error;
-
-        boolean isPending() {
-            return this == notStarted;
-        }
-
-        boolean isFinished() {
-            return this == success || this == error;
-        }
-
-        boolean isError() { return this == error; }
-
-        boolean isSuccess() {
-            return this == success;
-        }
-    }
 
     private static final Logger LOG = LoggerFactory.getLogger(DecisionBuilder.class);
     private final List<Decision> decisions;
