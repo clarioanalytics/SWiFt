@@ -26,7 +26,7 @@ class GroovyDecisionBuilder {
     private ActionSupplier convert(Object o) {
         if (o == this) {
             return builder
-        } else if (o instanceof ActionSupplier || o instanceof Closure<Action>) {
+        } else if (o instanceof ActionSupplier || o instanceof Closure) {
             return o as ActionSupplier
         } else {
             throw new IllegalArgumentException("Object not allowed ${o.class} $o")
@@ -34,11 +34,21 @@ class GroovyDecisionBuilder {
     }
 
     GroovyDecisionBuilder sequence(Object... suppliers) {
+        sequence(suppliers.toList())
+        this
+    }
+
+    GroovyDecisionBuilder sequence(List suppliers) {
         builder.sequence(*suppliers.collect { convert(it) })
         this
     }
 
     GroovyDecisionBuilder split(Object... suppliers) {
+        split(suppliers.toList())
+        this
+    }
+
+    GroovyDecisionBuilder split(List suppliers) {
         builder.split(*suppliers.collect { convert(it) })
         this
     }

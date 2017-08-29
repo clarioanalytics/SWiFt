@@ -139,7 +139,7 @@ class GroovyDecisionBuilderTest {
 
 
     @Test
-    void testSingleSequence() {
+    void testSingleSequenceVarArgs() {
         builder.sequence(f1, f2, f3)
 
         new Replay()
@@ -149,6 +149,17 @@ class GroovyDecisionBuilderTest {
             .play()
     }
 
+    @Test
+    void testSingleSequenceList() {
+        builder.sequence([f1, f2, f3])
+
+        new Replay()
+              .expect(s1, "s1").addStep()
+              .expect(s2, "s1->s2").addStep()
+              .expect(s3, "s1->s2->s3")
+              .play()
+    }
+    
     @Test
     void testMultipleSequences() {
         builder.sequence(f1).sequence(f2).sequence(f3)
@@ -369,6 +380,20 @@ class GroovyDecisionBuilderTest {
             .play()
     }
 
+    @Test
+    void testSplitJoinWithList() {
+        f1 = { s1.withInput("") }
+        f2 = { s2.withInput("") }
+        f3 = { s3.withInput(s1.getOutput() + "+" + s2.getOutput()) }
+        builder.split([f1, f2]).sequence(f3)
+
+        new Replay()
+            .expect(s1, "s1")
+            .expect(s2, "s2").addStep()
+            .expect(s3, "s1+s2->s3")
+            .play()
+    }
+    
     @Test
     void testSplitJoin2() {
         builder.split(
