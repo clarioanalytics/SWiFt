@@ -6,6 +6,8 @@ import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.String.format;
+
 /**
  * Base class for Activity and Decision pollers.
  *
@@ -45,7 +47,11 @@ public abstract class BasePoller implements Runnable {
         try {
             poll();
         } catch (Throwable t) {
-            log.error(this.toString(), t);
+            if (t.getMessage() != null && t.getMessage().contains("Connection pool shut down")) {
+                log.debug(format("%s :%s", toString(), t.getMessage()));
+            } else {
+                log.error(toString(), t);
+            }
         }
     }
 
@@ -97,7 +103,7 @@ public abstract class BasePoller implements Runnable {
 
     @Override
     public String toString() {
-        return String.format("Poller '%s': %s %s", id, domain, taskList);
+        return format("Poller '%s': %s %s", id, domain, taskList);
     }
 
     public void setSwf(AmazonSimpleWorkflow swf) { this.swf = swf; }

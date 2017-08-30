@@ -7,8 +7,6 @@ import com.amazonaws.services.simpleworkflow.model.FailWorkflowExecutionDecision
 import com.clario.swift.action.Action;
 import com.clario.swift.action.ActionSupplier;
 import com.fasterxml.jackson.annotation.JsonValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Function;
@@ -16,7 +14,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static com.amazonaws.services.simpleworkflow.model.DecisionType.FailWorkflowExecution;
-import static com.clario.swift.DecisionBuilder.DecisionState.*;
+import static com.clario.swift.DecisionState.*;
 import static java.lang.String.format;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
@@ -27,25 +25,7 @@ import static java.util.stream.Collectors.toList;
  * @author George Coller
  */
 public class DecisionBuilder implements ActionSupplier {
-    enum DecisionState {
-        notStarted, success, error;
 
-        boolean isPending() {
-            return this == notStarted;
-        }
-
-        boolean isFinished() {
-            return this == success || this == error;
-        }
-
-        boolean isError() { return this == error; }
-
-        boolean isSuccess() {
-            return this == success;
-        }
-    }
-
-    private static final Logger LOG = LoggerFactory.getLogger(DecisionBuilder.class);
     private final List<Decision> decisions;
     private final Stack<Node> stack = new Stack<>();
     private Node finallyNode;
@@ -69,7 +49,7 @@ public class DecisionBuilder implements ActionSupplier {
      * @return this instance
      */
     public DecisionBuilder withCompleteWorkflowExecution(Supplier<String> result) {
-        this.completeWorkflowExecutionResultSupplier = result;
+        completeWorkflowExecutionResultSupplier = result;
         return this;
     }
 
@@ -185,7 +165,7 @@ public class DecisionBuilder implements ActionSupplier {
                 return decisionState;
             }
         }
-        return DecisionState.success;
+        return success;
     }
 
     /**
@@ -241,9 +221,9 @@ public class DecisionBuilder implements ActionSupplier {
         @Override public DecisionState decideNode() {
             Action action = fn.get().decide(decisions);
             if (action.isError()) {
-                return DecisionState.error;
+                return error;
             } else if (action.isSuccess()) {
-                return DecisionState.success;
+                return success;
             } else {
                 return notStarted;
             }
@@ -274,7 +254,7 @@ public class DecisionBuilder implements ActionSupplier {
                     return decisionState;
                 }
             }
-            return DecisionState.success;
+            return success;
         }
     }
 
@@ -288,7 +268,7 @@ public class DecisionBuilder implements ActionSupplier {
         @Override
         public DecisionState decideNode() {
             Map<DecisionState, Integer> decisionCountMap = new HashMap<>();
-            for (DecisionState state : DecisionState.values()) {
+            for (DecisionState state : values()) {
                 decisionCountMap.put(state, 0);
             }
             for (Node branch : nodes) {
@@ -317,7 +297,7 @@ public class DecisionBuilder implements ActionSupplier {
 
         @Override
         public DecisionState decideNode() {
-            DecisionState decisionState = DecisionState.success;
+            DecisionState decisionState = success;
             if (test.get()) {
                 decisionState = nodes.get(0).decideNode();
             }
@@ -369,7 +349,7 @@ public class DecisionBuilder implements ActionSupplier {
             } else if (finallyDecisionState.isSuccess()) {
                 // if finally success, then return error/success depending on if any prior nodes put in a fail workflow decision.
                 // note that prior nodes could be in an error state but have withNoFailWorkflowOnError set.
-                returnState = getFailWorkflowDecisionAttributes().isPresent() ? DecisionState.error : DecisionState.success;
+                returnState = getFailWorkflowDecisionAttributes().isPresent() ? error : success;
             }
 
             return returnState;
@@ -401,6 +381,6 @@ public class DecisionBuilder implements ActionSupplier {
 
     private Stream<Decision> findDecisionStream(DecisionType decisionType) {
         return decisions.stream()
-                   .filter(d -> d.getDecisionType().equals(decisionType.name()));
+            .filter(d -> d.getDecisionType().equals(decisionType.name()));
     }
 }

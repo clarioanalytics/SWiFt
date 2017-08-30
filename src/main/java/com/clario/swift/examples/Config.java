@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
 
 import static com.clario.swift.SwiftUtil.createUniqueWorkflowId;
 import static java.lang.Boolean.parseBoolean;
@@ -65,6 +66,17 @@ public class Config {
             config = new Config();
         }
         return config;
+    }
+    
+    public void registerShutdownMethod(ExecutorService service) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("Shutting down pool and exiting.");
+            try {
+                config().getSWF().shutdown();
+            } finally {
+                service.shutdownNow();
+            }
+        }));     
     }
 
 

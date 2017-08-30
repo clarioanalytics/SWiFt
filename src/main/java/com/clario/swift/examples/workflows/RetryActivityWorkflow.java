@@ -36,7 +36,7 @@ public class RetryActivityWorkflow extends Workflow {
         config().submit(workflow, "120");
     }
 
-    // RetryPolicy subclasses should be thread-safe so we can share them
+    // Each retry policy on a workflow should have its own action id since it is the related history events that let us know how many retries occurred. 
     private final RetryPolicy RETRY_POLICY = new RetryPolicy("step1 retry")
         .withInitialRetryInterval(TimeUnit.SECONDS, 5)
         .withMaximumRetryInterval(TimeUnit.MINUTES, 1)

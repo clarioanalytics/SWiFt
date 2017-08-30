@@ -76,6 +76,18 @@ public class ActivityMethods {
         return i + 1000;
     }
 
+    @ActivityMethod(name = "Activity Init", version = "1.0")
+    public String activityInitProcess(ActivityContext context) {
+        sleep(SECONDS.toMillis(2));
+        return context.getInput() + ".";
+    }
+
+    @ActivityMethod(name = "Activity Poll", version = "1.0")
+    public String activityPollProcess(ActivityContext context) {
+        sleep(SECONDS.toMillis(2));
+        return context.getInput() + ".";
+    }
+
     private static void sleep(long time) {
         try {
             Thread.sleep(time);

@@ -26,7 +26,7 @@ Our major goals were:
 - Reduce as much 'magic' as possible, we believe that being able to follow your code in a debugger should be easy
 - Make it usable by as large an audience as possible:
     - ~~Make it backward compatible to Java 1.6, which matches the minimum version that can be used with Amazon API for Java~~
-    - Don't add a lot of dependencies and force 'jarplosion' on users 
+    - ~~Don't add a lot of dependencies and force 'jarplosion' on users~~ added dependency on groovy 
     - Make writing/running workflows easy enough so that developers will want to do so
     - Document it well and provide lots of examples
 

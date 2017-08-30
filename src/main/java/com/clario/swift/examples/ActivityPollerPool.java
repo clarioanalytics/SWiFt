@@ -35,16 +35,7 @@ public class ActivityPollerPool {
             service.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.SECONDS);
         }
 
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                log.info("Shutting down pool and exiting.");
-                try {
-                    config().getSWF().shutdown();
-                } finally {
-                    service.shutdownNow();
-                }
-            }
-        });
+        config().registerShutdownMethod(service);
         log.info("activity pollers started:");
     }
 }

@@ -555,7 +555,7 @@ public class Event implements Comparable<Event> {
 
 
     public boolean equals(Object o) {
-        return o != null && getClass().equals(o.getClass()) && historyEvent.equals(o);
+        return o != null && getClass().equals(o.getClass()) && historyEvent.equals(((Event) o).historyEvent);
     }
 
     public int hashCode() {

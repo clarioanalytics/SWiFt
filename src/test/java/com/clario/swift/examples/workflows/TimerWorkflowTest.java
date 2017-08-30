@@ -1,6 +1,5 @@
 package com.clario.swift.examples.workflows;
 
-import com.amazonaws.services.simpleworkflow.model.CompleteWorkflowExecutionDecisionAttributes;
 import com.amazonaws.services.simpleworkflow.model.Decision;
 import com.clario.swift.EventList;
 import com.clario.swift.TestUtil;
@@ -22,7 +21,7 @@ public class TimerWorkflowTest {
 
     @Before
     public void before() {
-        decisions = new ArrayList<Decision>();
+        decisions = new ArrayList<>();
         eventList = TestUtil.loadActionEvents(getClass(), "TimerWorkflowHistory.json");
         workflow.reset();
     }

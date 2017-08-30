@@ -37,7 +37,7 @@ public class EventList extends AbstractList<Event> {
      * Convert a list of SWF {@link HistoryEvent} to an {@link EventList} of {@link Event}.
      */
     public static EventList convert(List<HistoryEvent> historyEvents) {
-        List<Event> actionEvents = new ArrayList<Event>(historyEvents.size());
+        List<Event> actionEvents = new ArrayList<>(historyEvents.size());
         for (HistoryEvent historyEvent : historyEvents) {
             actionEvents.add(new Event(historyEvent));
         }
@@ -134,11 +134,7 @@ public class EventList extends AbstractList<Event> {
      * @return number of times a given {@link RetryPolicy}s timer has been started.
      */
     public EventList selectRetryCount(final String control) {
-        return select(new SelectFunction() {
-            public boolean select(Event event, int index, EventList eventList) {
-                return TimerStarted == event.getType() && control.equals(event.getHistoryEvent().getTimerStartedEventAttributes().getControl());
-            }
-        });
+        return select((SelectFunction) (event, index, eventList) -> TimerStarted == event.getType() && control.equals(event.getHistoryEvent().getTimerStartedEventAttributes().getControl()));
     }
 
     /**
@@ -169,33 +165,21 @@ public class EventList extends AbstractList<Event> {
      * Select events by {@link EventType}.
      */
     public static SelectFunction byEventType(final EventType eventType) {
-        return new SelectFunction() {
-            public boolean select(Event event, int index, EventList eventList) {
-                return event.getType() == eventType;
-            }
-        };
+        return (event, index, eventList) -> event.getType() == eventType;
     }
 
     /**
      * Select events by {@link TaskType}.
      */
     public static SelectFunction byTaskType(final TaskType taskType) {
-        return new SelectFunction() {
-            public boolean select(Event event, int index, EventList eventList) {
-                return event.getTask() == taskType;
-            }
-        };
+        return (event, index, eventList) -> event.getTask() == taskType;
     }
 
     /**
      * Select events by {@link EventState}.
      */
     public static SelectFunction byEventState(final EventState eventState) {
-        return new SelectFunction() {
-            public boolean select(Event event, int index, EventList eventList) {
-                return event.getState() == eventState;
-            }
-        };
+        return (event, index, eventList) -> event.getState() == eventState;
     }
 
     /**
@@ -227,10 +211,6 @@ public class EventList extends AbstractList<Event> {
      * @param endEventId maximum eventId in range.
      */
     public static SelectFunction byEventIdRange(final long startEventId, final long endEventId) {
-        return new SelectFunction() {
-            public boolean select(Event event, int index, EventList eventList) {
-                return event.getEventId() >= startEventId && event.getEventId() <= endEventId;
-            }
-        };
+        return (event, index, eventList) -> event.getEventId() >= startEventId && event.getEventId() <= endEventId;
     }
 }

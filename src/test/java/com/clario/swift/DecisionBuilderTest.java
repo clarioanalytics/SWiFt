@@ -72,13 +72,13 @@ public class DecisionBuilderTest {
             addStep();
         }
 
-        DecisionBuilder.DecisionState next(Map<MockAction, String> step) {
+        DecisionState next(Map<MockAction, String> step) {
             log.info("next " + step);
             if (++stepCount > 1) {
                 actions.forEach(MockAction::nextState);
             }
             decisions.clear();
-            DecisionBuilder.DecisionState result = builder.decide();
+            DecisionState result = builder.decide();
 
             if (step != LAST_STEP) {
                 List<Decision> expectedDecisions = step.keySet().stream()
@@ -119,7 +119,7 @@ public class DecisionBuilderTest {
          */
         void play() {
             steps.add(LAST_STEP);
-            DecisionBuilder.DecisionState result = DecisionBuilder.DecisionState.notStarted;
+            DecisionState result = DecisionState.notStarted;
             while (!steps.isEmpty()) {
                 result = next(steps.remove(0));
                 if (result.isFinished()) {
