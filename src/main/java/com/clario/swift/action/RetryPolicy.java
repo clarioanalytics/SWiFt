@@ -58,7 +58,7 @@ public class RetryPolicy {
     protected Seconds maximumRetryInterval = Hours.ONE.toStandardSeconds();
     protected Seconds retryExpirationInterval = Days.days(365).toStandardSeconds();
     protected String control;
-    private String matchesRegEx;
+    private RetryPolicyTerminator retryPolicyOnErrorTerminator;
 
     /**
      * Create a new instance with a defined control value.
@@ -124,18 +124,13 @@ public class RetryPolicy {
         }
     }
 
-    public RetryPolicy withStopIfResultMatches(String regEx) {
-        this.matchesRegEx = regEx;
+    public RetryPolicy withRetryTerminator(RetryPolicyTerminator retryPolicyOnErrorTerminator) {
+        this.retryPolicyOnErrorTerminator = retryPolicyOnErrorTerminator;
         return this;
     }
 
-    public boolean testResultMatches(String... values) {
-        for (String value : values) {
-            if (matchesRegEx != null && SwiftUtil.defaultIfNull(value, "").matches(matchesRegEx)) {
-                return true;
-            }
-        }
-        return false;
+    public boolean testStopRetrying(String output) {
+        return retryPolicyOnErrorTerminator != null && retryPolicyOnErrorTerminator.shouldStopRetrying(output);
     }
 
     /**

@@ -59,26 +59,17 @@ public class RetryPolicyTest {
 
 
     @Test
-    public void testMatchesRegEx() {
+    public void testRetryTerminator() {
         String reason = "WTF ERROR: something wicked this way came";
         String details = "java.lang.IllegalStateException: Failed to invoke with: step1: 1.0 at ....";
 
-        retry.withStopIfResultMatches(".*IllegalStateException.*");
-        assertTrue(retry.testResultMatches(reason, details));
-
-        retry.withStopIfResultMatches(".*step\\d.*");
-        assertTrue(retry.testResultMatches(reason, details));
-
-        retry.withStopIfResultMatches(".*w.cked.*came.*");
-        assertTrue(retry.testResultMatches(reason, details));
-
-        retry.withStopIfResultMatches("^WTF.*");
-        assertTrue(retry.testResultMatches(reason, details));
-
-        retry.withStopIfResultMatches("IllegalStateException");
-        assertFalse(retry.testResultMatches(reason, details));
-        retry.withStopIfResultMatches("XYZ");
-        assertFalse(retry.testResultMatches(reason, details));
+        retry.withRetryTerminator(output -> output.matches(".*IllegalStateException.*"));
+        assertFalse(retry.testStopRetrying(reason));
+        assertTrue(retry.testStopRetrying(details));
+        
+        retry.withRetryTerminator(output -> output.startsWith("WTF"));
+        assertTrue(retry.testStopRetrying(reason));
+        assertFalse(retry.testStopRetrying(details));
     }
 
     @Test

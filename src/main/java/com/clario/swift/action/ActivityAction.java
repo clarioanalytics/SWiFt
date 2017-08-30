@@ -205,6 +205,10 @@ public class ActivityAction extends Action<ActivityAction> {
      */
     @Override
     public Decision createInitiateActivityDecision() {
+        return newInitiateActivityDecsion(getInput());
+    }
+
+    protected Decision newInitiateActivityDecsion(String activityTaskInput) {
         return new Decision()
             .withDecisionType(DecisionType.ScheduleActivityTask)
             .withScheduleActivityTaskDecisionAttributes(new ScheduleActivityTaskDecisionAttributes()
@@ -214,7 +218,7 @@ public class ActivityAction extends Action<ActivityAction> {
                 .withActivityId(getActionId())
                 .withTaskList(new TaskList()
                     .withName(taskList == null ? getWorkflow().getTaskList() : taskList))
-                .withInput(input)
+                .withInput(activityTaskInput)
                 .withControl(control)
                 .withHeartbeatTimeout(heartBeatTimeoutTimeout)
                 .withScheduleToCloseTimeout(scheduleToCloseTimeout)

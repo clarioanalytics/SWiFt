@@ -29,7 +29,7 @@ public class SimpleWorkflowTest {
 
     @Before
     public void before() {
-        decisions = new ArrayList<Decision>();
+        decisions = new ArrayList<>();
     }
 
     private static void assertDecisionType(Decision decision, DecisionType decisionType) {

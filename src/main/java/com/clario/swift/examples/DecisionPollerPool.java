@@ -40,6 +40,7 @@ public class DecisionPollerPool {
             poller.addWorkflows(new StartChildWorkflow());
             poller.addWorkflows(new TimerWorkflow());
             poller.addWorkflows(new WaitForSignalWorkflow());
+            poller.addWorkflows(new RetryActivityPollingWorkflowGroovy());
 
             if (config().isRegisterWorkflows() && it == 1) {
                 poller.registerSwfWorkflows();
@@ -48,16 +49,7 @@ public class DecisionPollerPool {
             service.scheduleWithFixedDelay(poller, 1, 1, TimeUnit.SECONDS);
         }
 
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                log.info("Shutting down pool and exiting.");
-                try {
-                    config().getSWF().shutdown();
-                } finally {
-                    service.shutdownNow();
-                }
-            }
-        });
+        config().registerShutdownMethod(service);
         log.info("decision pollers started:");
     }
 }
