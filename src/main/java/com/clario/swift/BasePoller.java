@@ -21,6 +21,7 @@ public abstract class BasePoller implements Runnable {
     protected AmazonSimpleWorkflow swf;
     private int logHeartbeatMinutes = 10;
     private long priorHeartbeatTime = System.currentTimeMillis();
+    private boolean stopped = false;
 
     /**
      * @param id unique id for poller used for logging and recording in SWF
@@ -45,7 +46,11 @@ public abstract class BasePoller implements Runnable {
     public void run() {
         log.debug("run");
         try {
-            poll();
+            if (stopped) {
+                log.warn(format("%s: stopped, ignoring poll", toString()));
+            } else {
+                poll();
+            }
         } catch (Throwable t) {
             if (t.getMessage() != null && t.getMessage().contains("Connection pool shut down")) {
                 log.debug(format("%s :%s", toString(), t.getMessage()));
@@ -54,6 +59,20 @@ public abstract class BasePoller implements Runnable {
             }
         }
     }
+
+    /**
+     * Mark this poller as stopped, which will do nothing on any subsequent calls to {@link #poll()}.
+     */
+    void stop() {
+        log.warn(format("%s: stop called", toString()));
+        stopped = true;
+    }
+
+    /**
+     * @return true if this poller has been stopped.
+     * @see #stop()
+     */
+    boolean isStopped() { return stopped; }
 
     /**
      * Subclass implements to perform the SWF polling work.
